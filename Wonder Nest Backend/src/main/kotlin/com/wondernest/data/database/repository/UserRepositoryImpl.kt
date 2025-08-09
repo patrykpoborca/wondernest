@@ -8,8 +8,14 @@ import com.wondernest.domain.model.PasswordResetToken
 import com.wondernest.domain.repository.UserRepository
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import java.util.*
 import kotlinx.datetime.Clock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 
 class UserRepositoryImpl : UserRepository {
     private val db = DatabaseFactory()
@@ -33,7 +39,7 @@ class UserRepositoryImpl : UserRepository {
             it[notificationPreferences] = user.notificationPreferences
             it[mfaEnabled] = user.mfaEnabled
             it[mfaSecret] = user.mfaSecret
-            it[backupCodes] = user.backupCodes?.toTypedArray()
+            it[backupCodes] = user.backupCodes?.let { codes -> Json.encodeToString(codes) }
             it[createdAt] = user.createdAt
             it[updatedAt] = user.updatedAt
             it[lastLoginAt] = user.lastLoginAt
@@ -85,7 +91,7 @@ class UserRepositoryImpl : UserRepository {
             it[notificationPreferences] = user.notificationPreferences
             it[mfaEnabled] = user.mfaEnabled
             it[mfaSecret] = user.mfaSecret
-            it[backupCodes] = user.backupCodes?.toTypedArray()
+            it[backupCodes] = user.backupCodes?.let { codes -> Json.encodeToString(codes) }
             it[updatedAt] = Clock.System.now()
             it[parentalConsentVerified] = user.parentalConsentVerified
             it[parentalConsentMethod] = user.parentalConsentMethod
@@ -151,9 +157,9 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun getSessionByToken(token: String): UserSession? = db.dbQuery {
         UserSessions.select { 
-            UserSessions.sessionToken eq token and 
-            UserSessions.isActive eq true and
-            UserSessions.expiresAt greater Clock.System.now()
+            (UserSessions.sessionToken eq token) and 
+            (UserSessions.isActive eq true) and
+            (UserSessions.expiresAt greater Clock.System.now())
         }
         .map { rowToUserSession(it) }
         .singleOrNull()
@@ -192,9 +198,9 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun getPasswordResetToken(token: String): PasswordResetToken? = db.dbQuery {
         PasswordResetTokens.select { 
-            PasswordResetTokens.token eq token and 
-            PasswordResetTokens.used eq false and
-            PasswordResetTokens.expiresAt greater Clock.System.now()
+            (PasswordResetTokens.token eq token) and 
+            (PasswordResetTokens.used eq false) and
+            (PasswordResetTokens.expiresAt greater Clock.System.now())
         }
         .map { rowToPasswordResetToken(it) }
         .singleOrNull()
@@ -208,7 +214,7 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun deleteExpiredPasswordResetTokens(): Int = db.dbQuery {
         PasswordResetTokens.deleteWhere { 
-            expiresAt less Clock.System.now()
+            PasswordResetTokens.expiresAt less Clock.System.now()
         }
     }
 
@@ -246,7 +252,7 @@ class UserRepositoryImpl : UserRepository {
         notificationPreferences = row[Users.notificationPreferences],
         mfaEnabled = row[Users.mfaEnabled],
         mfaSecret = row[Users.mfaSecret],
-        backupCodes = row[Users.backupCodes]?.toList(),
+        backupCodes = row[Users.backupCodes]?.let { Json.decodeFromString<List<String>>(it) },
         createdAt = row[Users.createdAt],
         updatedAt = row[Users.updatedAt],
         lastLoginAt = row[Users.lastLoginAt],

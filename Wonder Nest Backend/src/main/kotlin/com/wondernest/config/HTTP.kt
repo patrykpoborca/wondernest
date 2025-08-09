@@ -20,12 +20,24 @@ fun Application.configureHTTP() {
         allowHeader("X-Requested-With")
         
         // Allow specific origins in production
-        val allowedOrigins = environment.config.propertyOrNull("cors.allowed_origins")?.getString()?.split(",") ?: listOf("*")
+        val allowedOrigins = this@configureHTTP.environment.config.propertyOrNull("cors.allowed_origins")?.getString()?.split(",") ?: listOf("*")
         if (allowedOrigins.contains("*")) {
             anyHost()
         } else {
             allowedOrigins.forEach { origin ->
-                allowHost(origin.trim())
+                val trimmedOrigin = origin.trim()
+                // Parse the origin to extract host and port
+                if (trimmedOrigin.startsWith("http://") || trimmedOrigin.startsWith("https://")) {
+                    val url = Url(trimmedOrigin)
+                    if (url.port != DEFAULT_PORT) {
+                        allowHost(url.host, listOf(url.protocol.name), listOf(url.port.toString()))
+                    } else {
+                        allowHost(url.host, listOf(url.protocol.name))
+                    }
+                } else {
+                    // Fallback for simple hostnames
+                    allowHost(trimmedOrigin)
+                }
             }
         }
         
@@ -45,16 +57,7 @@ fun Application.configureHTTP() {
 
     install(ConditionalHeaders)
     
-    install(CachingHeaders) {
-        options { call, outgoingContent ->
-            when (outgoingContent.contentType?.withoutParameters()) {
-                ContentType.Text.CSS -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 24 * 60 * 60))
-                ContentType.Application.JavaScript -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 24 * 60 * 60))
-                ContentType.Image.Any -> CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 7 * 24 * 60 * 60))
-                else -> null
-            }
-        }
-    }
+    install(CachingHeaders)
 
     install(DefaultHeaders) {
         header("X-Engine", "Ktor") // will send this header with each response

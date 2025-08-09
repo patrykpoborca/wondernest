@@ -1,0 +1,21 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "WonderNest Development",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "wondernest_prod",
+      "Username": "postgres",
+      "UseSSHTunnel": 0,
+      "TunnelPort": "22",
+      "TunnelAuthentication": 0,
+      "KerberosAuthentication": false,
+      "ConnectionParameters": {
+        "sslmode": "prefer",
+        "connect_timeout": "10"
+      },
+      "Comment": "WonderNest PostgreSQL Database - Development Environment"
+    }
+  }
+}

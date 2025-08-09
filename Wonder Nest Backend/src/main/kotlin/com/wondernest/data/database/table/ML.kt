@@ -5,6 +5,9 @@ import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.json.jsonb
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import java.math.BigDecimal
 
 @Serializable
@@ -48,9 +51,18 @@ object RecommendationModels : UUIDTable("recommendation_models") {
     val version = varchar("version", 20)
     
     // Model configuration
-    val parameters = jsonb<ModelParameters>("parameters", ::ModelParameters, ModelParameters::class).default(ModelParameters())
-    val featureImportance = jsonb<FeatureImportance>("feature_importance", ::FeatureImportance, FeatureImportance::class).default(FeatureImportance())
-    val performanceMetrics = jsonb<PerformanceMetrics>("performance_metrics", ::PerformanceMetrics, PerformanceMetrics::class).default(PerformanceMetrics())
+    val parameters = jsonb<ModelParameters>("parameters",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(ModelParameters())
+    val featureImportance = jsonb<FeatureImportance>("feature_importance",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(FeatureImportance())
+    val performanceMetrics = jsonb<PerformanceMetrics>("performance_metrics",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(PerformanceMetrics())
     
     // Model lifecycle
     val trainedAt = timestamp("trained_at")
@@ -62,7 +74,7 @@ object RecommendationModels : UUIDTable("recommendation_models") {
     val trainingDataTo = timestamp("training_data_to")
     val trainingSamplesCount = integer("training_samples_count")
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
 }
 
 // Content recommendations for children
@@ -73,11 +85,14 @@ object ContentRecommendations : UUIDTable("content_recommendations") {
     
     // Recommendation score and reasoning
     val score = decimal("score", 4, 3) // 0-1 recommendation score
-    val reasoning = jsonb<RecommendationReasoning>("reasoning", ::RecommendationReasoning, RecommendationReasoning::class).default(RecommendationReasoning())
+    val reasoning = jsonb<RecommendationReasoning>("reasoning",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(RecommendationReasoning())
     val recommendationType = varchar("recommendation_type", 50) // trending, similar_to_liked, age_appropriate
     
     // Recommendation lifecycle
-    val generatedAt = timestamp("generated_at").defaultExpression(CurrentTimestamp)
+    val generatedAt = timestamp("generated_at").defaultExpression(CurrentTimestamp())
     val expiresAt = timestamp("expires_at")
     val shownToUser = bool("shown_to_user").default(false)
     val shownAt = timestamp("shown_at").nullable()

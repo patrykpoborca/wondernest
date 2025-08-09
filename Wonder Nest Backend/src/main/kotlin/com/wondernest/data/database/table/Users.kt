@@ -4,8 +4,12 @@ import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.json.jsonb
+import org.jetbrains.exposed.sql.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 
 // Enums for user-related tables
 enum class AuthProvider { EMAIL, GOOGLE, APPLE, FACEBOOK }
@@ -46,17 +50,23 @@ object Users : UUIDTable("users") {
     val role = enumerationByName<UserRole>("role", 20).default(UserRole.PARENT)
     
     // Privacy and notification preferences
-    val privacySettings = jsonb<PrivacySettings>("privacy_settings", ::PrivacySettings, PrivacySettings::class).default(PrivacySettings())
-    val notificationPreferences = jsonb<NotificationPreferences>("notification_preferences", ::NotificationPreferences, NotificationPreferences::class).default(NotificationPreferences())
+    val privacySettings = jsonb<PrivacySettings>("privacy_settings",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(PrivacySettings())
+    val notificationPreferences = jsonb<NotificationPreferences>("notification_preferences",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(NotificationPreferences())
     
     // MFA settings
     val mfaEnabled = bool("mfa_enabled").default(false)
     val mfaSecret = varchar("mfa_secret", 255).nullable()
-    val backupCodes = array<String>("backup_codes").nullable()
+    val backupCodes = text("backup_codes").nullable() // Storing as JSON array string for now
     
     // Audit fields
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
     val lastLoginAt = timestamp("last_login_at").nullable()
     val loginCount = integer("login_count").default(0)
     
@@ -76,11 +86,14 @@ object UserSessions : UUIDTable("user_sessions") {
     val deviceFingerprint = varchar("device_fingerprint", 255).nullable()
     val userAgent = text("user_agent").nullable()
     val ipAddress = varchar("ip_address", 45).nullable()
-    val locationData = jsonb<Map<String, String>>("location_data", { it }, Map::class).nullable()
+    val locationData = jsonb<Map<String, String>>("location_data",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).nullable()
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     val expiresAt = timestamp("expires_at")
-    val lastActivity = timestamp("last_activity").defaultExpression(CurrentTimestamp)
+    val lastActivity = timestamp("last_activity").defaultExpression(CurrentTimestamp())
     val isActive = bool("is_active").default(true)
 }
 
@@ -89,5 +102,5 @@ object PasswordResetTokens : UUIDTable("password_reset_tokens") {
     val token = varchar("token", 255).uniqueIndex()
     val used = bool("used").default(false)
     val expiresAt = timestamp("expires_at")
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
 }

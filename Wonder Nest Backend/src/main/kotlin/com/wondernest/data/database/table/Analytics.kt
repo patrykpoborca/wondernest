@@ -3,8 +3,11 @@ package com.wondernest.data.database.table
 import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
+import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.json.jsonb
+import org.jetbrains.exposed.sql.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 
 enum class EventType { APP_OPEN, CONTENT_VIEW, AUDIO_SESSION_START, USER_INTERACTION, MILESTONE_ACHIEVED }
@@ -49,9 +52,9 @@ object DailyChildMetrics : UUIDTable("daily_child_metrics") {
     
     // Behavioral patterns
     val mostActiveHour = integer("most_active_hour").nullable() // 0-23
-    val preferredContentTypes = array<String>("preferred_content_types").default(emptyList())
+    val preferredContentTypes = text("preferred_content_types").default("[]") // JSON array as text
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     
     init {
         uniqueIndex(childId, date)
@@ -80,8 +83,8 @@ object Milestones : UUIDTable("milestones") {
     val confidenceLevel = decimal("confidence_level", 3, 2).default(BigDecimal.ZERO) // 0-1 confidence in achievement
     val parentNotes = text("parent_notes").nullable()
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
 }
 
 // Usage analytics and events
@@ -93,11 +96,11 @@ object Events : UUIDTable("events") {
     // Event details
     val eventType = enumerationByName<EventType>("event_type", 30)
     val eventName = varchar("event_name", 100)
-    val eventProperties = jsonb<EventProperties>("event_properties", ::EventProperties, EventProperties::class).default(EventProperties())
+    val eventProperties = jsonb<EventProperties>("event_properties", Json.Default, EventProperties.serializer()).default(EventProperties())
     
     // Context
-    val timestamp = timestamp("timestamp").defaultExpression(CurrentTimestamp)
-    val deviceInfo = jsonb<DeviceInfo>("device_info", ::DeviceInfo, DeviceInfo::class).default(DeviceInfo())
+    val timestamp = timestamp("timestamp").defaultExpression(CurrentTimestamp())
+    val deviceInfo = jsonb<DeviceInfo>("device_info", Json.Default, DeviceInfo.serializer()).default(DeviceInfo())
     val appVersion = varchar("app_version", 50).nullable()
     
     // Privacy-safe location data

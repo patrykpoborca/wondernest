@@ -20,33 +20,79 @@ class RedisCache {
     private lateinit var commands: RedisAsyncCommands<String, String>
 
     fun init() {
-        try {
-            val host = System.getenv("REDIS_HOST") ?: "localhost"
-            val port = System.getenv("REDIS_PORT")?.toInt() ?: 6379
-            val password = System.getenv("REDIS_PASSWORD")
-            val database = System.getenv("REDIS_DATABASE")?.toInt() ?: 0
+        initializeWithRetry()
+    }
+    
+    private fun initializeWithRetry(maxAttempts: Int = 10) {
+        var attempt = 1
+        var lastException: Exception? = null
+        
+        while (attempt <= maxAttempts) {
+            try {
+                logger.info { "Attempting to connect to Redis (attempt $attempt/$maxAttempts)" }
+                
+                val host = System.getenv("REDIS_HOST") ?: "redis"
+                val port = System.getenv("REDIS_PORT")?.toIntOrNull() ?: 6379
+                val password = System.getenv("REDIS_PASSWORD")
+                val database = System.getenv("REDIS_DATABASE")?.toIntOrNull() ?: 0
 
-            val uriBuilder = RedisURI.Builder
-                .redis(host)
-                .withPort(port)
-                .withDatabase(database)
-            
-            if (!password.isNullOrBlank()) {
-                uriBuilder.withPassword(password.toCharArray())
+                val uriBuilder = RedisURI.Builder
+                    .redis(host)
+                    .withPort(port)
+                    .withDatabase(database)
+                    .withTimeout(java.time.Duration.ofSeconds(10))
+                
+                if (!password.isNullOrBlank()) {
+                    uriBuilder.withPassword(password.toCharArray())
+                }
+
+                client = RedisClient.create(uriBuilder.build())
+                connection = client.connect()
+                commands = connection.async()
+                
+                // Test the connection
+                commands.ping().get(5, java.util.concurrent.TimeUnit.SECONDS)
+                
+                logger.info { "Redis cache initialized successfully" }
+                logger.info { "Redis host: $host:$port, database: $database" }
+                return // Success!
+                
+            } catch (e: Exception) {
+                lastException = e
+                logger.warn(e) { "Redis connection attempt $attempt failed: ${e.message}" }
+                
+                // Clean up failed connection
+                if (::connection.isInitialized) {
+                    try {
+                        connection.close()
+                    } catch (closeException: Exception) {
+                        logger.warn(closeException) { "Error closing failed Redis connection" }
+                    }
+                }
+                
+                if (::client.isInitialized) {
+                    try {
+                        client.shutdown()
+                    } catch (shutdownException: Exception) {
+                        logger.warn(shutdownException) { "Error shutting down failed Redis client" }
+                    }
+                }
+                
+                if (attempt < maxAttempts) {
+                    val delaySeconds = minOf(attempt * 2, 30) // Exponential backoff, max 30 seconds
+                    logger.info { "Retrying Redis connection in $delaySeconds seconds..." }
+                    Thread.sleep(delaySeconds * 1000L)
+                }
+                
+                attempt++
             }
-
-            client = RedisClient.create(uriBuilder.build())
-            connection = client.connect()
-            commands = connection.async()
-            
-            logger.info { "Redis cache initialized successfully" }
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to initialize Redis cache" }
-            throw e
         }
+        
+        logger.error(lastException) { "Failed to connect to Redis after $maxAttempts attempts" }
+        throw RuntimeException("Failed to initialize Redis cache after $maxAttempts attempts", lastException)
     }
 
-    suspend fun <T> get(key: String): T? {
+    internal suspend inline fun <reified T> get(key: String): T? {
         return try {
             val value = commands.get(key).await()
             if (value != null) {
@@ -58,7 +104,7 @@ class RedisCache {
         }
     }
 
-    suspend inline fun <reified T> set(key: String, value: T, ttl: Duration = 1.minutes): Boolean {
+    internal suspend inline fun <reified T> set(key: String, value: T, ttl: Duration = 1.minutes): Boolean {
         return try {
             val jsonValue = Json.encodeToString(value)
             val result = if (ttl.inWholeSeconds > 0) {
@@ -121,10 +167,10 @@ class RedisCache {
         }
     }
 
-    suspend fun <T> getOrSet(
+    internal suspend inline fun <reified T> getOrSet(
         key: String,
         ttl: Duration = 1.minutes,
-        fetcher: suspend () -> T
+        noinline fetcher: suspend () -> T
     ): T? {
         val cachedValue = get<T>(key)
         if (cachedValue != null) {

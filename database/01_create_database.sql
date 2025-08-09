@@ -40,32 +40,32 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";  -- Query statistics
 -- =============================================================================
 
 -- Create application schemas for logical separation
-CREATE SCHEMA IF NOT EXISTS core
-    COMMENT ON SCHEMA core IS 'Core user management, authentication, and system configuration';
+CREATE SCHEMA IF NOT EXISTS core;
+COMMENT ON SCHEMA core IS 'Core user management, authentication, and system configuration';
 
-CREATE SCHEMA IF NOT EXISTS family  
-    COMMENT ON SCHEMA family IS 'Family structures, relationships, and child profiles';
+CREATE SCHEMA IF NOT EXISTS family;
+COMMENT ON SCHEMA family IS 'Family structures, relationships, and child profiles';
 
-CREATE SCHEMA IF NOT EXISTS content
-    COMMENT ON SCHEMA content IS 'Content library, curation, and recommendations';
+CREATE SCHEMA IF NOT EXISTS content;
+COMMENT ON SCHEMA content IS 'Content library, curation, and recommendations';
 
-CREATE SCHEMA IF NOT EXISTS audio
-    COMMENT ON SCHEMA audio IS 'Speech analysis sessions and metrics (no raw audio)';
+CREATE SCHEMA IF NOT EXISTS audio;
+COMMENT ON SCHEMA audio IS 'Speech analysis sessions and metrics (no raw audio)';
 
-CREATE SCHEMA IF NOT EXISTS subscription
-    COMMENT ON SCHEMA subscription IS 'Billing, subscription plans, and payment processing';
+CREATE SCHEMA IF NOT EXISTS subscription;
+COMMENT ON SCHEMA subscription IS 'Billing, subscription plans, and payment processing';
 
-CREATE SCHEMA IF NOT EXISTS analytics
-    COMMENT ON SCHEMA analytics IS 'Usage analytics, insights, and reporting';
+CREATE SCHEMA IF NOT EXISTS analytics;
+COMMENT ON SCHEMA analytics IS 'Usage analytics, insights, and reporting';
 
-CREATE SCHEMA IF NOT EXISTS safety
-    COMMENT ON SCHEMA safety IS 'Content safety, parental controls, and compliance';
+CREATE SCHEMA IF NOT EXISTS safety;
+COMMENT ON SCHEMA safety IS 'Content safety, parental controls, and compliance';
 
-CREATE SCHEMA IF NOT EXISTS ml
-    COMMENT ON SCHEMA ml IS 'Machine learning models, recommendations, and AI features';
+CREATE SCHEMA IF NOT EXISTS ml;
+COMMENT ON SCHEMA ml IS 'Machine learning models, recommendations, and AI features';
 
-CREATE SCHEMA IF NOT EXISTS audit
-    COMMENT ON SCHEMA audit IS 'Audit logs, compliance tracking, and data governance';
+CREATE SCHEMA IF NOT EXISTS audit;
+COMMENT ON SCHEMA audit IS 'Audit logs, compliance tracking, and data governance';
 
 -- =============================================================================
 -- CUSTOM TYPES & ENUMS

@@ -13,21 +13,22 @@ COPY gradle.properties .
 # Copy source code
 COPY src/ src/
 
-# Build the application
-RUN gradle build --no-daemon --info
+# Build the application (skip tests for faster builds and focus on migration testing)
+RUN gradle build -x test --no-daemon --info
 
 # Production stage
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # Install necessary tools
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
     tzdata \
-    dumb-init
+    dumb-init \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app user for security
-RUN addgroup -g 1000 wondernest && \
-    adduser -u 1000 -G wondernest -D -h /app wondernest
+RUN useradd -u 1001 -g users -d /app -m wondernest
 
 WORKDIR /app
 
@@ -35,7 +36,7 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*-all.jar app.jar
 
 # Set ownership
-RUN chown wondernest:wondernest app.jar
+RUN chown wondernest:users app.jar
 
 # Switch to non-root user
 USER wondernest

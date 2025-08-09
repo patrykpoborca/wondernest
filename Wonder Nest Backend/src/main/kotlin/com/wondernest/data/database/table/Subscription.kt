@@ -5,6 +5,9 @@ import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.json.jsonb
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 
 enum class PlanType { FREE, BASIC, PREMIUM, ENTERPRISE }
 enum class BillingCycle { MONTHLY, YEARLY, LIFETIME }
@@ -42,7 +45,10 @@ object Plans : UUIDTable("plans") {
     val billingCycle = enumerationByName<BillingCycle>("billing_cycle", 20)
     
     // Features
-    val features = jsonb<PlanFeatures>("features", ::PlanFeatures, PlanFeatures::class)
+    val features = jsonb<PlanFeatures>("features",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    )
     val maxChildren = integer("max_children").default(1)
     val maxAudioHoursPerMonth = integer("max_audio_hours_per_month").nullable()
     
@@ -50,8 +56,8 @@ object Plans : UUIDTable("plans") {
     val isActive = bool("is_active").default(true)
     val isVisible = bool("is_visible").default(true)
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
 }
 
 object UserSubscriptions : UUIDTable("user_subscriptions") {
@@ -72,10 +78,13 @@ object UserSubscriptions : UUIDTable("user_subscriptions") {
     val stripeCustomerId = varchar("stripe_customer_id", 255).nullable()
     
     // Usage tracking
-    val usageData = jsonb<UsageData>("usage_data", ::UsageData, UsageData::class).default(UsageData())
+    val usageData = jsonb<UsageData>("usage_data",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(UsageData())
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
 }
 
 object Transactions : UUIDTable("transactions") {
@@ -94,11 +103,14 @@ object Transactions : UUIDTable("transactions") {
     val paymentMethodId = varchar("payment_method_id", 255).nullable()
     
     // Timestamps
-    val attemptedAt = timestamp("attempted_at").defaultExpression(CurrentTimestamp)
+    val attemptedAt = timestamp("attempted_at").defaultExpression(CurrentTimestamp())
     val succeededAt = timestamp("succeeded_at").nullable()
     val failedAt = timestamp("failed_at").nullable()
     val refundedAt = timestamp("refunded_at").nullable()
     
     val failureReason = text("failure_reason").nullable()
-    val metadata = jsonb<Map<String, String>>("metadata", { it }, Map::class).default(emptyMap())
+    val metadata = jsonb<Map<String, String>>("metadata",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    ).default(emptyMap())
 }

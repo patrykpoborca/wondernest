@@ -5,13 +5,14 @@ import com.wondernest.data.database.table.UserRole
 import com.wondernest.data.database.table.UserStatus
 import com.wondernest.data.database.table.NotificationPreferences
 import com.wondernest.data.database.table.PrivacySettings
+import com.wondernest.config.UUIDSerializer
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import java.util.*
 
 @Serializable
 data class User(
-    val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
     val email: String,
     val emailVerified: Boolean = false,
     val emailVerifiedAt: Instant? = null,
@@ -46,8 +47,8 @@ data class User(
 
 @Serializable
 data class UserSession(
-    val id: UUID,
-    val userId: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val userId: UUID,
     val sessionToken: String,
     val refreshToken: String? = null,
     val deviceFingerprint: String? = null,
@@ -62,8 +63,8 @@ data class UserSession(
 
 @Serializable
 data class PasswordResetToken(
-    val id: UUID,
-    val userId: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val userId: UUID,
     val token: String,
     val used: Boolean = false,
     val expiresAt: Instant,

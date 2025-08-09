@@ -36,7 +36,7 @@ object AudioSessions : UUIDTable("audio_sessions") {
     val consentConfirmed = bool("consent_confirmed").default(true)
     val parentPresent = bool("parent_present").default(true)
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
 }
 
 // Speech analysis metrics (aggregated from on-device processing)
@@ -71,5 +71,5 @@ object SpeechMetrics : UUIDTable("speech_metrics") {
     val engagementLevel = varchar("engagement_level", 20).nullable() // low, medium, high
     val excitementIndicators = integer("excitement_indicators").default(0) // laughing, exclamations
     
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
 }

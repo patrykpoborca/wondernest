@@ -27,44 +27,44 @@ repositories {
 
 dependencies {
     // Core Ktor dependencies
-    implementation("io.ktor:ktor-server-core-jvm")
-    implementation("io.ktor:ktor-server-netty-jvm")
-    implementation("io.ktor:ktor-server-config-yaml")
-    implementation("io.ktor:ktor-server-host-common-jvm")
+    implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
+    implementation("io.ktor:ktor-server-host-common-jvm:$ktor_version")
     
     // Content negotiation and serialization
-    implementation("io.ktor:ktor-server-content-negotiation-jvm")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
-    implementation("io.ktor:ktor-serialization-jackson-jvm")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktor_version")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktor_version")
+    implementation("io.ktor:ktor-serialization-jackson-jvm:$ktor_version")
     
     // Authentication and authorization
-    implementation("io.ktor:ktor-server-auth-jvm")
-    implementation("io.ktor:ktor-server-auth-jwt-jvm")
-    implementation("io.ktor:ktor-client-core")
-    implementation("io.ktor:ktor-client-cio")
-    implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktor_version")
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     
     // CORS and other HTTP features
-    implementation("io.ktor:ktor-server-cors-jvm")
-    implementation("io.ktor:ktor-server-compression-jvm")
-    implementation("io.ktor:ktor-server-caching-headers-jvm")
-    implementation("io.ktor:ktor-server-conditional-headers-jvm")
-    implementation("io.ktor:ktor-server-default-headers-jvm")
-    implementation("io.ktor:ktor-server-forwarded-header-jvm")
-    implementation("io.ktor:ktor-server-call-logging-jvm")
-    implementation("io.ktor:ktor-server-call-id-jvm")
+    implementation("io.ktor:ktor-server-cors-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-caching-headers-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-conditional-headers-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-default-headers-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-forwarded-header-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-call-id-jvm:$ktor_version")
     
     // WebSocket support
-    implementation("io.ktor:ktor-server-websockets-jvm")
+    implementation("io.ktor:ktor-server-websockets-jvm:$ktor_version")
     
     // Status pages and error handling
-    implementation("io.ktor:ktor-server-status-pages-jvm")
+    implementation("io.ktor:ktor-server-status-pages-jvm:$ktor_version")
     
     // Rate limiting
-    implementation("io.ktor:ktor-server-rate-limit-jvm")
+    implementation("io.ktor:ktor-server-rate-limit-jvm:$ktor_version")
     
     // Monitoring and metrics
-    implementation("io.ktor:ktor-server-metrics-micrometer-jvm")
+    implementation("io.ktor:ktor-server-metrics-micrometer-jvm:$ktor_version")
     implementation("io.micrometer:micrometer-registry-prometheus:1.12.1")
     
     // Database - Exposed ORM
@@ -95,7 +95,7 @@ dependencies {
     implementation("am.ik.yavi:yavi:0.14.1")
     
     // Password hashing
-    implementation("org.springframework:spring-security-crypto:6.2.1")
+    implementation("org.springframework.security:spring-security-crypto:6.3.6")
     
     // JSON Web Tokens
     implementation("com.auth0:java-jwt:4.4.0")
@@ -110,8 +110,8 @@ dependencies {
     implementation("com.sendgrid:sendgrid-java:4.10.2")
     
     // HTTP client for external APIs
-    implementation("io.ktor:ktor-client-apache-jvm")
-    implementation("io.ktor:ktor-client-logging-jvm")
+    implementation("io.ktor:ktor-client-apache-jvm:$ktor_version")
+    implementation("io.ktor:ktor-client-logging-jvm:$ktor_version")
     
     // Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
@@ -120,6 +120,9 @@ dependencies {
     
     // Date and time
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    
+    // UUID serialization support
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     
     // Configuration
     implementation("io.github.config4k:config4k:0.7.0")
@@ -132,8 +135,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     
     // Testing
-    testImplementation("io.ktor:ktor-server-tests-jvm")
-    testImplementation("io.ktor:ktor-server-test-host-jvm")
+    testImplementation("io.ktor:ktor-server-test-host-jvm:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("org.testcontainers:postgresql:1.19.3")

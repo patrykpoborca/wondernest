@@ -12,14 +12,17 @@ services:
       # Database
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: wondernest_dev
-      DB_USERNAME: wondernest_user
-      DB_PASSWORD: wondernest_password
+      DB_NAME: wondernest_prod
+      DB_USERNAME: wondernest_app
+      DB_PASSWORD: wondernest_secure_password_dev
+      DB_URL: "jdbc:postgresql://postgres:5432/wondernest_prod"
+      DB_MAX_POOL_SIZE: "20"
+      DB_MIN_IDLE: "5"
       
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
+      REDIS_PASSWORD: "wondernest_redis_password_dev"
       
       # JWT
       JWT_SECRET: "development-jwt-secret-change-in-production"
@@ -35,9 +38,15 @@ services:
       # Application
       KTOR_ENV: development
       
+      # Migration settings
+      FLYWAY_ENABLED: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - wondernest
     restart: unless-stopped
@@ -46,44 +55,107 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
-  # PostgreSQL Database
+  # PostgreSQL Database with persistent storage
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15.5-alpine
+    container_name: wondernest_postgres
     environment:
-      POSTGRES_DB: wondernest_dev
-      POSTGRES_USER: wondernest_user
-      POSTGRES_PASSWORD: wondernest_password
+      # Primary database setup
+      POSTGRES_DB: wondernest_prod
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: wondernest_postgres_superuser_password
+      
+      # Application user setup (via init script)
+      WONDERNEST_DB_NAME: wondernest_prod
+      WONDERNEST_APP_USER: wondernest_app
+      WONDERNEST_APP_PASSWORD: wondernest_secure_password_dev
+      WONDERNEST_ANALYTICS_USER: wondernest_analytics
+      WONDERNEST_ANALYTICS_PASSWORD: wondernest_analytics_password_dev
+      
+      # PostgreSQL configuration
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+      PGUSER: postgres
+      
     ports:
       - "5432:5432"
     volumes:
+      # Persistent data storage
       - postgres_data:/var/lib/postgresql/data
-      - ./database:/docker-entrypoint-initdb.d
+      # Database initialization script (self-contained)
+      - ./scripts/01-init-wondernest-complete.sh:/docker-entrypoint-initdb.d/01-init-wondernest-complete.sh:ro
+      # Custom PostgreSQL configuration
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./docker/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     networks:
       - wondernest
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wondernest_user -d wondernest_dev"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wondernest_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: >
+      postgres 
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c log_destination=stderr
+      -c log_statement=all
+      -c log_min_duration_statement=100
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.7
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+
+  # Redis Cache with persistence
+  redis:
+    image: redis:7.2-alpine
+    container_name: wondernest_redis
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: wondernest_redis_password_dev
+    volumes:
+      # Persistent data storage
+      - redis_data:/data
+      # Redis configuration
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - wondernest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "wondernest_redis_password_dev", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass wondernest_redis_password_dev
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:8.0
+    container_name: wondernest_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@wondernest.dev
+      PGADMIN_DEFAULT_PASSWORD: wondernest_pgadmin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
     ports:
-      - "6379:6379"
+      - "5050:80"
     volumes:
-      - redis_data:/data
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
     networks:
       - wondernest
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    command: redis-server --appendonly yes
 
   # LocalStack for AWS services (development)
   localstack:
@@ -142,8 +214,34 @@ networks:
     driver: bridge
 
 volumes:
+  # Database persistent storage - survives container removal
   postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/postgres
+  
+  # Redis persistent storage
   redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/redis
+      
+  # pgAdmin configuration and data
+  pgadmin_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/pgadmin
+      
+  # Monitoring data
   localstack_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
