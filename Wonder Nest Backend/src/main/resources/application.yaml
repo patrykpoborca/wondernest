@@ -1,0 +1,110 @@
+ktor:
+  application:
+    modules:
+      - com.wondernest.ApplicationKt.module
+  deployment:
+    port: 8080
+    environment: development
+
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  name: wondernest_dev
+  username: wondernest_user
+  password: wondernest_password
+  driver: org.postgresql.Driver
+  pool:
+    maximumPoolSize: 20
+    minimumIdle: 5
+    connectionTimeout: 30000
+    idleTimeout: 600000
+    maxLifetime: 1800000
+
+# Redis Configuration
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  database: 0
+  pool:
+    maxTotal: 20
+    maxIdle: 10
+
+# JWT Configuration
+jwt:
+  issuer: wondernest-api
+  audience: wondernest-users
+  realm: WonderNest API
+  secret: ${JWT_SECRET:your-super-secret-jwt-key-change-this-in-production}
+  expiresIn: 3600000 # 1 hour in milliseconds
+  refreshExpiresIn: 2592000000 # 30 days in milliseconds
+
+# CORS Configuration
+cors:
+  allowed_origins: "http://localhost:3000,http://localhost:8080"
+
+# Email Configuration
+email:
+  provider: sendgrid
+  sendgrid:
+    apiKey: ${SENDGRID_API_KEY:}
+    fromEmail: noreply@wondernest.com
+    fromName: WonderNest
+  aws:
+    region: us-east-1
+    accessKeyId: ${AWS_ACCESS_KEY_ID:}
+    secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
+
+# AWS Configuration
+aws:
+  region: us-east-1
+  accessKeyId: ${AWS_ACCESS_KEY_ID:}
+  secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
+  s3:
+    bucket: wondernest-content-dev
+    contentBucket: wondernest-user-content-dev
+  ses:
+    fromEmail: noreply@wondernest.com
+  sns:
+    platformApplicationArn: ${SNS_PLATFORM_APPLICATION_ARN:}
+
+# Storage Configuration
+storage:
+  provider: aws-s3
+  local:
+    path: "./uploads"
+  aws:
+    region: us-east-1
+    bucket: wondernest-content-dev
+
+# Application Configuration
+app:
+  name: WonderNest API
+  version: 0.0.1
+  environment: development
+  baseUrl: http://localhost:8080
+  frontendUrl: http://localhost:3000
+  
+# Security Configuration
+security:
+  bcrypt:
+    rounds: 12
+  session:
+    maxAge: 86400 # 24 hours
+  mfa:
+    issuer: WonderNest
+    
+# Feature Flags
+features:
+  emailVerification: true
+  mfaEnabled: true
+  auditLogging: true
+  rateLimiting: true
+  
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.wondernest: DEBUG
+  pattern: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
