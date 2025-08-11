@@ -87,7 +87,7 @@ echo
 echo "🎉 WonderNest Development Environment is running!"
 echo
 echo "Services:"
-echo "  📊 PostgreSQL: localhost:5432"
+echo "  📊 PostgreSQL: localhost:5433"
 echo "  🗄️  Redis: localhost:6379" 
 echo "  🖥️  pgAdmin: http://localhost:5050"
 echo

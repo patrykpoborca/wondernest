@@ -97,11 +97,11 @@ print_status "Setting up local environment variables..."
 
 # Database configuration (connect to localhost since services are exposed)
 export DB_HOST=localhost
-export DB_PORT=5432
+export DB_PORT=5433
 export DB_NAME=wondernest_prod
 export DB_USERNAME=wondernest_app
 export DB_PASSWORD=wondernest_secure_password_dev
-export DB_URL="jdbc:postgresql://localhost:5432/wondernest_prod"
+export DB_URL="jdbc:postgresql://localhost:5433/wondernest_prod"
 export DB_MAX_POOL_SIZE=20
 export DB_MIN_IDLE=5
 
@@ -128,7 +128,7 @@ echo
 echo "🎉 Docker services are running and configured!"
 echo
 echo "Services:"
-echo "  📊 PostgreSQL: localhost:5432"
+echo "  📊 PostgreSQL: localhost:5433"
 echo "  🗄️  Redis: localhost:6379"
 echo
 echo "Environment variables set for KTOR to connect to localhost"

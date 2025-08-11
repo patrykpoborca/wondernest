@@ -1,0 +1,486 @@
+openapi: 3.0.0
+info:
+  title: WonderNest API
+  description: A comprehensive family-focused content platform API providing authentication, family management, child profiles, content delivery, audio processing, and analytics capabilities.
+  version: 1.0.0
+  contact:
+    name: WonderNest Support
+    email: support@wondernest.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development Server
+  - url: https://api.wondernest.com
+    description: Production Server
+
+components:
+  securitySchemes:
+    JWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer Token Authentication. Use the token received from login/signup endpoints.
+  
+  schemas:
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Response message
+      required:
+        - message
+        
+    SignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          description: User's password (minimum 8 characters)
+        firstName:
+          type: string
+          description: User's first name
+        lastName:
+          type: string
+          description: User's last name
+        timezone:
+          type: string
+          default: UTC
+          description: User's timezone
+        language:
+          type: string
+          default: en
+          description: User's preferred language
+      required:
+        - email
+        - password
+        
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          description: User's password
+      required:
+        - email
+        - password
+        
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          description: User information
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+      required:
+        - user
+        - accessToken
+        - refreshToken
+        - expiresIn
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+          description: Overall service status
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the health check
+        version:
+          type: string
+          description: Application version
+        environment:
+          type: string
+          description: Current environment
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceHealth'
+          description: Status of individual services
+      required:
+        - status
+        - timestamp
+        
+    ServiceHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+          description: Service status
+        message:
+          type: string
+          description: Status message
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+      required:
+        - status
+
+security:
+  - JWT: []
+
+paths:
+  # Authentication endpoints
+  /api/v1/auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user account
+      description: Creates a new user account with email and password. Sends a verification email to the provided address.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            example:
+              email: parent@example.com
+              password: SecurePass123!
+              firstName: John
+              lastName: Doe
+              timezone: America/New_York
+              language: en
+      responses:
+        '201':
+          description: User account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Server error during registration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user with email and password
+      description: Authenticates a user with their email and password, returning access and refresh tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: parent@example.com
+              password: SecurePass123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials or suspended account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Server error during login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Authentication
+        - User Profile
+      summary: Get current user profile
+      description: Retrieves the profile information of the currently authenticated user.
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                    format: email
+                  role:
+                    type: string
+                  verified:
+                    type: boolean
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Server error retrieving profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # Family Management endpoints
+  /api/v1/families:
+    get:
+      tags:
+        - Family Management
+      summary: Get user's families
+      description: Retrieves all families that the authenticated user is a member of.
+      responses:
+        '200':
+          description: List of families retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Server error retrieving families
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+    post:
+      tags:
+        - Family Management
+      summary: Create a new family
+      description: Creates a new family group and adds the authenticated user as the primary member.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Family created successfully
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/children:
+    get:
+      tags:
+        - Children Management
+      summary: Get family children
+      description: Retrieves all child profiles in the authenticated user's families.
+      responses:
+        '200':
+          description: List of children retrieved successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+    post:
+      tags:
+        - Children Management
+      summary: Create a child profile
+      description: Creates a new child profile within the user's family.
+      responses:
+        '201':
+          description: Child profile created successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # Content Management endpoints
+  /api/v1/content/library:
+    get:
+      tags:
+        - Content Management
+      summary: Get content library
+      description: Retrieves the complete library of available content items including stories, songs, activities, and games.
+      responses:
+        '200':
+          description: Content library retrieved successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/content/recommendations/{childId}:
+    get:
+      tags:
+        - Content Management
+        - Recommendations
+      summary: Get personalized content recommendations
+      description: Retrieves AI-generated content recommendations personalized for a specific child.
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the child
+      responses:
+        '200':
+          description: Recommendations retrieved successfully
+        '404':
+          description: Child not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # Audio Management endpoints
+  /api/v1/audio/sessions:
+    post:
+      tags:
+        - Audio Management
+      summary: Create audio playback session
+      description: Initiates a new audio playback session for a child with specific content.
+      responses:
+        '201':
+          description: Audio session created successfully
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # Analytics endpoints
+  /api/v1/analytics/children/{childId}/daily:
+    get:
+      tags:
+        - Analytics
+        - Child Development
+      summary: Get daily child analytics
+      description: Retrieves daily analytics data for a specific child including content consumption, engagement, and learning progress.
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique identifier of the child
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Date for analytics (ISO 8601 format, defaults to today)
+      responses:
+        '200':
+          description: Daily analytics retrieved successfully
+        '404':
+          description: Child not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # Health Monitoring endpoints
+  /health:
+    get:
+      tags:
+        - Health Monitoring
+      summary: Basic health check
+      description: Minimal health check endpoint for load balancers and monitoring systems.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [UP]
+                example:
+                  status: UP
+
+  /health/detailed:
+    get:
+      tags:
+        - Health Monitoring
+      summary: Detailed health check
+      description: Comprehensive health check including all service dependencies with response times and status details.
+      security: []
+      responses:
+        '200':
+          description: Service and all dependencies are healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Service or dependencies are unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'

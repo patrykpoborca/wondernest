@@ -151,7 +151,7 @@ echo
 print_success "Database reset completed!"
 echo
 echo "📊 Database Information:"
-echo "  Host: localhost:5432"
+echo "  Host: localhost:5433"
 echo "  Database: wondernest_prod"
 echo "  App User: wondernest_app"
 echo "  Password: wondernest_secure_password_dev"

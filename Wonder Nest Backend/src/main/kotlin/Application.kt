@@ -5,6 +5,7 @@ import com.wondernest.config.configureDatabase
 import com.wondernest.config.configureDependencyInjection
 import com.wondernest.config.configureHTTP
 import com.wondernest.config.configureMonitoring
+import com.wondernest.config.configureOpenAPI
 import com.wondernest.config.configureRouting
 import com.wondernest.config.configureSecurity
 import com.wondernest.config.configureSerialization
@@ -21,6 +22,7 @@ fun Application.module() {
     configureHTTP()
     configureSecurity()
     configureAuthentication()
+    configureOpenAPI()
     configureMonitoring()
     configureRouting()
 }

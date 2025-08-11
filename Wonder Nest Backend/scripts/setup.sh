@@ -190,7 +190,7 @@ print_connection_info() {
     echo "🎉 WonderNest Development Environment Setup Complete!"
     echo
     echo "📋 Service Information:"
-    echo "  📊 PostgreSQL: localhost:5432"
+    echo "  📊 PostgreSQL: localhost:5433"
     echo "      Database: wondernest_prod"
     echo "      Username: wondernest_app"
     echo "      Password: wondernest_secure_password_dev"
@@ -203,7 +203,7 @@ print_connection_info() {
     echo "      Password: wondernest_pgadmin_password"
     echo
     echo "🔗 Connection URLs:"
-    echo "  PostgreSQL: postgresql://wondernest_app:wondernest_secure_password_dev@localhost:5432/wondernest_prod"
+    echo "  PostgreSQL: postgresql://wondernest_app:wondernest_secure_password_dev@localhost:5433/wondernest_prod"
     echo "  Redis: redis://:wondernest_redis_password_dev@localhost:6379/0"
     echo
     echo "📁 Volume locations:"

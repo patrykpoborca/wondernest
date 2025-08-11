@@ -38,11 +38,11 @@ That's it! The database, Redis, and pgAdmin are now running with persistent data
 ## 📊 Service Information
 
 ### PostgreSQL Database
-- **Host**: localhost:5432
+- **Host**: localhost:5433
 - **Database**: wondernest_prod
 - **App User**: wondernest_app
 - **Password**: wondernest_secure_password_dev
-- **Connection URL**: `postgresql://wondernest_app:wondernest_secure_password_dev@localhost:5432/wondernest_prod`
+- **Connection URL**: `postgresql://wondernest_app:wondernest_secure_password_dev@localhost:5433/wondernest_prod`
 
 ### Redis Cache
 - **Host**: localhost:6379
@@ -209,7 +209,7 @@ docker-compose logs redis
 docker-compose logs api
 
 # Check port conflicts
-lsof -i :5432  # PostgreSQL
+lsof -i :5433  # PostgreSQL
 lsof -i :6379  # Redis
 lsof -i :5050  # pgAdmin
 ```

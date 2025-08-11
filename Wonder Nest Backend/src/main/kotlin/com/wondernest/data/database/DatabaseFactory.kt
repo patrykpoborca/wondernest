@@ -24,7 +24,7 @@ class DatabaseFactory {
             
             // Build JDBC URL from environment variables or use fallback
             val dbHost = System.getenv("DB_HOST") ?: "localhost"
-            val dbPort = System.getenv("DB_PORT") ?: "5432"
+            val dbPort = System.getenv("DB_PORT") ?: "5433"
             val dbName = System.getenv("DB_NAME") ?: "wondernest_prod"
             jdbcUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://$dbHost:$dbPort/$dbName"
             

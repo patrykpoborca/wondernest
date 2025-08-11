@@ -36,7 +36,7 @@ This script will:
 The application is configured to work in both environments:
 
 ### Local Development
-- **Database**: Connects to `localhost:5432` (Docker PostgreSQL exposed port)
+- **Database**: Connects to `localhost:5433` (Docker PostgreSQL exposed port)
 - **Redis**: Connects to `localhost:6379` (Docker Redis exposed port)
 - **KTOR**: Runs directly on your machine using `./gradlew run`
 
@@ -50,7 +50,7 @@ The application is configured to work in both environments:
 The application uses these environment variables for local development:
 
 - `DB_HOST=localhost` (instead of `postgres`)
-- `DB_PORT=5432`
+- `DB_PORT=5433`
 - `DB_NAME=wondernest_prod`
 - `DB_USERNAME=wondernest_app`
 - `DB_PASSWORD=wondernest_secure_password_dev`
@@ -92,6 +92,6 @@ docker exec wondernest_postgres psql -U wondernest_app -d wondernest_prod -c "SE
 When running locally, you can access:
 
 - **API**: http://localhost:8080
-- **PostgreSQL**: localhost:5432 (credentials in `.env.local`)
+- **PostgreSQL**: localhost:5433 (credentials in `.env.local`)
 - **Redis**: localhost:6379 (password in `.env.local`)
 - **pgAdmin**: http://localhost:5050 (if started with `docker compose up -d pgadmin`)

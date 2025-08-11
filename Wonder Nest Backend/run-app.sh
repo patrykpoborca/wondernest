@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Database configuration
 export DB_HOST=${DB_HOST:-localhost}
-export DB_PORT=${DB_PORT:-5432}
+export DB_PORT=${DB_PORT:-5433}
 export DB_NAME=${DB_NAME:-wondernest_prod}
 export DB_USERNAME=${DB_USERNAME:-wondernest_app}
 export DB_PASSWORD=${DB_PASSWORD:-wondernest_secure_password_dev}
@@ -56,8 +56,8 @@ check_postgres() {
 check_postgres_conflict() {
     if brew services list 2>/dev/null | grep "postgresql.*started" >/dev/null; then
         echo -e "${YELLOW}⚠️  Warning: Local PostgreSQL service is running!${NC}"
-        echo "This might conflict with Docker PostgreSQL on port 5432."
-        echo "If you experience connection issues, run: brew services stop postgresql@14"
+        echo "This might conflict with Docker PostgreSQL on port $DB_PORT."
+        echo "If you experience connection issues, consider stopping local PostgreSQL or using different ports"
         echo ""
     fi
 }
