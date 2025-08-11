@@ -1,36 +1,323 @@
-.gradle
+# ===================================================================
+# WonderNest KTOR Backend - Comprehensive .gitignore
+# ===================================================================
+
+# ===================================================================
+# KOTLIN/JAVA SPECIFIC
+# ===================================================================
+# Gradle files and build outputs
+.gradle/
 build/
+out/
+target/
+bin/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
-### STS ###
+# Compiled class files
+*.class
+*.jar
+*.war
+*.ear
+
+# Package Files
+*.nar
+*.tar.gz
+*.zip
+
+# ===================================================================
+# IDE SPECIFIC
+# ===================================================================
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+*.swp
+*.swo
+
+# Eclipse
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
+# VS Code
 .vscode/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===================================================================
+# KTOR/BACKEND SPECIFIC
+# ===================================================================
+# Application logs
+logs/
+*.log
+*.log.*
+application.log*
+
+# Temporary files and cache
+tmp/
+temp/
+cache/
+*.tmp
+*.temp
+
+# Runtime configuration (keep templates)
+application-local.yaml
+application-prod.yaml
+application-dev.yaml
+
+# ===================================================================
+# DOCKER SPECIFIC
+# ===================================================================
+# Docker volumes (database data, persistent storage)
+docker/volumes/
+!docker/volumes/.gitkeep
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.local.yml
+docker-compose.local.yaml
+docker-compose.prod.yml
+docker-compose.prod.yaml
+
+# Docker logs
+docker-compose.logs
+
+# ===================================================================
+# DATABASE SPECIFIC
+# ===================================================================
+# Database dump files
+*.sql.dump
+*.dump
+*.backup
+*.bak
+db_backup_*
+database_dump_*
+
+# PostgreSQL specific
+*.pid
+postmaster.pid
+pg_log/
+pg_wal/
+pg_xact/
+pg_stat/
+pg_stat_tmp/
+
+# Redis dumps
+dump.rdb
+appendonly.aof
+*.rdb
+*.aof
+
+# H2 Database files (if used for testing)
+*.h2.db
+*.h2.mv.db
+*.h2.trace.db
+
+# Migration backups
+migration_backup_*
+schema_backup_*
+
+# ===================================================================
+# ENVIRONMENT & SECURITY
+# ===================================================================
+# Environment files (keep example files)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+!.env.example
+
+# Secret files
+secrets/
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+
+# SSL certificates
+*.crt
+*.cert
+*.ca-bundle
+
+# API keys and tokens
+api_keys.txt
+tokens.txt
+credentials.json
+service-account-*.json
+
+# ===================================================================
+# DEVELOPMENT TOOLS & DEPENDENCIES
+# ===================================================================
+# Node.js (if using for build tools, frontend, etc.)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python (if using for scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# ===================================================================
+# OPERATING SYSTEM SPECIFIC
+# ===================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================================================================
+# BACKUP & TEMPORARY FILES
+# ===================================================================
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*~
+*.swp
+*.swo
+*.tmp
+
+# Archive files (unless specifically needed)
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# ===================================================================
+# MONITORING & LOGGING
+# ===================================================================
+# Prometheus data
+prometheus_data/
+
+# Grafana data
+grafana_data/
+
+# Application metrics
+metrics/
+*.metrics
+
+# Log files
+*.log
+*.log.*
+logs/
+log/
+
+# ===================================================================
+# TESTING & CI/CD
+# ===================================================================
+# Test results
+test-results/
+junit/
+coverage/
+coverage.xml
+jacoco.xml
+*.coverage
+
+# JaCoCo
+.jacoco/
+jacoco-it.exec
+jacoco.exec
+
+# ===================================================================
+# MISC
+# ===================================================================
+# Temporary directories
+tmp/
+temp/
+.tmp/
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test

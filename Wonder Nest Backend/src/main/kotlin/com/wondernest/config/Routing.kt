@@ -36,13 +36,14 @@ fun Application.configureRouting() {
                 <body>
                     <div id="swagger-ui"></div>
                     <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+                    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
                     <script>
                         SwaggerUIBundle({
                             url: '/openapi.yaml',
                             dom_id: '#swagger-ui',
                             presets: [
                                 SwaggerUIBundle.presets.apis,
-                                SwaggerUIBundle.presets.standalone
+                                SwaggerUIStandalonePreset
                             ],
                             layout: "StandaloneLayout"
                         });
