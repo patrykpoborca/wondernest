@@ -12,8 +12,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 
 // Enums for user-related tables
+@Serializable
 enum class AuthProvider { EMAIL, GOOGLE, APPLE, FACEBOOK }
+
+@Serializable
 enum class UserStatus { PENDING_VERIFICATION, ACTIVE, SUSPENDED, DELETED }
+
+@Serializable
 enum class UserRole { PARENT, ADMIN, SUPER_ADMIN }
 
 @Serializable

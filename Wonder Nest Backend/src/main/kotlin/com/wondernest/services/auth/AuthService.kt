@@ -13,11 +13,13 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import mu.KotlinLogging
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import kotlinx.serialization.Serializable
 import java.security.SecureRandom
 import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
+@Serializable
 data class SignupRequest(
     val email: String,
     val password: String,
@@ -27,11 +29,13 @@ data class SignupRequest(
     val language: String = "en"
 )
 
+@Serializable
 data class LoginRequest(
     val email: String,
     val password: String
 )
 
+@Serializable
 data class AuthResponse(
     val user: User,
     val accessToken: String,
@@ -39,6 +43,7 @@ data class AuthResponse(
     val expiresIn: Long
 )
 
+@Serializable
 data class OAuthLoginRequest(
     val provider: String,
     val idToken: String,

@@ -4,8 +4,10 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.wondernest.domain.model.User
 import kotlinx.datetime.*
+import kotlinx.serialization.Serializable
 import java.util.*
 
+@Serializable
 data class TokenPair(
     val accessToken: String,
     val refreshToken: String,
