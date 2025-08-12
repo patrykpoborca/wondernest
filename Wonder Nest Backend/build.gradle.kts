@@ -140,11 +140,13 @@ dependencies {
     
     // Testing
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktor_version")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("org.testcontainers:postgresql:1.19.3")
     testImplementation("org.testcontainers:junit-jupiter:1.19.3")
-    testImplementation("io.insert-koin:koin-test:$koin_version")
-    testImplementation("io.insert-koin:koin-test-junit5:$koin_version")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }

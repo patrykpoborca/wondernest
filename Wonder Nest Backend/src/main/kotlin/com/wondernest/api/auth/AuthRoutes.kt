@@ -1,5 +1,8 @@
 package com.wondernest.api.auth
 
+import com.wondernest.api.validation.AuthValidation
+import com.wondernest.api.validation.AuthValidationException
+import com.wondernest.api.validation.throwIfInvalid
 import com.wondernest.services.auth.AuthService
 import com.wondernest.services.auth.SignupRequest
 import com.wondernest.services.auth.LoginRequest
@@ -43,9 +46,18 @@ fun Route.authRoutes() {
             // Sign up
             post("/signup") {
                 try {
-                    val request = call.receive<SignupRequest>()
-                    val response = authService.signup(request)
+                    val rawRequest = call.receive<SignupRequest>()
+                    
+                    // Validate request
+                    AuthValidation.validateSignupRequest(rawRequest).throwIfInvalid()
+                    
+                    // Sanitize request
+                    val sanitizedRequest = AuthValidation.sanitizeSignupRequest(rawRequest)
+                    
+                    val response = authService.signup(sanitizedRequest)
                     call.respond(HttpStatusCode.Created, response)
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: IllegalArgumentException) {
                     call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Invalid input"))
                 } catch (e: Exception) {
@@ -57,9 +69,18 @@ fun Route.authRoutes() {
             // Login
             post("/login") {
                 try {
-                    val request = call.receive<LoginRequest>()
-                    val response = authService.login(request)
+                    val rawRequest = call.receive<LoginRequest>()
+                    
+                    // Validate request
+                    AuthValidation.validateLoginRequest(rawRequest).throwIfInvalid()
+                    
+                    // Sanitize request
+                    val sanitizedRequest = AuthValidation.sanitizeLoginRequest(rawRequest)
+                    
+                    val response = authService.login(sanitizedRequest)
                     call.respond(HttpStatusCode.OK, response)
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: SecurityException) {
                     call.respond(HttpStatusCode.Unauthorized, MessageResponse("Invalid credentials"))
                 } catch (e: Exception) {
@@ -71,9 +92,18 @@ fun Route.authRoutes() {
             // OAuth login (Google, Apple, Facebook)
             post("/oauth") {
                 try {
-                    val request = call.receive<OAuthLoginRequest>()
-                    val response = authService.oauthLogin(request)
+                    val rawRequest = call.receive<OAuthLoginRequest>()
+                    
+                    // Validate request
+                    AuthValidation.validateOAuthLoginRequest(rawRequest).throwIfInvalid()
+                    
+                    // Sanitize request
+                    val sanitizedRequest = AuthValidation.sanitizeOAuthLoginRequest(rawRequest)
+                    
+                    val response = authService.oauthLogin(sanitizedRequest)
                     call.respond(HttpStatusCode.OK, response)
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: SecurityException) {
                     call.respond(HttpStatusCode.Unauthorized, MessageResponse("OAuth authentication failed"))
                 } catch (e: Exception) {
@@ -85,14 +115,20 @@ fun Route.authRoutes() {
             // Request password reset
             post("/password-reset") {
                 try {
-                    val request = call.receive<PasswordResetRequest>()
-                    val success = authService.requestPasswordReset(request.email)
+                    val rawRequest = call.receive<PasswordResetRequest>()
+                    
+                    // Validate request
+                    AuthValidation.validatePasswordResetRequest(rawRequest).throwIfInvalid()
+                    
+                    val success = authService.requestPasswordReset(rawRequest.email.trim().lowercase())
                     if (success) {
                         call.respond(HttpStatusCode.OK, MessageResponse("Password reset email sent"))
                     } else {
                         // Always return success for security (don't reveal if email exists)
                         call.respond(HttpStatusCode.OK, MessageResponse("Password reset email sent"))
                     }
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: Exception) {
                     call.application.environment.log.error("Password reset request error", e)
                     call.respond(HttpStatusCode.InternalServerError, MessageResponse("Password reset request failed"))
@@ -102,13 +138,19 @@ fun Route.authRoutes() {
             // Confirm password reset
             post("/password-reset/confirm") {
                 try {
-                    val request = call.receive<PasswordResetConfirmRequest>()
-                    val success = authService.resetPassword(request.token, request.newPassword)
+                    val rawRequest = call.receive<PasswordResetConfirmRequest>()
+                    
+                    // Validate request
+                    AuthValidation.validatePasswordResetConfirmRequest(rawRequest).throwIfInvalid()
+                    
+                    val success = authService.resetPassword(rawRequest.token.trim(), rawRequest.newPassword)
                     if (success) {
                         call.respond(HttpStatusCode.OK, MessageResponse("Password reset successful"))
                     } else {
                         call.respond(HttpStatusCode.BadRequest, MessageResponse("Invalid or expired token"))
                     }
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: IllegalArgumentException) {
                     call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Invalid password"))
                 } catch (e: Exception) {
