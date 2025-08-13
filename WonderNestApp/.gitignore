@@ -1,0 +1,262 @@
+# ===================================================================
+# WonderNest Flutter App - Comprehensive .gitignore
+# ===================================================================
+
+# ===================================================================
+# FLUTTER/DART SPECIFIC
+# ===================================================================
+# Dart/Pub related
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+linked_*.ds
+unlinked.ds
+unlinked_spec.ds
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Flutter/Dart test coverage
+coverage/
+*.lcov
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+
+# iOS/Xcode related
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+**/ios/**/profile
+**/ios/**/xcuserdata
+**/ios/.generated/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS specific
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/Flutter-Generated.xcconfig
+**/macos/Flutter/flutter_export_environment.sh
+
+# Windows specific
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+**/windows/flutter/ephemeral/
+
+# Linux specific
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+**/linux/flutter/ephemeral/
+
+# Web specific
+**/web/firebase-config.js
+
+# ===================================================================
+# IDE SPECIFIC
+# ===================================================================
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea/
+**/android/.idea/
+**/android/gradle.properties
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# ===================================================================
+# BUILD OUTPUTS
+# ===================================================================
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio build artifacts
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/app/build/
+**/android/build/
+
+# iOS build artifacts
+**/ios/build/
+**/ios/DerivedData/
+**/ios/*.dSYM.zip
+**/ios/*.ipa
+
+# macOS build artifacts
+**/macos/build/
+
+# ===================================================================
+# PACKAGE MANAGER SPECIFIC
+# ===================================================================
+# Pub
+pubspec.lock
+.packages
+.pub/
+
+# CocoaPods (iOS/macOS)
+**/ios/Pods/
+**/ios/Podfile.lock
+**/macos/Pods/
+**/macos/Podfile.lock
+
+# ===================================================================
+# GENERATED FILES
+# ===================================================================
+# Generated Dart files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.chopper.dart
+*.mocks.dart
+*.config.dart
+
+# Generated platform files
+**/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+
+# ===================================================================
+# TESTING & DEBUGGING
+# ===================================================================
+# Coverage
+coverage/
+lcov.info
+test/.test_coverage.dart
+coverage_badge.svg
+
+# Golden test failures
+**/test/goldens/failures/
+
+# Flutter performance profiling
+flutter_*.json
+flutter_*.sksl.json
+
+# ===================================================================
+# OPERATING SYSTEM FILES
+# ===================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================================================================
+# LOGS & TEMPORARY FILES
+# ===================================================================
+*.log
+logs/
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# ===================================================================
+# ENVIRONMENT & SECRETS
+# ===================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+google-services.json
+GoogleService-Info.plist
+firebase_app_id_file.json
+firebase_options.dart
+
+# ===================================================================
+# MISCELLANEOUS
+# ===================================================================
+# Firebase
+.firebase/
+.firebaserc
+
+# Fastlane (iOS/Android deployment)
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+**/fastlane/readme.md
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Exceptions (files to keep)
+!**/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+!**/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json
+!**/android/app/src/main/res/mipmap-*/ic_launcher.png
+!pubspec.yaml
