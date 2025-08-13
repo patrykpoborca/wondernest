@@ -92,7 +92,7 @@ dependencies {
     implementation("io.lettuce:lettuce-core:6.3.0.RELEASE")
     
     // Dependency injection
-    implementation("io.insert-koin:koin-ktor:$koin_version")
+    implementation("io.insert-koin:koin-ktor3:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
     
     // Validation

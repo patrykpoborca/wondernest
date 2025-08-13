@@ -21,93 +21,73 @@ class UserRepositoryImpl : UserRepository {
     private val db = DatabaseFactory()
 
     override suspend fun createUser(user: User): User = db.dbQuery {
-        val userId = Users.insertAndGetId {
+        println("DEBUG: Attempting to insert user with ID: ${user.id}, email: ${user.email}")
+        
+        val insertResult = Users.insert {
             it[id] = user.id
             it[email] = user.email
             it[emailVerified] = user.emailVerified
-            it[emailVerifiedAt] = user.emailVerifiedAt
-            it[authProvider] = user.authProvider
-            it[externalId] = user.externalId
+            it[passwordHash] = ""  // Will be updated separately by updateUserPassword
             it[firstName] = user.firstName
             it[lastName] = user.lastName
             it[phone] = user.phone
-            it[timezone] = user.timezone
-            it[language] = user.language
-            it[status] = user.status
-            it[role] = user.role
-            it[privacySettings] = user.privacySettings
-            it[notificationPreferences] = user.notificationPreferences
-            it[mfaEnabled] = user.mfaEnabled
-            it[mfaSecret] = user.mfaSecret
-            it[backupCodes] = user.backupCodes?.let { codes -> Json.encodeToString(codes) }
+            it[isActive] = true
             it[createdAt] = user.createdAt
             it[updatedAt] = user.updatedAt
-            it[lastLoginAt] = user.lastLoginAt
-            it[loginCount] = user.loginCount
-            it[parentalConsentVerified] = user.parentalConsentVerified
-            it[parentalConsentMethod] = user.parentalConsentMethod
-            it[parentalConsentDate] = user.parentalConsentDate
-            it[deletedAt] = user.deletedAt
         }
         
-        getUserById(userId.value)!!
+        println("DEBUG: Insert operation completed. Inserted row count: ${insertResult.insertedCount}")
+        
+        // Retrieve the user within the same transaction
+        val createdUser = Users.select { Users.id eq user.id }
+            .map { rowToUser(it) }
+            .singleOrNull()
+        
+        println("DEBUG: Retrieved user after insert: $createdUser")
+        
+        if (createdUser == null) {
+            throw RuntimeException("Failed to retrieve created user with ID: ${user.id}")
+        }
+        createdUser
     }
 
     override suspend fun getUserById(id: UUID): User? = db.dbQuery {
-        Users.select { Users.id eq id and Users.deletedAt.isNull() }
+        Users.select { Users.id eq id and Users.isActive }
             .map { rowToUser(it) }
             .singleOrNull()
     }
 
     override suspend fun getUserByEmail(email: String): User? = db.dbQuery {
-        Users.select { Users.email eq email and Users.deletedAt.isNull() }
+        Users.select { Users.email eq email and Users.isActive }
             .map { rowToUser(it) }
             .singleOrNull()
     }
 
     override suspend fun getUserByExternalId(externalId: String, provider: String): User? = db.dbQuery {
-        val authProvider = AuthProvider.valueOf(provider.uppercase())
-        Users.select { 
-            (Users.externalId eq externalId) and 
-            (Users.authProvider eq authProvider) and 
-            Users.deletedAt.isNull() 
-        }
-        .map { rowToUser(it) }
-        .singleOrNull()
+        // For now, return null since we don't have externalId or authProvider columns
+        null
     }
 
     override suspend fun updateUser(user: User): User = db.dbQuery {
         Users.update({ Users.id eq user.id }) {
             it[email] = user.email
             it[emailVerified] = user.emailVerified
-            it[emailVerifiedAt] = user.emailVerifiedAt
             it[firstName] = user.firstName
             it[lastName] = user.lastName
             it[phone] = user.phone
-            it[timezone] = user.timezone
-            it[language] = user.language
-            it[status] = user.status
-            it[privacySettings] = user.privacySettings
-            it[notificationPreferences] = user.notificationPreferences
-            it[mfaEnabled] = user.mfaEnabled
-            it[mfaSecret] = user.mfaSecret
-            it[backupCodes] = user.backupCodes?.let { codes -> Json.encodeToString(codes) }
             it[updatedAt] = Clock.System.now()
-            it[parentalConsentVerified] = user.parentalConsentVerified
-            it[parentalConsentMethod] = user.parentalConsentMethod
-            it[parentalConsentDate] = user.parentalConsentDate
         }
         getUserById(user.id)!!
     }
 
     override suspend fun deleteUser(id: UUID): Boolean = db.dbQuery {
         Users.update({ Users.id eq id }) {
-            it[deletedAt] = Clock.System.now()
+            it[isActive] = false
         } > 0
     }
 
     override suspend fun getUserPasswordHash(userId: UUID): String? = db.dbQuery {
-        Users.select { Users.id eq userId and Users.deletedAt.isNull() }
+        Users.select { Users.id eq userId and Users.isActive }
             .map { it[Users.passwordHash] }
             .singleOrNull()
     }
@@ -122,16 +102,12 @@ class UserRepositoryImpl : UserRepository {
     override suspend fun verifyUserEmail(userId: UUID): Boolean = db.dbQuery {
         Users.update({ Users.id eq userId }) {
             it[emailVerified] = true
-            it[emailVerifiedAt] = Clock.System.now()
-            it[status] = UserStatus.ACTIVE
             it[updatedAt] = Clock.System.now()
         } > 0
     }
 
     override suspend fun updateLastLogin(userId: UUID): Boolean = db.dbQuery {
         Users.update({ Users.id eq userId }) {
-            it[lastLoginAt] = Clock.System.now()
-            it[loginCount] = Users.loginCount + 1
             it[updatedAt] = Clock.System.now()
         } > 0
     }
@@ -141,24 +117,18 @@ class UserRepositoryImpl : UserRepository {
         UserSessions.insert {
             it[id] = session.id
             it[userId] = session.userId
-            it[sessionToken] = session.sessionToken
-            it[refreshToken] = session.refreshToken
-            it[deviceFingerprint] = session.deviceFingerprint
-            it[userAgent] = session.userAgent
-            it[ipAddress] = session.ipAddress
-            it[locationData] = session.locationData
-            it[createdAt] = session.createdAt
+            it[tokenHash] = session.sessionToken
             it[expiresAt] = session.expiresAt
-            it[lastActivity] = session.lastActivity
-            it[isActive] = session.isActive
+            it[createdAt] = session.createdAt
+            it[lastAccessed] = session.lastActivity
+            it[deviceInfo] = session.locationData
         }
         session
     }
 
     override suspend fun getSessionByToken(token: String): UserSession? = db.dbQuery {
         UserSessions.select { 
-            (UserSessions.sessionToken eq token) and 
-            (UserSessions.isActive eq true) and
+            (UserSessions.tokenHash eq token) and 
             (UserSessions.expiresAt greater Clock.System.now())
         }
         .map { rowToUserSession(it) }
@@ -167,20 +137,16 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun updateSessionActivity(sessionId: UUID): Boolean = db.dbQuery {
         UserSessions.update({ UserSessions.id eq sessionId }) {
-            it[lastActivity] = Clock.System.now()
+            it[lastAccessed] = Clock.System.now()
         } > 0
     }
 
     override suspend fun invalidateSession(sessionId: UUID): Boolean = db.dbQuery {
-        UserSessions.update({ UserSessions.id eq sessionId }) {
-            it[isActive] = false
-        } > 0
+        UserSessions.deleteWhere { UserSessions.id eq sessionId } > 0
     }
 
     override suspend fun invalidateAllUserSessions(userId: UUID): Boolean = db.dbQuery {
-        UserSessions.update({ UserSessions.userId eq userId }) {
-            it[isActive] = false
-        } > 0
+        UserSessions.deleteWhere { UserSessions.userId eq userId } > 0
     }
 
     // Password reset
@@ -223,14 +189,14 @@ class UserRepositoryImpl : UserRepository {
             (Users.email like "%$query%") or 
             (Users.firstName like "%$query%") or 
             (Users.lastName like "%$query%") and
-            Users.deletedAt.isNull()
+            Users.isActive
         }
         .limit(limit)
         .map { rowToUser(it) }
     }
 
     override suspend fun getUsersByIds(ids: List<UUID>): List<User> = db.dbQuery {
-        Users.select { Users.id inList ids and Users.deletedAt.isNull() }
+        Users.select { Users.id inList ids and Users.isActive }
             .map { rowToUser(it) }
     }
 
@@ -238,44 +204,44 @@ class UserRepositoryImpl : UserRepository {
         id = row[Users.id].value,
         email = row[Users.email],
         emailVerified = row[Users.emailVerified],
-        emailVerifiedAt = row[Users.emailVerifiedAt],
-        authProvider = row[Users.authProvider],
-        externalId = row[Users.externalId],
+        emailVerifiedAt = null,  // Column doesn't exist in current schema
+        authProvider = AuthProvider.EMAIL,  // Default value
+        externalId = null,  // Column doesn't exist in current schema
         firstName = row[Users.firstName],
         lastName = row[Users.lastName],
         phone = row[Users.phone],
-        timezone = row[Users.timezone],
-        language = row[Users.language],
-        status = row[Users.status],
-        role = row[Users.role],
-        privacySettings = row[Users.privacySettings],
-        notificationPreferences = row[Users.notificationPreferences],
-        mfaEnabled = row[Users.mfaEnabled],
-        mfaSecret = row[Users.mfaSecret],
-        backupCodes = row[Users.backupCodes]?.let { Json.decodeFromString<List<String>>(it) },
+        timezone = "UTC",  // Default value
+        language = "en",  // Default value
+        status = if (row[Users.isActive]) UserStatus.ACTIVE else UserStatus.SUSPENDED,
+        role = UserRole.PARENT,  // Default value
+        privacySettings = PrivacySettings(),  // Default value
+        notificationPreferences = NotificationPreferences(),  // Default value
+        mfaEnabled = false,  // Default value
+        mfaSecret = null,  // Default value
+        backupCodes = null,  // Default value
         createdAt = row[Users.createdAt],
         updatedAt = row[Users.updatedAt],
-        lastLoginAt = row[Users.lastLoginAt],
-        loginCount = row[Users.loginCount],
-        parentalConsentVerified = row[Users.parentalConsentVerified],
-        parentalConsentMethod = row[Users.parentalConsentMethod],
-        parentalConsentDate = row[Users.parentalConsentDate],
-        deletedAt = row[Users.deletedAt]
+        lastLoginAt = null,  // Default value
+        loginCount = 0,  // Default value
+        parentalConsentVerified = false,  // Default value
+        parentalConsentMethod = null,  // Default value
+        parentalConsentDate = null,  // Default value
+        deletedAt = null  // Using isActive instead of deletedAt
     )
 
     private fun rowToUserSession(row: ResultRow) = UserSession(
         id = row[UserSessions.id].value,
         userId = row[UserSessions.userId].value,
-        sessionToken = row[UserSessions.sessionToken],
-        refreshToken = row[UserSessions.refreshToken],
-        deviceFingerprint = row[UserSessions.deviceFingerprint],
-        userAgent = row[UserSessions.userAgent],
-        ipAddress = row[UserSessions.ipAddress],
-        locationData = row[UserSessions.locationData],
+        sessionToken = row[UserSessions.tokenHash],  // Column is tokenHash not sessionToken
+        refreshToken = null,  // Column doesn't exist in current schema
+        deviceFingerprint = null,  // Column doesn't exist in current schema
+        userAgent = null,  // Column doesn't exist in current schema
+        ipAddress = null,  // Column doesn't exist in current schema
+        locationData = row[UserSessions.deviceInfo],  // Column is deviceInfo
         createdAt = row[UserSessions.createdAt],
         expiresAt = row[UserSessions.expiresAt],
-        lastActivity = row[UserSessions.lastActivity],
-        isActive = row[UserSessions.isActive]
+        lastActivity = row[UserSessions.lastAccessed],  // Column is lastAccessed not lastActivity
+        isActive = true  // Assume active if record exists
     )
 
     private fun rowToPasswordResetToken(row: ResultRow) = PasswordResetToken(

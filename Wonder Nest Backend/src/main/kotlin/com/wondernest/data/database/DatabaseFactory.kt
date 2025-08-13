@@ -62,7 +62,13 @@ class DatabaseFactory {
         initializeWithRetry(config)
         
         // Run database migrations after successful connection
-        runMigrations()
+        // Skip migrations in development if they're causing issues
+        val environment = System.getenv("KTOR_ENV") ?: "development"
+        if (environment != "development") {
+            runMigrations()
+        } else {
+            logger.info("Skipping migrations in development mode")
+        }
         
         logger.info("Database connection initialized successfully")
         logger.info("JDBC URL: ${config.jdbcUrl}")

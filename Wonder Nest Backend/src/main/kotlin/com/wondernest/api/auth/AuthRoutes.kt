@@ -11,6 +11,7 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -47,19 +48,32 @@ fun Route.authRoutes() {
             post("/signup") {
                 try {
                     val rawRequest = call.receive<SignupRequest>()
+                    call.application.environment.log.info("Received signup request: email=${rawRequest.email}, firstName=${rawRequest.firstName}, lastName=${rawRequest.lastName}")
                     
                     // Validate request
-                    AuthValidation.validateSignupRequest(rawRequest).throwIfInvalid()
+                    val validationResult = AuthValidation.validateSignupRequest(rawRequest)
+                    if (!validationResult.isValid) {
+                        call.application.environment.log.warn("Signup validation failed: ${validationResult.errors}")
+                        call.respond(HttpStatusCode.BadRequest, MessageResponse("Validation failed: ${validationResult.errors.joinToString(", ")}"))
+                        return@post
+                    }
                     
                     // Sanitize request
                     val sanitizedRequest = AuthValidation.sanitizeSignupRequest(rawRequest)
+                    call.application.environment.log.info("Sanitized signup request: ${sanitizedRequest}")
                     
                     val response = authService.signup(sanitizedRequest)
+                    call.application.environment.log.info("Signup successful for user: ${sanitizedRequest.email}")
                     call.respond(HttpStatusCode.Created, response)
                 } catch (e: AuthValidationException) {
+                    call.application.environment.log.warn("Signup validation exception: ${e.message}", e)
                     call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
                 } catch (e: IllegalArgumentException) {
+                    call.application.environment.log.warn("Signup illegal argument: ${e.message}", e)
                     call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Invalid input"))
+                } catch (e: ContentTransformationException) {
+                    call.application.environment.log.warn("JSON parsing error: ${e.message}", e)
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse("Invalid JSON format"))
                 } catch (e: Exception) {
                     call.application.environment.log.error("Signup error", e)
                     call.respond(HttpStatusCode.InternalServerError, MessageResponse("Registration failed"))
