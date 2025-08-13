@@ -25,6 +25,10 @@ import 'screens/child/child_home.dart';
 import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
 import 'screens/games/mini_game_framework.dart';
+import 'screens/family/family_overview_screen.dart';
+import 'screens/family/child_profile_screen.dart';
+import 'screens/content/content_library_screen.dart';
+import 'screens/content/content_filter_settings_screen.dart';
 import 'models/game_model.dart';
 
 void main() async {
@@ -77,26 +81,41 @@ class WonderNestApp extends ConsumerWidget {
       initialLocation: '/welcome',
       
       redirect: (context, state) async {
-        // Check if app is initialized
+        // Check authentication and onboarding status
         final secureStorage = const FlutterSecureStorage();
+        final accessToken = await secureStorage.read(key: 'auth_token');
         final hasCompletedOnboarding = await secureStorage.read(key: 'onboarding_completed') == 'true';
         final hasParentAccount = await secureStorage.read(key: 'parent_account_created') == 'true';
         
         final currentPath = state.matchedLocation;
+        final isLoggedIn = accessToken != null;
         
-        // Allow auth routes to work without redirection
+        // Allow auth routes to work without redirection during auth flow
         final authRoutes = ['/welcome', '/signup', '/login', '/onboarding'];
-        if (authRoutes.contains(currentPath)) {
-          return null; // Don't redirect if on auth routes
+        final isAuthRoute = authRoutes.contains(currentPath);
+        
+        // If logged in and trying to access auth routes, redirect to appropriate page
+        if (isLoggedIn && isAuthRoute && currentPath != '/onboarding') {
+          if (hasCompletedOnboarding) {
+            return '/parent-dashboard';
+          } else {
+            return '/onboarding';
+          }
         }
         
-        // First-time setup flow
-        if (!hasCompletedOnboarding) {
+        // If not logged in and not on auth route, redirect to welcome
+        if (!isLoggedIn && !isAuthRoute) {
           return '/welcome';
         }
         
-        if (!hasParentAccount) {
-          return '/welcome';
+        // Allow onboarding to proceed if logged in
+        if (currentPath == '/onboarding' && isLoggedIn) {
+          return null;
+        }
+        
+        // If logged in but hasn't completed onboarding, redirect to onboarding
+        if (isLoggedIn && !hasCompletedOnboarding && !isAuthRoute) {
+          return '/onboarding';
         }
         
         // Parent mode routes protection
@@ -105,6 +124,10 @@ class WonderNestApp extends ConsumerWidget {
           '/parent-controls',
           '/settings',
           '/coppa-consent',
+          '/family',
+          '/child-profile',
+          '/content-library',
+          '/content-filters',
         ];
         
         final isParentRoute = parentRoutes.any((route) => currentPath.startsWith(route));
@@ -169,6 +192,11 @@ class WonderNestApp extends ConsumerWidget {
           path: '/parent-dashboard',
           builder: (context, state) => const ParentDashboard(),
         ),
+        // Fallback for old dashboard route
+        GoRoute(
+          path: '/dashboard',
+          redirect: (context, state) => '/parent-dashboard',
+        ),
         GoRoute(
           path: '/parent-controls',
           builder: (context, state) => const ParentControlDashboard(),
@@ -188,6 +216,46 @@ class WonderNestApp extends ConsumerWidget {
               childAge: childAge,
             );
           },
+        ),
+        
+        // Family Management Routes
+        GoRoute(
+          path: '/family',
+          builder: (context, state) => const FamilyOverviewScreen(),
+        ),
+        GoRoute(
+          path: '/child-profile/create',
+          builder: (context, state) => const ChildProfileScreen(),
+        ),
+        GoRoute(
+          path: '/child-profile/:childId',
+          builder: (context, state) {
+            final childId = state.pathParameters['childId'];
+            return ChildProfileScreen(
+              childId: childId,
+              isEditing: false,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/child-profile/:childId/edit',
+          builder: (context, state) {
+            final childId = state.pathParameters['childId'];
+            return ChildProfileScreen(
+              childId: childId,
+              isEditing: true,
+            );
+          },
+        ),
+        
+        // Content Management Routes
+        GoRoute(
+          path: '/content-library',
+          builder: (context, state) => const ContentLibraryScreen(),
+        ),
+        GoRoute(
+          path: '/content-filters',
+          builder: (context, state) => const ContentFilterSettingsScreen(),
         ),
         
         // Mini-Game Framework

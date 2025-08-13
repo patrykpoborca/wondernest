@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/dashboard_card.dart';
@@ -147,12 +149,12 @@ class ParentDashboard extends ConsumerWidget {
                 childAspectRatio: 1.2,
                 children: [
                   QuickActionButton(
-                    title: 'Add Child',
-                    subtitle: 'Create new profile',
-                    icon: Icons.person_add,
+                    title: 'Family',
+                    subtitle: 'Manage profiles',
+                    icon: Icons.family_restroom,
                     color: AppColors.primaryBlue,
                     onTap: () {
-                      // Navigate to add child screen
+                      context.push('/family');
                     },
                   ).animate().fadeIn(delay: 800.ms).scale(),
                   
@@ -172,17 +174,17 @@ class ParentDashboard extends ConsumerWidget {
                     icon: Icons.library_books,
                     color: AppColors.accentGreen,
                     onTap: () {
-                      // Navigate to content library
+                      context.push('/content-library');
                     },
                   ).animate().fadeIn(delay: 1000.ms).scale(),
                   
                   QuickActionButton(
-                    title: 'Settings',
-                    subtitle: 'Manage account',
-                    icon: Icons.settings,
+                    title: 'Content Filters',
+                    subtitle: 'Safety settings',
+                    icon: Icons.filter_alt,
                     color: AppColors.textSecondary,
                     onTap: () {
-                      // Navigate to settings
+                      context.push('/content-filters');
                     },
                   ).animate().fadeIn(delay: 1100.ms).scale(),
                 ],

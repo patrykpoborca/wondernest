@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'mock_api_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8080/api/v1';
@@ -9,6 +10,10 @@ class ApiService {
   
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  
+  // Use mock service when backend is not available
+  static bool _useMockService = false;
+  final MockApiService _mockService = MockApiService();
   
   ApiService() {
     _dio = Dio(BaseOptions(
@@ -19,6 +24,9 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     ));
+    
+    // Check if backend is available
+    _checkBackendAvailability();
     
     _dio.interceptors.add(PrettyDioLogger(
       requestHeader: true,
@@ -43,7 +51,7 @@ class ApiService {
           final refreshToken = await _storage.read(key: refreshTokenKey);
           if (refreshToken != null) {
             try {
-              final response = await _dio.post('/auth/refresh', data: {
+              final response = await _dio.post('/auth/session/refresh', data: {
                 'refreshToken': refreshToken,
               });
               
@@ -88,13 +96,29 @@ class ApiService {
   }
   
   Future<bool> isLoggedIn() async {
+    if (_useMockService) {
+      return _mockService.isLoggedIn();
+    }
     final token = await _storage.read(key: tokenKey);
     return token != null;
   }
   
+  Future<void> _checkBackendAvailability() async {
+    try {
+      final response = await _dio.get('/health').timeout(const Duration(seconds: 2));
+      _useMockService = false;
+    } catch (e) {
+      print('Backend not available, using mock service');
+      _useMockService = true;
+    }
+  }
+  
   // Auth endpoints
   Future<Response> login(String email, String password) {
-    return _dio.post('/auth/login', data: {
+    if (_useMockService) {
+      return _mockService.login(email, password);
+    }
+    return _dio.post('/auth/parent/login', data: {
       'email': email,
       'password': password,
     });
@@ -105,17 +129,36 @@ class ApiService {
     required String password,
     required String firstName,
     required String lastName,
+    String? phoneNumber,
   }) {
-    return _dio.post('/auth/signup', data: {
+    if (_useMockService) {
+      return _mockService.signup(
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber,
+      );
+    }
+    
+    // Combine first and last name for the API
+    final fullName = '$firstName $lastName'.trim();
+    
+    return _dio.post('/auth/parent/register', data: {
       'email': email,
       'password': password,
-      'firstName': firstName,
-      'lastName': lastName,
+      'name': fullName,
+      'phoneNumber': phoneNumber ?? '',
+      'countryCode': 'US', // Default to US for now
     });
   }
   
-  Future<Response> getProfile() {
-    return _dio.get('/auth/profile');
+  Future<Response> getProfile() async {
+    if (_useMockService) {
+      final token = await _storage.read(key: tokenKey);
+      return _mockService.getProfile(token);
+    }
+    return _dio.get('/family/profile');
   }
   
   // Family endpoints

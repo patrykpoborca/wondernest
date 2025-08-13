@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_text_field.dart';
@@ -36,7 +37,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     if (success && mounted) {
-      context.go('/dashboard');
+      // Check if user has completed onboarding
+      final secureStorage = const FlutterSecureStorage();
+      final hasCompletedOnboarding = await secureStorage.read(key: 'onboarding_completed') == 'true';
+      
+      if (hasCompletedOnboarding) {
+        context.go('/parent-dashboard');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 

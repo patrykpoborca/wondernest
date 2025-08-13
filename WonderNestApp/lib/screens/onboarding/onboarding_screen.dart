@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/theme/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -48,6 +49,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  Future<void> _completeOnboarding() async {
+    // Save onboarding completion flag
+    const secureStorage = FlutterSecureStorage();
+    await secureStorage.write(key: 'onboarding_completed', value: 'true');
+    
+    // Navigate to parent dashboard
+    if (mounted) {
+      context.go('/parent-dashboard');
+    }
+  }
+  
   void _nextPage() {
     if (_currentPage < _pages.length - 1) {
       _pageController.nextPage(
@@ -55,12 +67,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      context.go('/dashboard');
+      _completeOnboarding();
     }
   }
 
   void _skipOnboarding() {
-    context.go('/dashboard');
+    _completeOnboarding();
   }
 
   @override

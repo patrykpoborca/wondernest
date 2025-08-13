@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/services/api_service.dart';
 
 // Auth State Model
@@ -55,32 +56,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _apiService.login(email, password);
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        await _apiService.saveTokens(
-          data['accessToken'],
-          data['refreshToken'],
-        );
-        state = state.copyWith(
-          user: data['user'],
-          isLoggedIn: true,
-          isLoading: false,
-        );
-        return true;
+        final responseData = response.data;
+        
+        // Handle the nested data structure from API
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'];
+          
+          await _apiService.saveTokens(
+            data['accessToken'],
+            data['refreshToken'],
+          );
+          
+          // Store user data from the response
+          final userData = {
+            'userId': data['userId'],
+            'email': email,
+            'hasPin': data['hasPin'] ?? false,
+            'children': data['children'] ?? [],
+          };
+          
+          state = state.copyWith(
+            user: userData,
+            isLoggedIn: true,
+            isLoading: false,
+          );
+          return true;
+        }
       }
     } catch (e) {
       String errorMessage = 'Invalid email or password';
 
       if (e is DioException) {
-        if (e.response?.statusCode == 400) {
+        if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
           final responseData = e.response?.data;
-          if (responseData is Map<String, dynamic> &&
-              responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
+          if (responseData is Map<String, dynamic>) {
+            if (responseData['error'] != null && responseData['error']['message'] != null) {
+              errorMessage = responseData['error']['message'].toString();
+            } else if (responseData['message'] != null) {
+              errorMessage = responseData['message'].toString();
+            }
           }
-        } else if (e.response?.statusCode == 401) {
-          errorMessage = 'Invalid email or password';
         } else if (e.response?.statusCode == 500) {
           errorMessage = 'Server error. Please try again later.';
+        } else if (e.type == DioExceptionType.connectionTimeout || 
+                   e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet connection.';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'Cannot connect to server. Please check if the server is running.';
         }
       }
 
@@ -111,34 +133,65 @@ class AuthNotifier extends StateNotifier<AuthState> {
         lastName: lastName,
       );
 
-      if (response.statusCode == 201) {
-        final data = response.data;
-        await _apiService.saveTokens(
-          data['accessToken'],
-          data['refreshToken'],
-        );
-        state = state.copyWith(
-          user: data['user'],
-          isLoggedIn: true,
-          isLoading: false,
-        );
-        return true;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+        
+        // Handle the nested data structure from API
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'];
+          
+          await _apiService.saveTokens(
+            data['accessToken'],
+            data['refreshToken'],
+          );
+          
+          // Mark that parent account has been created
+          final secureStorage = const FlutterSecureStorage();
+          await secureStorage.write(key: 'parent_account_created', value: 'true');
+          
+          // Store user data from the response
+          final userData = {
+            'userId': data['userId'],
+            'email': data['email'] ?? email,
+            'firstName': firstName,
+            'lastName': lastName,
+            'requiresPinSetup': data['requiresPinSetup'] ?? true,
+          };
+          
+          state = state.copyWith(
+            user: userData,
+            isLoggedIn: true,
+            isLoading: false,
+          );
+          return true;
+        }
       }
     } catch (e) {
       String errorMessage = 'Failed to create account. Please try again.';
 
       if (e is DioException) {
         if (e.response?.statusCode == 400) {
-          // Parse validation errors from backend
           final responseData = e.response?.data;
-          if (responseData is Map<String, dynamic> &&
-              responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
+          if (responseData is Map<String, dynamic>) {
+            if (responseData['error'] != null && responseData['error']['message'] != null) {
+              errorMessage = responseData['error']['message'].toString();
+              // Check for specific error codes
+              if (responseData['error']['code'] == 'EMAIL_EXISTS') {
+                errorMessage = 'An account with this email already exists.';
+              }
+            } else if (responseData['message'] != null) {
+              errorMessage = responseData['message'].toString();
+            }
           }
-        } else if (e.response?.statusCode == 500) {
-          errorMessage = 'Server error. Please try again later.';
         } else if (e.response?.statusCode == 409) {
           errorMessage = 'An account with this email already exists.';
+        } else if (e.response?.statusCode == 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (e.type == DioExceptionType.connectionTimeout || 
+                   e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet connection.';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'Cannot connect to server. Please check if the server is running.';
         }
       }
 
@@ -157,13 +210,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final response = await _apiService.getProfile();
       if (response.statusCode == 200) {
-        state = state.copyWith(
-          user: response.data,
-          isLoggedIn: true,
-        );
+        final responseData = response.data;
+        
+        // Handle the nested data structure from API
+        if (responseData['success'] == true && responseData['data'] != null) {
+          state = state.copyWith(
+            user: responseData['data'],
+            isLoggedIn: true,
+          );
+        }
       }
     } catch (e) {
-      // Handle error silently
+      // Handle error silently - user might not be logged in
     }
   }
 
