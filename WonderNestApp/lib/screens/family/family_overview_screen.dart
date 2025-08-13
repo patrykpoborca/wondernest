@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../models/family_member.dart';
+import '../../models/family_member.dart' as fm;
 import '../../providers/family_provider.dart';
 import '../../widgets/family_member_card.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -60,7 +60,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
     );
   }
 
-  Widget _buildFamilyContent(BuildContext context, Family family) {
+  Widget _buildFamilyContent(BuildContext context, fm.Family family) {
     final theme = Theme.of(context);
     final children = family.children;
 
@@ -87,7 +87,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.primaryContainer,
-                  theme.colorScheme.primaryContainer.withOpacity(0.7),
+                  theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -281,7 +281,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
       children: [
         Icon(
           icon,
-          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
+          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
           size: 24,
         ),
         const SizedBox(height: 4),
@@ -296,7 +296,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
         Text(
           label,
           style: TextStyle(
-            color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7),
+            color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
             fontSize: 12,
           ),
         ),
@@ -361,7 +361,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
 
   Future<bool> _showDeleteConfirmation(
     BuildContext context,
-    FamilyMember child,
+    fm.FamilyMember child,
   ) async {
     return await showDialog<bool>(
           context: context,

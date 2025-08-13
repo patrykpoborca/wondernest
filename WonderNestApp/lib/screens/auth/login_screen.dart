@@ -36,15 +36,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _passwordController.text,
     );
 
-    if (success && mounted) {
+    if (success) {
       // Check if user has completed onboarding
       final secureStorage = const FlutterSecureStorage();
       final hasCompletedOnboarding = await secureStorage.read(key: 'onboarding_completed') == 'true';
       
-      if (hasCompletedOnboarding) {
-        context.go('/parent-dashboard');
-      } else {
-        context.go('/onboarding');
+      if (mounted) {
+        if (hasCompletedOnboarding) {
+          context.go('/parent-dashboard');
+        } else {
+          context.go('/onboarding');
+        }
       }
     }
   }
@@ -88,7 +90,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'Sign in to continue your family\'s learning journey',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.3),
                   
@@ -119,7 +121,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       icon: Icon(
                         _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                     validator: (value) {
@@ -135,9 +137,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -193,7 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Don\'t have an account? ',
                         style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       GestureDetector(

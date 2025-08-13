@@ -46,17 +46,17 @@ class CustomTextField extends StatelessWidget {
         hintText: hintText,
         suffixIcon: suffixIcon,
         labelStyle: GoogleFonts.poppins(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           fontSize: 16,
         ),
         hintStyle: GoogleFonts.poppins(
-          color: Colors.white.withOpacity(0.6),
+          color: Colors.white.withValues(alpha: 0.6),
           fontSize: 16,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -86,7 +86,7 @@ class CustomTextField extends StatelessWidget {
           fontSize: 12,
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
+        fillColor: Colors.white.withValues(alpha: 0.1),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,

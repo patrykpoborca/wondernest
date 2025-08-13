@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:step_progress_indicator/step_progress_indicator.dart';
-import '../../models/family_member.dart';
+import '../../models/family_member.dart' as fm;
 import '../../providers/family_provider.dart';
 
 class ChildProfileScreen extends ConsumerStatefulWidget {
@@ -47,12 +47,15 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
     // Load existing child data for editing
     final familyAsync = ref.read(familyProvider);
     familyAsync.whenData((family) {
-      final child = family.children.firstWhere(
+      final children = family.children;
+      if (children.isEmpty) return;
+      
+      final child = children.firstWhere(
         (c) => c.id == widget.childId,
-        orElse: () => FamilyMember(
+        orElse: () => fm.FamilyMember(
           id: '',
           name: '',
-          role: MemberRole.child,
+          role: fm.MemberRole.child,
         ),
       );
       if (child.id.isNotEmpty) {
@@ -125,7 +128,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             child: Text(
               _getStepSubtitle(),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -153,7 +156,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -235,7 +238,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -323,7 +326,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -403,7 +406,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
           Text(
             'This helps your child identify their profile',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 32),
@@ -485,7 +488,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
           Text(
             'Choose topics your child enjoys',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -524,7 +527,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -632,12 +635,14 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             .updateAvatar(image.path);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to pick image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -653,10 +658,10 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
     formNotifier.setLoading(true);
 
     try {
-      final member = FamilyMember(
+      final member = fm.FamilyMember(
         id: widget.childId ?? 'child_${DateTime.now().millisecondsSinceEpoch}',
         name: _nameController.text,
-        role: MemberRole.child,
+        role: fm.MemberRole.child,
         age: _selectedAge.round(),
         interests: _selectedInterests.toList(),
         avatarUrl: _avatarFile?.path ?? '',

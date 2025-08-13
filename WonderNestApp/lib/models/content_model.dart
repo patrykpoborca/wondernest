@@ -33,7 +33,7 @@ class ContentModel {
   final List<String> tags;
   final int minAge;
   final int maxAge;
-  final double? rating_score;
+  final double? ratingScore;
   final int? viewCount;
   final bool isFavorite;
   final bool isDownloaded;
@@ -56,7 +56,7 @@ class ContentModel {
     List<String>? tags,
     required this.minAge,
     required this.maxAge,
-    this.rating_score,
+    this.ratingScore,
     this.viewCount,
     this.isFavorite = false,
     this.isDownloaded = false,
@@ -119,7 +119,7 @@ class ContentModel {
     List<String>? tags,
     int? minAge,
     int? maxAge,
-    double? rating_score,
+    double? ratingScore,
     int? viewCount,
     bool? isFavorite,
     bool? isDownloaded,
@@ -142,7 +142,7 @@ class ContentModel {
       tags: tags ?? this.tags,
       minAge: minAge ?? this.minAge,
       maxAge: maxAge ?? this.maxAge,
-      rating_score: rating_score ?? this.rating_score,
+      ratingScore: ratingScore ?? this.ratingScore,
       viewCount: viewCount ?? this.viewCount,
       isFavorite: isFavorite ?? this.isFavorite,
       isDownloaded: isDownloaded ?? this.isDownloaded,

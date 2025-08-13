@@ -79,7 +79,7 @@ class _ContentLibraryScreenState extends ConsumerState<ContentLibraryScreen> {
                 hintText: 'Search content...',
                 border: InputBorder.none,
                 hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
               style: theme.textTheme.titleLarge,
@@ -137,7 +137,7 @@ class _ContentLibraryScreenState extends ConsumerState<ContentLibraryScreen> {
     List<ContentCategory> selectedCategories,
   ) {
     return SliverToBoxAdapter(
-      child: Container(
+      child: SizedBox(
         height: selectedType != null || selectedCategories.isNotEmpty ? 60 : 0,
         child: ListView(
           scrollDirection: Axis.horizontal,
@@ -387,7 +387,7 @@ class _ContentLibraryScreenState extends ConsumerState<ContentLibraryScreen> {
       case ContentType.book:
         return PhosphorIcons.book();
       case ContentType.activity:
-        return PhosphorIcons.puzzle();
+        return PhosphorIcons.puzzlePiece();
     }
   }
 
@@ -455,7 +455,7 @@ class _ContentFilterSheetState extends ConsumerState<ContentFilterSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -553,7 +553,7 @@ class _ContentFilterSheetState extends ConsumerState<ContentFilterSheet> {
                 color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),

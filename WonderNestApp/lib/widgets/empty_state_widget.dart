@@ -40,7 +40,7 @@ class EmptyStateWidget extends StatelessWidget {
                     return Icon(
                       icon ?? Icons.inbox_rounded,
                       size: 80,
-                      color: iconColor ?? theme.colorScheme.primary.withOpacity(0.3),
+                      color: iconColor ?? theme.colorScheme.primary.withValues(alpha: 0.3),
                     );
                   },
                 ),
@@ -49,7 +49,7 @@ class EmptyStateWidget extends StatelessWidget {
               Icon(
                 icon ?? Icons.inbox_rounded,
                 size: 80,
-                color: iconColor ?? theme.colorScheme.primary.withOpacity(0.3),
+                color: iconColor ?? theme.colorScheme.primary.withValues(alpha: 0.3),
               ),
             ],
             const SizedBox(height: 24),
@@ -64,7 +64,7 @@ class EmptyStateWidget extends StatelessWidget {
             Text(
               subtitle,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

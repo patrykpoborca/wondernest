@@ -89,7 +89,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     'Create your family\'s learning adventure',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ).animate().fadeIn(delay: 400.ms).slideX(begin: 0.3),
                   
@@ -161,7 +161,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       icon: Icon(
                         _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                     validator: (value) {
@@ -208,7 +208,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                       icon: Icon(
                         _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                     validator: (value) {
@@ -229,14 +229,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       Checkbox(
                         value: _agreeToTerms,
                         onChanged: (value) => setState(() => _agreeToTerms = value ?? false),
-                        fillColor: MaterialStateProperty.all(Colors.white),
+                        fillColor: WidgetStateProperty.all(Colors.white),
                         checkColor: AppColors.primaryBlue,
                       ),
                       Expanded(
                         child: Text(
                           'I agree to the Terms of Service and Privacy Policy',
                           style: GoogleFonts.poppins(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 14,
                           ),
                         ),
@@ -249,9 +249,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
@@ -279,7 +279,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     child: ElevatedButton(
                       onPressed: (authState.isLoading || !_agreeToTerms) ? null : _signup,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _agreeToTerms ? Colors.white : Colors.white.withOpacity(0.5),
+                        backgroundColor: _agreeToTerms ? Colors.white : Colors.white.withValues(alpha: 0.5),
                         foregroundColor: AppColors.primaryBlue,
                         elevation: _agreeToTerms ? 8 : 0,
                         shadowColor: Colors.black26,
@@ -307,7 +307,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       Text(
                         'Already have an account? ',
                         style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       GestureDetector(

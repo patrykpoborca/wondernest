@@ -115,13 +115,13 @@ class FamilyMemberCard extends StatelessWidget {
                               ? PhosphorIcons.baby()
                               : PhosphorIcons.user(),
                           size: 16,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           member.role == MemberRole.parent ? 'Parent' : 'Child',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         if (member.lastActive != null) ...[
@@ -129,14 +129,14 @@ class FamilyMemberCard extends StatelessWidget {
                           Icon(
                             PhosphorIcons.clock(),
                             size: 16,
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _getLastActiveText(member.lastActive!),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color:
-                                  theme.colorScheme.onSurface.withOpacity(0.6),
+                                  theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],

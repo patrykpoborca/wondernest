@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/content_model.dart';
-import '../models/family_member.dart';
 import 'family_provider.dart';
 
 // Content API service provider
@@ -257,7 +256,7 @@ class ContentApiService {
         tags: ['alphabet', 'animals', 'preschool'],
         minAge: 3,
         maxAge: 5,
-        rating_score: 4.8,
+        ratingScore: 4.8,
         viewCount: 15000,
         creator: 'KidsLearnHub',
         educationalTopics: ['Alphabet', 'Animal Names', 'Phonics'],
@@ -275,7 +274,7 @@ class ContentApiService {
         tags: ['counting', 'numbers', 'math'],
         minAge: 4,
         maxAge: 6,
-        rating_score: 4.6,
+        ratingScore: 4.6,
         viewCount: 8500,
         creator: 'MathWizards',
         educationalTopics: ['Counting', 'Number Recognition', 'Basic Addition'],
@@ -293,7 +292,7 @@ class ContentApiService {
         tags: ['bedtime', 'story', 'adventure'],
         minAge: 3,
         maxAge: 8,
-        rating_score: 4.9,
+        ratingScore: 4.9,
         viewCount: 22000,
         isFavorite: true,
         creator: 'StoryTime',
@@ -313,7 +312,7 @@ class ContentApiService {
         tags: ['experiments', 'science', 'STEM'],
         minAge: 6,
         maxAge: 10,
-        rating_score: 4.7,
+        ratingScore: 4.7,
         viewCount: 18000,
         creator: 'ScienceKids',
         educationalTopics: ['Chemistry', 'Physics', 'Scientific Method'],
@@ -331,7 +330,7 @@ class ContentApiService {
         tags: ['exercise', 'yoga', 'health'],
         minAge: 4,
         maxAge: 12,
-        rating_score: 4.5,
+        ratingScore: 4.5,
         viewCount: 12000,
         creator: 'HealthyKids',
         lastWatched: DateTime.now().subtract(const Duration(days: 5)),
@@ -350,7 +349,7 @@ class ContentApiService {
         tags: ['drawing', 'art', 'creativity'],
         minAge: 5,
         maxAge: 12,
-        rating_score: 4.6,
+        ratingScore: 4.6,
         viewCount: 9500,
         isFavorite: true,
         creator: 'ArtForKids',
@@ -369,7 +368,7 @@ class ContentApiService {
         tags: ['music', 'instruments', 'sounds'],
         minAge: 3,
         maxAge: 10,
-        rating_score: 4.8,
+        ratingScore: 4.8,
         viewCount: 14000,
         creator: 'MusicMakers',
         educationalTopics: ['Musical Instruments', 'Sound Recognition', 'Rhythm'],
@@ -387,7 +386,7 @@ class ContentApiService {
         tags: ['geography', 'countries', 'quiz'],
         minAge: 8,
         maxAge: 13,
-        rating_score: 4.4,
+        ratingScore: 4.4,
         viewCount: 7500,
         creator: 'GeoExplorers',
         educationalTopics: ['World Geography', 'Countries', 'Capitals'],

@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/family_member.dart';
+import '../models/family_member.dart' as fm;
 import '../core/services/mock_api_service.dart';
 
 // Selected child provider
-final selectedChildProvider = StateProvider<FamilyMember?>((ref) => null);
+final selectedChildProvider = StateProvider<fm.FamilyMember?>((ref) => null);
 
 // Family API service provider
 final familyApiServiceProvider = Provider<FamilyApiService>((ref) {
@@ -11,13 +11,13 @@ final familyApiServiceProvider = Provider<FamilyApiService>((ref) {
 });
 
 // Family state notifier
-class FamilyNotifier extends AsyncNotifier<Family> {
+class FamilyNotifier extends AsyncNotifier<fm.Family> {
   @override
-  Future<Family> build() async {
+  Future<fm.Family> build() async {
     return await _fetchFamily();
   }
 
-  Future<Family> _fetchFamily() async {
+  Future<fm.Family> _fetchFamily() async {
     final service = ref.read(familyApiServiceProvider);
     return await service.getFamily();
   }
@@ -29,7 +29,7 @@ class FamilyNotifier extends AsyncNotifier<Family> {
     });
   }
 
-  Future<void> addChild(FamilyMember child) async {
+  Future<void> addChild(fm.FamilyMember child) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final service = ref.read(familyApiServiceProvider);
@@ -38,7 +38,7 @@ class FamilyNotifier extends AsyncNotifier<Family> {
     });
   }
 
-  Future<void> updateChild(FamilyMember child) async {
+  Future<void> updateChild(fm.FamilyMember child) async {
     state = await AsyncValue.guard(() async {
       final service = ref.read(familyApiServiceProvider);
       await service.updateFamilyMember(child);
@@ -54,46 +54,44 @@ class FamilyNotifier extends AsyncNotifier<Family> {
     });
   }
 
-  void selectChild(FamilyMember? child) {
+  void selectChild(fm.FamilyMember? child) {
     ref.read(selectedChildProvider.notifier).state = child;
   }
 }
 
 // Family provider
-final familyProvider = AsyncNotifierProvider<FamilyNotifier, Family>(() {
+final familyProvider = AsyncNotifierProvider<FamilyNotifier, fm.Family>(() {
   return FamilyNotifier();
 });
 
 // Mock Family API Service extension
 class FamilyApiService {
   // Simulated database
-  static Family? _mockFamily;
+  static fm.Family? _mockFamily;
 
-  Future<Family> getFamily() async {
+  Future<fm.Family> getFamily() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    if (_mockFamily == null) {
-      // Initialize with mock data
-      _mockFamily = Family(
+    // Initialize with mock data if needed
+    _mockFamily ??= fm.Family(
         id: 'fam_001',
         name: 'The Wonder Family',
         members: [
-          FamilyMember(
+          fm.FamilyMember(
             id: 'parent_001',
             name: 'Parent User',
             email: 'parent@wondernest.com',
-            role: MemberRole.parent,
+            role: fm.MemberRole.parent,
             lastActive: DateTime.now(),
           ),
         ],
         subscriptionPlan: 'free',
       );
-    }
 
     return _mockFamily!;
   }
 
-  Future<void> addFamilyMember(FamilyMember member) async {
+  Future<void> addFamilyMember(fm.FamilyMember member) async {
     await Future.delayed(const Duration(seconds: 1));
 
     if (_mockFamily != null) {
@@ -102,7 +100,7 @@ class FamilyApiService {
     }
   }
 
-  Future<void> updateFamilyMember(FamilyMember member) async {
+  Future<void> updateFamilyMember(fm.FamilyMember member) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (_mockFamily != null) {

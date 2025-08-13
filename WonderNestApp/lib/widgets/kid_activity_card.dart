@@ -30,7 +30,7 @@ class KidActivityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -43,7 +43,7 @@ class KidActivityCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
@@ -106,7 +106,7 @@ class KidActivityCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: color.withOpacity(0.2),
+                    backgroundColor: color.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                     borderRadius: BorderRadius.circular(10),
                   ),

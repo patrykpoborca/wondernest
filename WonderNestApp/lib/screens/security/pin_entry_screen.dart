@@ -167,7 +167,6 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     final authenticated = await _securityService.authenticateWithBiometrics();
     
     if (authenticated) {
-      final appMode = ref.read(appModeProvider.notifier);
       // For biometric, we still need to verify the stored PIN internally
       // This is a simplified version - in production, handle this more securely
       _handleSuccess();
@@ -250,7 +249,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                         counterText: '',
                         filled: true,
                         fillColor: _controllers[index].text.isNotEmpty
-                            ? AppColors.primaryBlue.withOpacity(0.1)
+                            ? AppColors.primaryBlue.withValues(alpha: 0.1)
                             : Colors.grey[100],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),

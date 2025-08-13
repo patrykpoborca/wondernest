@@ -1,0 +1,79 @@
+Here's some errors i discovered.
+
+1) When clicking content filters
+'package:flutter/src/material/range_slider.dart': Failed assertion: line 169 pos 15: 'values.start >= min && values.start <= max': is not true.
+
+The relevant error-causing widget was:
+  ContentFilterSettingsScreen ContentFilterSettingsScreen:file:///Users/patrykpoborca/Documents/personal_projects/wonder_nest/WonderNestApp/lib/main.dart:257:46
+When the exception was thrown, this was the stack:
+#2      new RangeSlider (package:flutter/src/material/range_slider.dart:169:15)
+#3      _ContentFilterSettingsScreenState._buildAgeRangeSlider (package:wonder_nest/screens/content/content_filter_settings_screen.dart:266:9)
+#4      _ContentFilterSettingsScreenState.build (package:wonder_nest/screens/content/content_filter_settings_screen.dart:131:22)
+
+
+
+2) Content library loads but i see some padding overflow render issues
+
+
+======== Exception caught by rendering library =====================================================
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 28 pixels on the right.
+
+The relevant error-causing widget was:
+  Row Row:file:///Users/patrykpoborca/Documents/personal_projects/wonder_nest/WonderNestApp/lib/widgets/content_card.dart:107:19
+
+
+3) WHen adding a child and going through the flow i error out at the end
+
+Server logs: 2025-08-13 10:25:10.300 [DefaultDispatcher-worker-1] INFO  Application - Responding at http://0.0.0.0:8080
+             2025-08-13 10:26:23.533 [eventLoopGroupProxy-4-2] INFO  Application - 404 Not Found: GET - /api/v1/health in 327ms
+             2025-08-13 10:26:23.533 [eventLoopGroupProxy-4-1] INFO  Application - 404 Not Found: GET - /api/v1/family/profile in 327ms
+             2025-08-13 14:55:01.682 [eventLoopGroupProxy-4-3] INFO  Application - 404 Not Found: GET - /api/v1/health in 13ms
+             2025-08-13 14:55:01.682 [eventLoopGroupProxy-4-4] INFO  Application - 404 Not Found: GET - /api/v1/family/profile in 13ms
+             2025-08-13 15:13:01.180 [eventLoopGroupProxy-4-6] INFO  Application - 404 Not Found: GET - /api/v1/family/profile in 4ms
+             2025-08-13 15:13:01.180 [eventLoopGroupProxy-4-5] INFO  Application - 404 Not Found: GET - /api/v1/health in 16ms
+             2025-08-13 15:14:56.187 [eventLoopGroupProxy-4-7] INFO  Application - 404 Not Found: GET - /api/v1/health in 16ms
+             2025-08-13 15:14:56.189 [eventLoopGroupProxy-4-8] INFO  Application - 404 Not Found: GET - /api/v1/family/profile in 4ms
+             2025-08-13 15:16:37.484 [eventLoopGroupProxy-4-9] INFO  Application - 404 Not Found: GET - /api/v1/health in 23ms
+             2025-08-13 15:16:37.484 [eventLoopGroupProxy-4-10] INFO  Application - 404 Not Found: GET - /api/v1/family/profile in 11ms
+             2025-08-13 15:16:55.611 [eventLoopGroupProxy-4-11] INFO  Application - 404 Not Found: GET - /api/v1/health in 5ms
+             2025-08-13 15:17:29.025 [eventLoopGroupProxy-4-12] INFO  Application - 404 Not Found: POST - /api/v1/coppa/consent in 10ms
+Local logs:
+flutter: ╔╣ Request ║ POST
+flutter: ║  http://localhost:8080/api/v1/coppa/consent
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Headers
+flutter: ╟ Content-Type: application/json
+flutter: ╟ contentType: application/json
+flutter: ╟ responseType: ResponseType.json
+flutter: ╟ followRedirects: true
+flutter: ╟ connectTimeout: 0:00:10.000000
+flutter: ╟ receiveTimeout: 0:00:10.000000
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ Body
+flutter: ╟ childId: child_1755116213442
+flutter: ╟ consentType: full
+flutter: ╟ permissions:
+flutter: ║ {dataCollection: true, educationalData: false, analytics: false, audioMonitoring: false, t
+flutter: ║ hirdPartySharing: false, marketing: false}
+flutter: ╟ verificationMethod: credit_card
+flutter: ╟ verificationData: {parentSignature: Patryk Poborca}
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ║ {childId: child_1755116213442, consentType: full, permissions: {dataCollection: true, educ
+flutter: ║ ationalData: false, analytics: false, audioMonitoring: false, thirdPartySharing: false, ma
+flutter: ║ rketing: false}, verificationMethod: credit_card, verificationData: {parentSignature: Patr
+flutter: ║ yk Poborca}}
+flutter:
+flutter: ╔╣ DioError ║ Status: 404 Not Found ║ Time: 125 ms
+flutter: ║  http://localhost:8080/api/v1/coppa/consent
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter: ╔ DioExceptionType.badResponse
+flutter: ║    {
+flutter: ║         "error": "NOT_FOUND",
+flutter: ║         "message": "The requested resource was not found",
+flutter: ║         "timestamp": 1755116249020
+flutter: ║    }
+flutter: ╚══════════════════════════════════════════════════════════════════════════════════════════╝
+flutter:
+
+

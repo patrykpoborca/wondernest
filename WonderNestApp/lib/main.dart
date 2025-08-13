@@ -85,7 +85,6 @@ class WonderNestApp extends ConsumerWidget {
         final secureStorage = const FlutterSecureStorage();
         final accessToken = await secureStorage.read(key: 'auth_token');
         final hasCompletedOnboarding = await secureStorage.read(key: 'onboarding_completed') == 'true';
-        final hasParentAccount = await secureStorage.read(key: 'parent_account_created') == 'true';
         
         final currentPath = state.matchedLocation;
         final isLoggedIn = accessToken != null;

@@ -85,7 +85,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -160,7 +160,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.accentPurple.withOpacity(0.1),
+              color: AppColors.accentPurple.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -192,7 +192,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -285,7 +285,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withValues(alpha: 0.9),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -374,7 +374,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
 
   Widget _buildExitButton() {
     return Material(
-      color: Colors.red.withOpacity(0.9),
+      color: Colors.red.withValues(alpha: 0.9),
       borderRadius: BorderRadius.circular(25),
       child: InkWell(
         onTap: _exitGame,

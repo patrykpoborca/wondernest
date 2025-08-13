@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -134,11 +133,13 @@ class AudioProcessingService {
           _analyzeTranscription(text);
         }
       },
-      listenFor: Duration(seconds: maxRecordingDurationSeconds),
-      pauseFor: const Duration(seconds: 3),
-      partialResults: true,
-      onDevice: true, // Use on-device recognition for privacy
-      listenMode: ListenMode.confirmation,
+      listenOptions: SpeechListenOptions(
+        partialResults: true,
+        onDevice: true, // Use on-device recognition for privacy
+        listenMode: ListenMode.confirmation,
+        cancelOnError: true,
+        autoPunctuation: true,
+      ),
     );
   }
 

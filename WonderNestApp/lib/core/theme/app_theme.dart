@@ -13,7 +13,6 @@ class AppTheme {
       primary: AppColors.primaryBlue,
       secondary: AppColors.primaryPurple,
       surface: AppColors.surface,
-      background: AppColors.background,
       error: AppColors.error,
     ),
     
@@ -136,8 +135,7 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       primary: AppColors.kidSafeBlue,
       secondary: AppColors.kidSafePurple,
-      surface: Colors.white,
-      background: Color(0xFFFFF9E6),
+      surface: Color(0xFFFFF9E6),
       error: AppColors.error,
     ),
     
