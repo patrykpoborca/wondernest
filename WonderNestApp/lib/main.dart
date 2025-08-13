@@ -8,6 +8,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 // Theme
 import 'core/theme/app_theme.dart';
 
+// Models
+import 'models/app_mode.dart';
+
 // Providers
 import 'providers/app_mode_provider.dart';
 import 'providers/auth_provider.dart';

@@ -1,7 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'app_mode.g.dart';
-
 enum AppMode {
   @JsonValue('kid')
   kid,

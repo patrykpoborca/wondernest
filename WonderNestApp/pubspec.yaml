@@ -99,7 +99,7 @@ dependencies:
   device_info_plus: ^11.3.0
   
   # COPPA & Privacy
-  flutter_privacy_screen: ^1.0.0+2
+  secure_application: ^4.1.0
 
 dev_dependencies:
   flutter_test:

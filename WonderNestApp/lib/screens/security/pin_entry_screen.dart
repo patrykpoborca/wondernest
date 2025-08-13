@@ -203,7 +203,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
               Icon(
                 Icons.lock_outline,
                 size: 80,
-                color: AppColors.primary,
+                color: AppColors.primaryBlue,
               ),
               const SizedBox(height: 32),
               Text(
@@ -250,20 +250,20 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                         counterText: '',
                         filled: true,
                         fillColor: _controllers[index].text.isNotEmpty
-                            ? AppColors.primary.withOpacity(0.1)
+                            ? AppColors.primaryBlue.withOpacity(0.1)
                             : Colors.grey[100],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: _controllers[index].text.isNotEmpty
-                                ? AppColors.primary
+                                ? AppColors.primaryBlue
                                 : Colors.grey[300]!,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: AppColors.primary,
+                            color: AppColors.primaryBlue,
                             width: 2,
                           ),
                         ),
@@ -310,7 +310,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                   child: ElevatedButton(
                     onPressed: _handlePinSubmit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primaryBlue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -335,7 +335,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                     icon: const Icon(Icons.fingerprint),
                     label: const Text('Use Biometric'),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.primaryBlue,
                     ),
                   ),
                 ],

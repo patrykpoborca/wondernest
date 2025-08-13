@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/app_mode_provider.dart';
+import '../../models/app_mode.dart';
 import '../../models/child_profile.dart';
 import '../../core/theme/app_colors.dart';
-import '../../services/api_service.dart';
+import '../../core/services/api_service.dart';
 
 class ParentControlDashboard extends ConsumerStatefulWidget {
   const ParentControlDashboard({super.key});
@@ -106,13 +107,13 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primaryBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: DropdownButton<ChildProfile>(
                 value: _selectedChild,
                 underline: const SizedBox(),
-                icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                icon: const Icon(Icons.arrow_drop_down, color: AppColors.primaryBlue),
                 items: _children.map((child) {
                   return DropdownMenuItem(
                     value: child,
@@ -120,7 +121,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                       children: [
                         CircleAvatar(
                           radius: 12,
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.primaryBlue,
                           child: Text(
                             child.name[0],
                             style: const TextStyle(
@@ -172,9 +173,9 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                   child: TabBar(
                     controller: _tabController,
                     isScrollable: true,
-                    labelColor: AppColors.primary,
+                    labelColor: AppColors.primaryBlue,
                     unselectedLabelColor: AppColors.textSecondary,
-                    indicatorColor: AppColors.primary,
+                    indicatorColor: AppColors.primaryBlue,
                     tabs: const [
                       Tab(text: 'Overview', icon: Icon(Icons.dashboard, size: 20)),
                       Tab(text: 'Screen Time', icon: Icon(Icons.timer, size: 20)),
@@ -385,7 +386,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                           barRods: [
                             BarChartRodData(
                               toY: (60 + index * 15).toDouble(),
-                              color: AppColors.primary,
+                              color: AppColors.primaryBlue,
                               width: 20,
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(4),
@@ -540,7 +541,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
             icon: const Icon(Icons.add),
             label: const Text('Add Whitelisted Content'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primaryBlue,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -676,7 +677,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                 ListTile(
                   leading: CircleAvatar(
                     radius: 30,
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primaryBlue,
                     child: Text(
                       _selectedChild?.name[0] ?? 'T',
                       style: const TextStyle(
@@ -707,7 +708,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                     children: (_selectedChild?.interests ?? []).map((interest) {
                       return Chip(
                         label: Text(interest, style: const TextStyle(fontSize: 12)),
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
                       );
                     }).toList(),
                   ),
@@ -927,7 +928,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
               Text(
                 value,
                 style: TextStyle(
-                  color: enabled ? AppColors.primary : Colors.grey,
+                  color: enabled ? AppColors.primaryBlue : Colors.grey,
                 ),
               ),
             ],
@@ -1081,7 +1082,7 @@ class _ParentControlDashboardState extends ConsumerState<ParentControlDashboard>
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: AppColors.primaryBlue,
                       ),
                     ),
                   ],

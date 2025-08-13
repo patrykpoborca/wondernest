@@ -160,4 +160,38 @@ class ApiService {
       'childId': childId,
     });
   }
+  
+  // Game endpoints
+  Future<Response> saveGameProgress({
+    required String gameId,
+    required String childId,
+    required int score,
+    required int level,
+    required int playTimeMinutes,
+  }) {
+    return _dio.post('/games/progress', data: {
+      'gameId': gameId,
+      'childId': childId,
+      'score': score,
+      'level': level,
+      'playTimeMinutes': playTimeMinutes,
+    });
+  }
+  
+  // COPPA endpoints
+  Future<Response> submitCOPPAConsent({
+    required String childId,
+    required String consentType,
+    required Map<String, dynamic> permissions,
+    required String verificationMethod,
+    Map<String, dynamic>? verificationData,
+  }) {
+    return _dio.post('/coppa/consent', data: {
+      'childId': childId,
+      'consentType': consentType,
+      'permissions': permissions,
+      'verificationMethod': verificationMethod,
+      if (verificationData != null) 'verificationData': verificationData,
+    });
+  }
 }

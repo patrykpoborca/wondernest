@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/coppa_consent.dart';
-import '../../services/api_service.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_colors.dart';
 
 class CoppaConsentScreen extends ConsumerStatefulWidget {
@@ -71,7 +71,7 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
       body: Theme(
         data: Theme.of(context).copyWith(
           colorScheme: ColorScheme.light(
-            primary: AppColors.primary,
+            primary: AppColors.primaryBlue,
           ),
         ),
         child: Stepper(
@@ -85,7 +85,7 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
                   ElevatedButton(
                     onPressed: _canContinue() ? details.onStepContinue : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primaryBlue,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -365,7 +365,7 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
         const SizedBox(height: 12),
         
         RadioListTile<String>(
-          title: const Text('Credit Card ($0.50 charge, refunded)'),
+          title: const Text('Credit Card (\$0.50 charge, refunded)'),
           subtitle: const Text('Most secure and instant verification'),
           value: 'credit_card',
           groupValue: _verificationMethod,
@@ -570,7 +570,7 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'A $0.50 charge will be made and immediately refunded to verify your card.',
+                  'A \$0.50 charge will be made and immediately refunded to verify your card.',
                   style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                 ),
               ),
@@ -585,7 +585,7 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
           icon: const Icon(Icons.credit_card),
           label: const Text('Verify with Credit Card'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.primaryBlue,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
         ),
@@ -774,21 +774,20 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
 
     try {
       // Submit consent to API
-      final response = await _apiService.post(
-        '/api/v1/coppa/consent',
-        data: {
-          'childId': widget.childId,
-          'consentType': 'full',
-          'permissions': {
-            'dataCollection': true,
-            'educationalData': _educationalDataConsent,
-            'analytics': _analyticsConsent,
-            'audioMonitoring': _audioMonitoringConsent,
-            'thirdPartySharing': _thirdPartySharingConsent,
-            'marketing': _marketingConsent,
-          },
+      final response = await _apiService.submitCOPPAConsent(
+        childId: widget.childId,
+        consentType: 'full',
+        permissions: {
+          'dataCollection': true,
+          'educationalData': _educationalDataConsent,
+          'analytics': _analyticsConsent,
+          'audioMonitoring': _audioMonitoringConsent,
+          'thirdPartySharing': _thirdPartySharingConsent,
+          'marketing': _marketingConsent,
+        },
+        verificationMethod: _verificationMethod,
+        verificationData: {
           'parentSignature': _signatureController.text,
-          'verificationMethod': _verificationMethod,
         },
       );
 

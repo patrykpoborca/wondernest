@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/game_model.dart';
-import '../../services/api_service.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_colors.dart';
 
 class MiniGameFramework extends ConsumerStatefulWidget {
@@ -66,7 +66,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.kidModeBackground,
+      backgroundColor: AppColors.kidBackgroundLight,
       body: SafeArea(
         child: Stack(
           children: [
@@ -160,12 +160,12 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.1),
+              color: AppColors.accentPurple.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               children: [
-                Icon(Icons.timer, size: 16, color: AppColors.accent),
+                Icon(Icons.timer, size: 16, color: AppColors.accentPurple),
                 const SizedBox(width: 4),
                 StreamBuilder(
                   stream: Stream.periodic(const Duration(seconds: 1)),
@@ -174,7 +174,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
                     return Text(
                       '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: AppColors.accentPurple,
                         fontWeight: FontWeight.bold,
                       ),
                     );
@@ -263,7 +263,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
           Icon(
             Icons.games,
             size: 80,
-            color: AppColors.primary,
+            color: AppColors.primaryBlue,
           ),
           const SizedBox(height: 16),
           Text(
@@ -293,13 +293,13 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
             CircularProgressIndicator(
               value: _loadingProgress,
               backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
             ),
             const SizedBox(height: 16),
             Text(
               'Loading Game...',
               style: TextStyle(
-                color: AppColors.primary,
+                color: AppColors.primaryBlue,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -357,7 +357,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.primary),
+            Icon(icon, color: AppColors.primaryBlue),
             const SizedBox(height: 4),
             Text(
               label,
@@ -573,15 +573,12 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
     
     // Save progress to API
     try {
-      await _apiService.post(
-        '/api/v1/games/progress',
-        data: {
-          'gameId': widget.game.id,
-          'childId': widget.childId,
-          'score': _score,
-          'level': _level,
-          'playTimeMinutes': duration.inMinutes,
-        },
+      await _apiService.saveGameProgress(
+        gameId: widget.game.id,
+        childId: widget.childId,
+        score: _score,
+        level: _level,
+        playTimeMinutes: duration.inMinutes,
       );
     } catch (e) {
       debugPrint('Error saving game progress: $e');
