@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
@@ -7,11 +7,14 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/quick_action_button.dart';
 
-class ParentDashboard extends StatelessWidget {
+class ParentDashboard extends ConsumerWidget {
   const ParentDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: SafeArea(
@@ -20,49 +23,44 @@ class ParentDashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, _) {
-                  final user = authProvider.user;
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Good morning,',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              user?['firstName'] ?? 'Parent',
-                              style: GoogleFonts.poppins(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.primaryBlue,
-                        child: Text(
-                          (user?['firstName']?[0] ?? 'P').toUpperCase(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Good morning,',
                           style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
                           ),
                         ),
+                        Text(
+                          user?['firstName'] ?? 'Parent',
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primaryBlue,
+                    child: Text(
+                      (user?['firstName']?[0] ?? 'P').toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    ],
-                  ).animate().fadeIn().slideX(begin: 0.3);
-                },
-              ),
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn().slideX(begin: 0.3),
               
               const SizedBox(height: 32),
               

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lottie/lottie.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/child_profile.dart';
-import '../../models/game_model.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/audio_processing_service.dart';
 import '../../services/subtitle_tracking_service.dart';
@@ -26,7 +24,6 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
   final SubtitleTrackingService _subtitleService = SubtitleTrackingService();
   
   bool _isListening = false;
-  String? _lastCommand;
 
   @override
   void initState() {
@@ -66,9 +63,6 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
   void _handleVoiceCommand(String command) {
     final lowercaseCommand = command.toLowerCase();
     
-    setState(() {
-      _lastCommand = command;
-    });
     
     // Simple voice commands for kids
     if (lowercaseCommand.contains('play game')) {
@@ -144,7 +138,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
           end: Alignment.bottomRight,
           colors: [
             AppColors.kidModeBackground,
-            AppColors.kidModeAccent.withOpacity(0.3),
+            AppColors.kidModeAccent.withValues(alpha: 0.3),
           ],
         ),
       ),
@@ -168,7 +162,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
                       height: 60 + (index * 10).toDouble(),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
                   );
@@ -202,7 +196,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -220,7 +214,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
               ),
             ).animate()
               .scale(duration: 500.ms, curve: Curves.elasticOut)
-              .shimmer(duration: 2.seconds, delay: 1.second),
+              .shimmer(duration: 2.seconds, delay: 1.seconds),
           ),
           
           // Parent mode button (subtle)
@@ -229,21 +223,21 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.supervisor_account,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     size: 20,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Parents',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -302,7 +296,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
             'What would you like to do today?',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ).animate()
             .fadeIn(duration: 800.ms, delay: 200.ms),
@@ -379,7 +373,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
         const SizedBox(height: 12),
@@ -397,7 +391,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -444,7 +438,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.3),
+            color: Colors.orange.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -455,7 +449,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -481,7 +475,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
                 Text(
                   'Complete 3 math problems!',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -490,7 +484,7 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
           ),
           Icon(
             Icons.arrow_forward,
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ],
       ),
@@ -513,12 +507,12 @@ class _EnhancedChildHomeState extends ConsumerState<EnhancedChildHome>
             gradient: LinearGradient(
               colors: _isListening
                   ? [Colors.red[400]!, Colors.red[600]!]
-                  : [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  : [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
             ),
             boxShadow: [
               BoxShadow(
                 color: (_isListening ? Colors.red : AppColors.primary)
-                    .withOpacity(0.4),
+                    .withValues(alpha: 0.4),
                 blurRadius: 20,
                 spreadRadius: _isListening ? 5 : 0,
               ),
@@ -638,7 +632,7 @@ class _ActivityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -650,7 +644,7 @@ class _ActivityCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

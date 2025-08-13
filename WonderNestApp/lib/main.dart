@@ -13,7 +13,6 @@ import 'models/app_mode.dart';
 
 // Providers
 import 'providers/app_mode_provider.dart';
-import 'providers/auth_provider.dart';
 
 // Screens
 import 'screens/auth/welcome_screen.dart';
@@ -26,8 +25,6 @@ import 'screens/child/child_home.dart';
 import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
 import 'screens/games/mini_game_framework.dart';
-
-// Models
 import 'models/game_model.dart';
 
 void main() async {
@@ -76,8 +73,8 @@ class WonderNestApp extends ConsumerWidget {
 
   GoRouter _createRouter(WidgetRef ref, AppModeState appModeState) {
     return GoRouter(
-      // ALWAYS start in kid mode for safety
-      initialLocation: '/child-home',
+      // Start with welcome for first-time users
+      initialLocation: '/welcome',
       
       redirect: (context, state) async {
         // Check if app is initialized
@@ -87,16 +84,18 @@ class WonderNestApp extends ConsumerWidget {
         
         final currentPath = state.matchedLocation;
         
+        // Allow auth routes to work without redirection
+        final authRoutes = ['/welcome', '/signup', '/login', '/onboarding'];
+        if (authRoutes.contains(currentPath)) {
+          return null; // Don't redirect if on auth routes
+        }
+        
         // First-time setup flow
-        if (!hasCompletedOnboarding && currentPath != '/welcome' && currentPath != '/onboarding') {
+        if (!hasCompletedOnboarding) {
           return '/welcome';
         }
         
-        if (!hasParentAccount && 
-            currentPath != '/welcome' && 
-            currentPath != '/signup' && 
-            currentPath != '/login' &&
-            currentPath != '/onboarding') {
+        if (!hasParentAccount) {
           return '/welcome';
         }
         

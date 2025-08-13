@@ -41,6 +41,11 @@ class AppColors {
   static const Color backgroundLight = Color(0xFFF8F9FA);
   static const Color kidBackgroundLight = Color(0xFFF0F8FF);
   
+  // Aliases for compatibility
+  static const Color primary = primaryBlue;
+  static const Color kidModeBackground = kidBackgroundLight;
+  static const Color kidModeAccent = kidSafeBlue;
+  
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryBlue, primaryPurple],

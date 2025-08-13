@@ -43,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
                   'Where learning meets wonder',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
@@ -54,7 +54,7 @@ class WelcomeScreen extends StatelessWidget {
                   'Create magical learning experiences\nfor your little ones',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 900.ms, duration: 800.ms),
