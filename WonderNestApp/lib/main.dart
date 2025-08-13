@@ -78,8 +78,8 @@ class WonderNestApp extends ConsumerWidget {
 
   GoRouter _createRouter(WidgetRef ref, AppModeState appModeState) {
     return GoRouter(
-      // Start with welcome for first-time users
-      initialLocation: '/welcome',
+      // Start with child selection for kid-first approach
+      initialLocation: '/child-selection',
       
       redirect: (context, state) async {
         // Check authentication and onboarding status
@@ -94,18 +94,32 @@ class WonderNestApp extends ConsumerWidget {
         final authRoutes = ['/welcome', '/signup', '/login', '/onboarding'];
         final isAuthRoute = authRoutes.contains(currentPath);
         
-        // If logged in and trying to access auth routes, redirect to appropriate page
+        // Kid mode routes (accessible without authentication)
+        final kidRoutes = ['/child-selection', '/child-home', '/game'];
+        final isKidRoute = kidRoutes.any((route) => currentPath.startsWith(route));
+        
+        // If on kid route, allow access regardless of authentication
+        if (isKidRoute) {
+          return null;
+        }
+        
+        // If not logged in and trying to access parent features, redirect to welcome
+        if (!isLoggedIn && !isAuthRoute && !isKidRoute) {
+          return '/welcome';
+        }
+        
+        // If logged in and trying to access auth routes, redirect based on onboarding
         if (isLoggedIn && isAuthRoute && currentPath != '/onboarding') {
           if (hasCompletedOnboarding) {
-            return '/parent-dashboard';
+            // After auth completion, check if we should stay in parent mode or return to kid mode
+            if (appModeState.currentMode == AppMode.parent) {
+              return '/parent-dashboard';
+            } else {
+              return '/child-selection';
+            }
           } else {
             return '/onboarding';
           }
-        }
-        
-        // If not logged in and not on auth route, redirect to welcome
-        if (!isLoggedIn && !isAuthRoute) {
-          return '/welcome';
         }
         
         // Allow onboarding to proceed if logged in
@@ -114,7 +128,7 @@ class WonderNestApp extends ConsumerWidget {
         }
         
         // If logged in but hasn't completed onboarding, redirect to onboarding
-        if (isLoggedIn && !hasCompletedOnboarding && !isAuthRoute) {
+        if (isLoggedIn && !hasCompletedOnboarding && !isAuthRoute && !isKidRoute) {
           return '/onboarding';
         }
         
@@ -128,20 +142,14 @@ class WonderNestApp extends ConsumerWidget {
           '/child-profile',
           '/content-library',
           '/content-filters',
-          '/child-selection',
         ];
         
         final isParentRoute = parentRoutes.any((route) => currentPath.startsWith(route));
         
         // If trying to access parent route but not in parent mode
         if (isParentRoute && appModeState.currentMode != AppMode.parent) {
-          // Redirect to PIN entry
+          // Redirect to PIN entry with return path
           return '/pin-entry?redirect=$currentPath';
-        }
-        
-        // Auto-redirect to kid mode if session expired
-        if (appModeState.currentMode == AppMode.kid && isParentRoute) {
-          return '/child-home';
         }
         
         return null;
@@ -154,7 +162,7 @@ class WonderNestApp extends ConsumerWidget {
           builder: (context, state) => const ChildHome(),
         ),
         
-        // Child Selection for Kid Mode Entry
+        // Child Selection for Kid Mode Entry (accessible without authentication)
         GoRoute(
           path: '/child-selection',
           builder: (context, state) => const ChildSelectionScreen(),
@@ -321,7 +329,7 @@ class WonderNestApp extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => context.go('/child-home'),
+                onPressed: () => context.go('/child-selection'),
                 child: const Text('Go to Home'),
               ),
             ],

@@ -51,8 +51,39 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
   }
 
   Future<void> _initializeMode() async {
-    // Always start in Kid Mode for safety
-    state = state.copyWith(currentMode: AppMode.kid, isLocked: true);
+    // Always start in Kid Mode for safety and kid-first approach
+    // Check if there was a previous parent session that might still be valid
+    final lastParentAccessStr = await _secureStorage.read(key: 'last_parent_access');
+    DateTime? lastParentAccess;
+    
+    if (lastParentAccessStr != null) {
+      try {
+        lastParentAccess = DateTime.parse(lastParentAccessStr);
+      } catch (e) {
+        // Invalid date format, ignore
+      }
+    }
+    
+    // Check if parent session is still valid (within auto-lock duration)
+    bool isParentSessionValid = false;
+    if (lastParentAccess != null) {
+      final timeSinceLastAccess = DateTime.now().difference(lastParentAccess);
+      isParentSessionValid = timeSinceLastAccess < state.autoLockDuration;
+    }
+    
+    // Default to Kid Mode unless there's a valid parent session
+    final initialMode = isParentSessionValid ? AppMode.parent : AppMode.kid;
+    
+    state = state.copyWith(
+      currentMode: initialMode,
+      isLocked: initialMode == AppMode.kid,
+      lastParentAccess: isParentSessionValid ? lastParentAccess : null,
+    );
+    
+    // Start auto-lock timer if in parent mode
+    if (initialMode == AppMode.parent) {
+      _startAutoLockTimer();
+    }
   }
 
   Future<bool> switchToParentMode(String pin) async {
@@ -74,17 +105,23 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
     return false;
   }
 
-  void _switchToParentModeInternal() {
+  void _switchToParentModeInternal() async {
+    final now = DateTime.now();
+    await _secureStorage.write(key: 'last_parent_access', value: now.toIso8601String());
+    
     state = state.copyWith(
       currentMode: AppMode.parent,
       isLocked: false,
-      lastParentAccess: DateTime.now(),
+      lastParentAccess: now,
     );
     _startAutoLockTimer();
   }
 
-  void switchToKidMode({ChildProfile? child}) {
+  void switchToKidMode({ChildProfile? child}) async {
     _cancelAutoLockTimer();
+    // Clear stored parent access time when switching to kid mode
+    await _secureStorage.delete(key: 'last_parent_access');
+    
     state = state.copyWith(
       currentMode: AppMode.kid,
       isLocked: true,
@@ -105,9 +142,12 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
     _autoLockTimer = null;
   }
 
-  void resetActivity() {
+  void resetActivity() async {
     if (state.currentMode == AppMode.parent) {
-      state = state.copyWith(lastParentAccess: DateTime.now());
+      final now = DateTime.now();
+      await _secureStorage.write(key: 'last_parent_access', value: now.toIso8601String());
+      
+      state = state.copyWith(lastParentAccess: now);
       _startAutoLockTimer();
     }
   }

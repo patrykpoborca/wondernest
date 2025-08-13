@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/child_profile.dart';
@@ -109,6 +110,19 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   @override
   Widget build(BuildContext context) {
     final activeChild = ref.watch(activeChildProvider);
+    
+    // If no active child, redirect to child selection
+    if (activeChild == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.go('/child-selection');
+      });
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
     return Theme(
       data: ThemeData(
         primarySwatch: Colors.blue,
@@ -513,45 +527,84 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   }
 
   Widget _buildParentHelpSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.accentPurple, AppColors.kidSafeBlue],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '👨‍👩‍👧‍👦',
-            style: const TextStyle(fontSize: 48),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Ask a grown-up to help!',
-            style: GoogleFonts.comicNeue(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+    return Column(
+      children: [
+        // Switch Profile Button
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton(
+            onPressed: () => context.go('/child-selection'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Get help or switch back to parent mode',
-            style: GoogleFonts.comicNeue(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '🔄',
+                  style: const TextStyle(fontSize: 24),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Switch Profile',
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.3);
+        ).animate().fadeIn(delay: 850.ms).slideY(begin: 0.3),
+        
+        // Parent Help Section
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.accentPurple, AppColors.kidSafeBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            children: [
+              Text(
+                '👨‍👩‍👧‍👦',
+                style: const TextStyle(fontSize: 48),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Ask a grown-up to help!',
+                style: GoogleFonts.comicNeue(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Get help or switch back to parent mode',
+                style: GoogleFonts.comicNeue(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ).animate().fadeIn(delay: 900.ms).slideY(begin: 0.3),
+      ],
+    );
   }
 
   String _getChildAvatar(ChildProfile? child) {

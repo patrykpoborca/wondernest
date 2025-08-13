@@ -23,10 +23,13 @@ class ChildSelectionScreen extends ConsumerWidget {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios,
+            Icons.family_restroom,
             color: AppColors.textPrimary,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            // Instead of going back, show parent access option
+            _showParentAccessDialog(context, ref);
+          },
         ),
         title: Text(
           'Choose Your Profile',
@@ -40,13 +43,19 @@ class ChildSelectionScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: familyAsyncValue.when(
-          data: (family) => _buildChildSelection(context, ref, family),
+          data: (family) {
+            // If family is null or has no children, show the no children state
+            if (family.children.isEmpty) {
+              return _buildNoChildrenState(context, ref);
+            }
+            return _buildChildSelection(context, ref, family);
+          },
           loading: () => const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.kidSafeBlue),
             ),
           ),
-          error: (error, stackTrace) => _buildErrorState(context, ref),
+          error: (error, stackTrace) => _buildNoChildrenState(context, ref), // Show no children state on error too
         ),
       ),
     );
@@ -56,7 +65,7 @@ class ChildSelectionScreen extends ConsumerWidget {
     final children = family.children;
 
     if (children.isEmpty) {
-      return _buildNoChildrenState(context);
+      return _buildNoChildrenState(context, ref);
     }
 
     return SingleChildScrollView(
@@ -271,7 +280,7 @@ class ChildSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoChildrenState(BuildContext context) {
+  Widget _buildNoChildrenState(BuildContext context, WidgetRef ref) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -302,78 +311,60 @@ class ChildSelectionScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => context.pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.kidSafeBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            
+            // Guest play option
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _selectGuestChild(context, ref),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.kidSafeBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '🎆',
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Play as Guest',
+                      style: GoogleFonts.comicNeue(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Text(
-                'Go Back',
-                style: GoogleFonts.comicNeue(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showParentAccessDialog(context, ref),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.kidSafeBlue,
+                  side: const BorderSide(color: AppColors.kidSafeBlue, width: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '😕',
-              style: const TextStyle(fontSize: 80),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Oops! Something went wrong',
-              style: GoogleFonts.comicNeue(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Let\'s try again!',
-              style: GoogleFonts.comicNeue(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                ref.refresh(familyProvider);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.kidSafeBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: Text(
-                'Try Again',
-                style: GoogleFonts.comicNeue(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                child: Text(
+                  'Ask Parent for Help',
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -383,6 +374,40 @@ class ChildSelectionScreen extends ConsumerWidget {
     );
   }
 
+  void _selectGuestChild(BuildContext context, WidgetRef ref) {
+    // Create a guest child profile for temporary play
+    final guestProfile = ChildProfile(
+      id: 'guest_child',
+      name: 'Guest',
+      age: 5,
+      avatarUrl: '🎆', // Guest emoji
+      birthDate: DateTime.now().subtract(const Duration(days: 5 * 365)),
+      gender: 'not_specified',
+      interests: ['games', 'stories', 'music'],
+      contentSettings: ContentSettings(
+        maxAgeRating: 6,
+        blockedCategories: [],
+        allowedDomains: [],
+        subtitlesEnabled: true,
+        audioMonitoringEnabled: true,
+        educationalContentOnly: false,
+      ),
+      timeRestrictions: TimeRestrictions(
+        weekdayLimits: {},
+        weekendLimits: {},
+        dailyScreenTimeMinutes: 60,
+        bedtimeEnabled: false,
+      ),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    // Set the guest child as active and switch to kid mode
+    ref.read(appModeProvider.notifier).setActiveChild(guestProfile);
+    ref.read(appModeProvider.notifier).switchToKidMode();
+    context.go('/child-home');
+  }
+  
   void _selectChild(BuildContext context, WidgetRef ref, fm.FamilyMember child) {
     // Convert FamilyMember to ChildProfile for compatibility
     final childProfile = ChildProfile(
@@ -425,5 +450,85 @@ class ChildSelectionScreen extends ConsumerWidget {
     if (age <= 6) return 6;
     if (age <= 8) return 8;
     return 12;
+  }
+  
+  void _showParentAccessDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '👨‍👩‍👧‍👦',
+              style: const TextStyle(fontSize: 48),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Ask a Parent',
+              style: GoogleFonts.comicNeue(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'If you need help or want to set up your profile, ask a grown-up to enter their PIN.',
+              style: GoogleFonts.comicNeue(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.backgroundLight,
+                      foregroundColor: AppColors.textSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Maybe Later',
+                      style: GoogleFonts.comicNeue(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      context.go('/pin-entry?redirect=/parent-dashboard');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.kidSafeBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Get Parent',
+                      style: GoogleFonts.comicNeue(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
