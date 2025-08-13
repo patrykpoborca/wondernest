@@ -321,3 +321,67 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# ===================================================================
+# PROJECT SPECIFIC TEST FILES
+# ===================================================================
+# Test JSON files (appear to be temporary test data)
+final_test.json
+simple_test.json
+test_signup.json
+working_test.json
+debug_validation.kt
+*test*.json
+!src/test/**/*.json
+!test-scripts/**/*.json
+
+# ===================================================================
+# KOTLIN SPECIFIC ADDITIONS
+# ===================================================================
+# Kotlin script files
+*.kts.timestamp
+*.kotlin_module
+*.kotlin_builtins
+*.kotlin_metadata
+
+# ===================================================================  
+# GRADLE SPECIFIC ADDITIONS
+# ===================================================================
+# Gradle Wrapper (keep these)
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
+
+# Gradle cache and daemon
+.gradle-home/
+.gradle/
+gradlew.bat.stackdump
+
+# ===================================================================
+# ADDITIONAL DATABASE FILES
+# ===================================================================
+# Database session and cache files  
+docker/volumes/pgadmin/sessions/
+docker/volumes/pgadmin/storage/
+docker/volumes/pgadmin/*.db
+docker/volumes/postgres/
+docker/volumes/redis/
+
+# PostgreSQL data directory
+pg_data/
+pgdata/
+
+# ===================================================================
+# APPLICATION SPECIFIC
+# ===================================================================
+# Application logs with various patterns
+app.log
+app.log.*
+application.log
+application.log.*
+wondernest.log
+wondernest.log.*
+
+# Task tracking (appears to be temporary)
+task_tracker.md

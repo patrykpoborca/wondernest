@@ -1,45 +1,255 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ===================================================================
+# WonderNest Repository - Root .gitignore
+# ===================================================================
 
-# IntelliJ related
+# ===================================================================
+# OPERATING SYSTEM FILES
+# ===================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+[Dd]esktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================================================================
+# IDE & EDITOR FILES
+# ===================================================================
+# IntelliJ IDEA / Android Studio
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+out/
+.idea_modules/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+[._]*.un~
 
-# Symbolication related
-app.*.symbols
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+.org-id-locations
+*_archive
+*_flymake.*
+/eshell/history
+/eshell/lastdir
+/elpa/
+*.rel
+/auto/
+.cask/
+dist/
+flycheck_*.el
+/server/
+.projectile
+.dir-locals.el
+/network-security.data
 
-# Obfuscation related
-app.*.map.json
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+sftp-config.json
+sftp-config-alt*.json
+Package Control.last-run
+Package Control.ca-list
+Package Control.ca-bundle
+Package Control.system-ca-bundle
+Package Control.cache/
+Package Control.ca-certs/
+Package Control.merged-ca-bundle
+Package Control.user-ca-bundle
+oscrypto-ca-bundle.crt
+bh_unicode_properties.cache
+GitHub.sublime-settings
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ===================================================================
+# ENVIRONMENT & SECURITY FILES
+# ===================================================================
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Secrets & Keys
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+secrets/
+credentials/
+*.secret
+
+# ===================================================================
+# BUILD ARTIFACTS & DEPENDENCIES
+# ===================================================================
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# ===================================================================
+# LOGS & TEMPORARY FILES
+# ===================================================================
+# Log files
+*.log
+logs/
+log/
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*~
+
+# ===================================================================
+# DATABASE FILES
+# ===================================================================
+# Database dumps
+*.sql.dump
+*.dump
+*.backup
+*.bak
+db_backup_*
+database_dump_*
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# ===================================================================
+# DOCKER VOLUMES (Keep templates and config)
+# ===================================================================
+docker/volumes/
+!docker/volumes/.gitkeep
+
+# ===================================================================
+# TEST & COVERAGE
+# ===================================================================
+coverage/
+*.coverage
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# ===================================================================
+# MISCELLANEOUS
+# ===================================================================
+# Archives (unless specifically needed)
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# Package files
+*.jar
+*.war
+*.ear
+*.nar
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Cache directories
+cache/
+.cache/
+
+# macOS specific folders to ignore
+**/.Spotlight-V100
+**/.Trashes
+**/._*
+
+# Test JSON files that appear to be temporary
+*test*.json
+!**/test/**/*.json
+!**/tests/**/*.json
