@@ -56,7 +56,7 @@ class ContentCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -98,7 +98,7 @@ class ContentCard extends StatelessWidget {
                   Text(
                     content.description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -106,16 +106,20 @@ class ContentCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildInfoChip(
-                        icon: PhosphorIcons.clock(),
-                        label: content.durationDisplay,
-                        theme: theme,
+                      Flexible(
+                        child: _buildInfoChip(
+                          icon: PhosphorIcons.clock(),
+                          label: content.durationDisplay,
+                          theme: theme,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      _buildInfoChip(
-                        icon: PhosphorIcons.user(),
-                        label: content.ageRangeDisplay,
-                        theme: theme,
+                      Flexible(
+                        child: _buildInfoChip(
+                          icon: PhosphorIcons.user(),
+                          label: content.ageRangeDisplay,
+                          theme: theme,
+                        ),
                       ),
                     ],
                   ),
@@ -189,7 +193,7 @@ class ContentCard extends StatelessWidget {
                     Text(
                       content.description,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -200,7 +204,7 @@ class ContentCard extends StatelessWidget {
                         Icon(
                           PhosphorIcons.clock(),
                           size: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -211,7 +215,7 @@ class ContentCard extends StatelessWidget {
                         Icon(
                           PhosphorIcons.user(),
                           size: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -286,7 +290,7 @@ class ContentCard extends StatelessWidget {
           vertical: isSmall ? 2 : 4,
         ),
         decoration: BoxDecoration(
-          color: _getContentTypeColor().withOpacity(0.9),
+          color: _getContentTypeColor().withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -329,12 +333,15 @@ class ContentCard extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall,
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -352,7 +359,7 @@ class ContentCard extends StatelessWidget {
       case ContentType.book:
         return PhosphorIcons.book();
       case ContentType.activity:
-        return PhosphorIcons.puzzle();
+        return PhosphorIcons.puzzlePiece();
     }
   }
 

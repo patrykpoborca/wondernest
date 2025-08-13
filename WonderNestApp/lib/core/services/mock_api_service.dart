@@ -216,4 +216,46 @@ class MockApiService {
     final token = await _storage.read(key: 'auth_token');
     return token != null && _sessions.containsKey(token);
   }
+  
+  // COPPA Consent Mock Implementation
+  Future<Response> submitCOPPAConsent({
+    required String childId,
+    required String consentType,
+    required Map<String, dynamic> permissions,
+    required String verificationMethod,
+    Map<String, dynamic>? verificationData,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/coppa/consent'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'consentId': 'consent_${DateTime.now().millisecondsSinceEpoch}',
+          'childId': childId,
+          'consentType': consentType,
+          'permissions': permissions,
+          'verificationMethod': verificationMethod,
+          'verificationData': verificationData,
+          'submittedAt': DateTime.now().toIso8601String(),
+          'status': 'approved',
+        }
+      },
+    );
+  }
+  
+  // Health check mock
+  Future<Response> healthCheck() async {
+    return Response(
+      requestOptions: RequestOptions(path: '/health'),
+      statusCode: 200,
+      data: {
+        'status': 'ok',
+        'timestamp': DateTime.now().toIso8601String(),
+        'version': '1.0.0-mock'
+      },
+    );
+  }
 }

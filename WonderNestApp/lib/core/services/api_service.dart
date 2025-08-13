@@ -105,12 +105,20 @@ class ApiService {
   
   Future<void> _checkBackendAvailability() async {
     try {
-      final response = await _dio.get('/health').timeout(const Duration(seconds: 2));
+      await _dio.get('/health').timeout(const Duration(seconds: 2));
       _useMockService = false;
     } catch (e) {
-      print('Backend not available, using mock service');
+      // Backend not available, using mock service
       _useMockService = true;
     }
+  }
+  
+  // Health check endpoint
+  Future<Response> healthCheck() {
+    if (_useMockService) {
+      return _mockService.healthCheck();
+    }
+    return _dio.get('/health');
   }
   
   // Auth endpoints
@@ -229,6 +237,15 @@ class ApiService {
     required String verificationMethod,
     Map<String, dynamic>? verificationData,
   }) {
+    if (_useMockService) {
+      return _mockService.submitCOPPAConsent(
+        childId: childId,
+        consentType: consentType,
+        permissions: permissions,
+        verificationMethod: verificationMethod,
+        verificationData: verificationData,
+      );
+    }
     return _dio.post('/coppa/consent', data: {
       'childId': childId,
       'consentType': consentType,

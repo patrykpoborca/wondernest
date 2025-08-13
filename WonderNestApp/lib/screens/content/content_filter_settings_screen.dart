@@ -33,10 +33,10 @@ class _ContentFilterSettingsScreenState
     final filter = ref.read(contentFilterProvider);
     setState(() {
       _requireEducational = filter.requireEducational;
-      _ageRange = RangeValues(
-        filter.minAge.toDouble(),
-        filter.maxAge.toDouble(),
-      );
+      // Clamp values to slider bounds (2-18)
+      final minAgeValue = filter.minAge.toDouble().clamp(2.0, 18.0);
+      final maxAgeValue = filter.maxAge.toDouble().clamp(2.0, 18.0);
+      _ageRange = RangeValues(minAgeValue, maxAgeValue);
       _maxRating = filter.maxRating;
       _maxDuration = filter.maxDurationMinutes;
       _allowedTypes.clear();
@@ -75,7 +75,7 @@ class _ContentFilterSettingsScreenState
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -107,7 +107,7 @@ class _ContentFilterSettingsScreenState
                               '${selectedChild.age} years old',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.7),
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                         ],
@@ -242,7 +242,7 @@ class _ContentFilterSettingsScreenState
                       Text(
                         subtitle,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -463,7 +463,7 @@ class _ContentFilterSettingsScreenState
       case ContentType.book:
         return PhosphorIcons.book();
       case ContentType.activity:
-        return PhosphorIcons.puzzle();
+        return PhosphorIcons.puzzlePiece();
     }
   }
 
