@@ -83,12 +83,13 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
     _startAutoLockTimer();
   }
 
-  void switchToKidMode() {
+  void switchToKidMode({ChildProfile? child}) {
     _cancelAutoLockTimer();
     state = state.copyWith(
       currentMode: AppMode.kid,
       isLocked: true,
       lastParentAccess: null,
+      activeChild: child ?? state.activeChild,
     );
   }
 
@@ -113,6 +114,10 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
 
   void setActiveChild(ChildProfile child) {
     state = state.copyWith(activeChild: child);
+  }
+
+  void clearActiveChild() {
+    state = state.copyWith(activeChild: null);
   }
 
   void updateAutoLockDuration(Duration duration) {

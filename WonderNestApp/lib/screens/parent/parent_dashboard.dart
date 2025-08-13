@@ -236,7 +236,7 @@ class ParentDashboard extends ConsumerWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // Navigate to child mode
+                        context.push('/child-selection');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,

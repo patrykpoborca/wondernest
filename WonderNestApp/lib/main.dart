@@ -22,6 +22,7 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/parent/parent_dashboard.dart';
 import 'screens/parent/parent_control_dashboard.dart';
 import 'screens/child/child_home.dart';
+import 'screens/child/child_selection_screen.dart';
 import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
 import 'screens/games/mini_game_framework.dart';
@@ -127,6 +128,7 @@ class WonderNestApp extends ConsumerWidget {
           '/child-profile',
           '/content-library',
           '/content-filters',
+          '/child-selection',
         ];
         
         final isParentRoute = parentRoutes.any((route) => currentPath.startsWith(route));
@@ -150,6 +152,12 @@ class WonderNestApp extends ConsumerWidget {
         GoRoute(
           path: '/child-home',
           builder: (context, state) => const ChildHome(),
+        ),
+        
+        // Child Selection for Kid Mode Entry
+        GoRoute(
+          path: '/child-selection',
+          builder: (context, state) => const ChildSelectionScreen(),
         ),
         
         // Authentication & Onboarding
