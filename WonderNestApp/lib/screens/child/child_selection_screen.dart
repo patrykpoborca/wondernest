@@ -9,12 +9,22 @@ import '../../providers/app_mode_provider.dart';
 import '../../models/family_member.dart' as fm;
 import '../../models/child_profile.dart';
 
-class ChildSelectionScreen extends ConsumerWidget {
+class ChildSelectionScreen extends ConsumerStatefulWidget {
   const ChildSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChildSelectionScreen> createState() => _ChildSelectionScreenState();
+}
+
+class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
+
+  @override
+  Widget build(BuildContext context) {
+    print('[WIDGET] ChildSelectionScreen.build() called at ${DateTime.now()}');
     final familyAsyncValue = ref.watch(familyProvider);
+    final appModeState = ref.watch(appModeProvider);
+    print('[CHECK] ChildSelectionScreen - currentMode: ${appModeState.currentMode}');
+    print('[CHECK] ChildSelectionScreen - activeChild: ${appModeState.activeChild?.name ?? 'null'}');
 
     return Scaffold(
       backgroundColor: AppColors.kidBackgroundLight,
@@ -28,7 +38,7 @@ class ChildSelectionScreen extends ConsumerWidget {
           ),
           onPressed: () {
             // Instead of going back, show parent access option
-            _showParentAccessDialog(context, ref);
+            _showParentAccessDialog(context);
           },
         ),
         title: Text(
@@ -46,26 +56,26 @@ class ChildSelectionScreen extends ConsumerWidget {
           data: (family) {
             // If family is null or has no children, show the no children state
             if (family.children.isEmpty) {
-              return _buildNoChildrenState(context, ref);
+              return _buildNoChildrenState(context);
             }
-            return _buildChildSelection(context, ref, family);
+            return _buildChildSelection(context, family);
           },
           loading: () => const Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.kidSafeBlue),
             ),
           ),
-          error: (error, stackTrace) => _buildNoChildrenState(context, ref), // Show no children state on error too
+          error: (error, stackTrace) => _buildNoChildrenState(context), // Show no children state on error too
         ),
       ),
     );
   }
 
-  Widget _buildChildSelection(BuildContext context, WidgetRef ref, fm.Family family) {
+  Widget _buildChildSelection(BuildContext context, fm.Family family) {
     final children = family.children;
 
     if (children.isEmpty) {
-      return _buildNoChildrenState(context, ref);
+      return _buildNoChildrenState(context);
     }
 
     return SingleChildScrollView(
@@ -128,7 +138,7 @@ class ChildSelectionScreen extends ConsumerWidget {
             itemCount: children.length,
             itemBuilder: (context, index) {
               final child = children[index];
-              return _buildChildCard(context, ref, child, index);
+              return _buildChildCard(context, child, index);
             },
           ),
           
@@ -179,7 +189,7 @@ class ChildSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChildCard(BuildContext context, WidgetRef ref, fm.FamilyMember child, int index) {
+  Widget _buildChildCard(BuildContext context, fm.FamilyMember child, int index) {
     // Generate a colorful avatar color based on child's name
     final colors = [
       AppColors.kidSafeBlue,
@@ -194,7 +204,10 @@ class ChildSelectionScreen extends ConsumerWidget {
     final avatar = child.avatarUrl ?? avatars[index % avatars.length];
 
     return GestureDetector(
-      onTap: () => _selectChild(context, ref, child),
+      onTap: () {
+        print('[TAP] Child card tapped for ${child.name} at ${DateTime.now()}');
+        _selectChild(child);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -280,7 +293,7 @@ class ChildSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoChildrenState(BuildContext context, WidgetRef ref) {
+  Widget _buildNoChildrenState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -316,7 +329,10 @@ class ChildSelectionScreen extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _selectGuestChild(context, ref),
+                onPressed: () {
+                  print('[TAP] Play as Guest button tapped at ${DateTime.now()}');
+                  _selectGuestChild();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.kidSafeBlue,
                   foregroundColor: Colors.white,
@@ -350,7 +366,7 @@ class ChildSelectionScreen extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () => _showParentAccessDialog(context, ref),
+                onPressed: () => _showParentAccessDialog(context),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.kidSafeBlue,
                   side: const BorderSide(color: AppColors.kidSafeBlue, width: 2),
@@ -374,7 +390,12 @@ class ChildSelectionScreen extends ConsumerWidget {
     );
   }
 
-  void _selectGuestChild(BuildContext context, WidgetRef ref) {
+  void _selectGuestChild() {
+    print('[STATE] _selectGuestChild called at ${DateTime.now()}');
+    
+    // Store reference before any operations
+    final appModeNotifier = ref.read(appModeProvider.notifier);
+    
     // Create a guest child profile for temporary play
     final guestProfile = ChildProfile(
       id: 'guest_child',
@@ -402,13 +423,31 @@ class ChildSelectionScreen extends ConsumerWidget {
       updatedAt: DateTime.now(),
     );
 
-    // Set the guest child as active and switch to kid mode
-    ref.read(appModeProvider.notifier).setActiveChild(guestProfile);
-    ref.read(appModeProvider.notifier).switchToKidMode();
+    print('[STATE] Setting guest child and switching to kid mode');
+    
+    // Use the new synchronous method
+    appModeNotifier.selectChildAndSwitchMode(guestProfile);
+    
+    // Verify state was updated
+    final currentState = ref.read(appModeProvider);
+    print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
+    
+    print('[NAV] About to navigate to /child-home for guest');
+    print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
+    
+    // Navigate immediately - state is already set
     context.go('/child-home');
+    
+    print('[NAV] context.go(\'/child-home\') called');
+    print('[NAV] Navigation command issued for guest');
   }
   
-  void _selectChild(BuildContext context, WidgetRef ref, fm.FamilyMember child) {
+  void _selectChild(fm.FamilyMember child) {
+    print('[STATE] _selectChild called for ${child.name} at ${DateTime.now()}');
+    
+    // Store reference
+    final appModeNotifier = ref.read(appModeProvider.notifier);
+    
     // Convert FamilyMember to ChildProfile for compatibility
     final childProfile = ChildProfile(
       id: child.id,
@@ -436,12 +475,23 @@ class ChildSelectionScreen extends ConsumerWidget {
       updatedAt: DateTime.now(),
     );
 
-    // Set the active child in app mode provider
-    ref.read(appModeProvider.notifier).setActiveChild(childProfile);
+    print('[STATE] Setting child ${childProfile.name} and switching to kid mode');
     
-    // Switch to kid mode and navigate to child home
-    ref.read(appModeProvider.notifier).switchToKidMode();
+    // Use the new synchronous method
+    appModeNotifier.selectChildAndSwitchMode(childProfile);
+    
+    // Verify state was updated
+    final currentState = ref.read(appModeProvider);
+    print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
+    
+    print('[NAV] About to navigate to /child-home for ${child.name}');
+    print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
+    
+    // Navigate immediately - state is already set
     context.go('/child-home');
+    
+    print('[NAV] context.go(\'/child-home\') called');
+    print('[NAV] Navigation command issued for ${child.name}');
   }
 
   int _getAgeRating(int age) {
@@ -451,8 +501,10 @@ class ChildSelectionScreen extends ConsumerWidget {
     if (age <= 8) return 8;
     return 12;
   }
+
+  // Removed - no longer needed with simplified navigation
   
-  void _showParentAccessDialog(BuildContext context, WidgetRef ref) {
+  void _showParentAccessDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

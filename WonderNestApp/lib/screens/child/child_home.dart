@@ -6,12 +6,16 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/child_profile.dart';
+import '../../models/app_mode.dart';
 
 class ChildHome extends ConsumerStatefulWidget {
-  const ChildHome({super.key});
+  const ChildHome({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<ChildHome> createState() => _ChildHomeState();
+  ConsumerState<ChildHome> createState() {
+    print('[WIDGET] ChildHome.createState() called at ${DateTime.now()}');
+    return _ChildHomeState();
+  }
 }
 
 class _ChildHomeState extends ConsumerState<ChildHome> {
@@ -21,7 +25,25 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   @override
   void initState() {
     super.initState();
-    _generateDailyContent();
+    print('[WIDGET] ChildHome.initState() START at ${DateTime.now()}');
+    print('[WIDGET] ChildHome widget hash: ${this.hashCode}');
+    print('[WIDGET] Context available: ${context != null}');
+    
+    try {
+      final activeChild = ref.read(activeChildProvider);
+      print('[INIT] activeChild in initState: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'})');
+      _generateDailyContent();
+      print('[WIDGET] ChildHome.initState() COMPLETE');
+    } catch (e, stack) {
+      print('[ERROR] Failed in initState: $e');
+      print('[ERROR] Stack: $stack');
+    }
+  }
+
+  @override
+  void dispose() {
+    print('[WIDGET] ChildHome.dispose() called at ${DateTime.now()}');
+    super.dispose();
   }
 
   void _generateDailyContent() {
@@ -41,6 +63,9 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     // Generate varied activities for the toy box
     todaysActivities = _generateActivities();
   }
+
+  // Removed automatic redirect - let parent handle navigation
+  // The router should handle redirects if needed
 
   List<ActivityItem> _generateActivities() {
     return [
@@ -109,19 +134,86 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
 
   @override
   Widget build(BuildContext context) {
-    final activeChild = ref.watch(activeChildProvider);
+    print('[WIDGET] ChildHome.build() START at ${DateTime.now()}');
+    print('[WIDGET] Build context: $context');
+    print('[WIDGET] Widget mounted: $mounted');
     
-    // If no active child, redirect to child selection
+    ChildProfile? activeChild;
+    AppModeState? appModeState;
+    
+    try {
+      activeChild = ref.watch(activeChildProvider);
+      appModeState = ref.watch(appModeProvider);
+      
+      print('[CHECK] activeChild: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'}');
+      print('[CHECK] currentMode: ${appModeState?.currentMode}');
+      print('[CHECK] isLocked: ${appModeState?.isLocked}');
+    } catch (e) {
+      print('[ERROR] Failed to read providers in build: $e');
+      activeChild = null;
+      appModeState = null;
+    }
+    
+    // If no active child, show a friendly message with option to select profile
     if (activeChild == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.go('/child-selection');
-      });
-      return const Scaffold(
+      print('[CHECK] activeChild is null - showing loading state');
+      print('[CHECK] This might be a temporary state during navigation');
+      
+      // Don't auto-redirect - let the user or router handle navigation
+      // The router should handle redirects based on app state
+      
+      return Scaffold(
+        backgroundColor: AppColors.kidBackgroundLight,
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '🎮',
+                style: const TextStyle(fontSize: 64),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Loading your toy box...',
+                style: GoogleFonts.comicNeue(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.kidSafeBlue,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.kidSafeBlue),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () {
+                  print('[TAP] Go to profile selection from loading state');
+                  context.go('/child-selection');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.kidSafeBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  'Choose Profile',
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
+    
+    print('[RENDER] Rendering full child home for: ${activeChild.name}');
     
     return Theme(
       data: ThemeData(
@@ -534,7 +626,11 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 16),
           child: ElevatedButton(
-            onPressed: () => context.go('/child-selection'),
+            onPressed: () {
+              print('[TAP] Switch Profile button tapped at ${DateTime.now()}');
+              print('[NAV] Navigating to /child-selection from ChildHome');
+              context.go('/child-selection');
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentGreen,
               foregroundColor: Colors.white,
