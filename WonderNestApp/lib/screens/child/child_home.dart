@@ -138,30 +138,32 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     print('[WIDGET] Build context: $context');
     print('[WIDGET] Widget mounted: $mounted');
     
-    ChildProfile? activeChild;
-    AppModeState? appModeState;
+    // Watch the entire appModeProvider state, not just activeChildProvider
+    // This ensures we get updates when the state changes
+    final appModeState = ref.watch(appModeProvider);
+    final activeChild = appModeState.activeChild;
     
-    try {
-      activeChild = ref.watch(activeChildProvider);
-      appModeState = ref.watch(appModeProvider);
-      
-      print('[CHECK] activeChild: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'}');
-      print('[CHECK] currentMode: ${appModeState?.currentMode}');
-      print('[CHECK] isLocked: ${appModeState?.isLocked}');
-    } catch (e) {
-      print('[ERROR] Failed to read providers in build: $e');
-      activeChild = null;
-      appModeState = null;
-    }
+    print('[CHECK] activeChild: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'}');
+    print('[CHECK] currentMode: ${appModeState.currentMode}');
+    print('[CHECK] isLocked: ${appModeState.isLocked}');
+    print('[CHECK] activeChild from appModeState: ${appModeState.activeChild?.name ?? 'null'}');
     
-    // If no active child, show a friendly message with option to select profile
+    // If no active child, we need to wait a bit to see if state is being updated
+    // This handles the race condition during navigation
     if (activeChild == null) {
-      print('[CHECK] activeChild is null - showing loading state');
-      print('[CHECK] This might be a temporary state during navigation');
+      print('[CHECK] activeChild is null - checking if this is temporary');
+      print('[CHECK] Current app mode: ${appModeState.currentMode}');
       
-      // Don't auto-redirect - let the user or router handle navigation
-      // The router should handle redirects based on app state
+      // If we're in kid mode but no child is selected, redirect to selection
+      // Use a post-frame callback to avoid navigation during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && activeChild == null) {
+          print('[REDIRECT] No active child after frame - going to child selection');
+          context.go('/child-selection');
+        }
+      });
       
+      // Show a brief loading state while we wait
       return Scaffold(
         backgroundColor: AppColors.kidBackgroundLight,
         body: Center(
@@ -184,28 +186,6 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
               const SizedBox(height: 10),
               const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.kidSafeBlue),
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  print('[TAP] Go to profile selection from loading state');
-                  context.go('/child-selection');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.kidSafeBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Text(
-                  'Choose Profile',
-                  style: GoogleFonts.comicNeue(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ],
           ),

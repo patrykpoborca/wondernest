@@ -390,7 +390,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     );
   }
 
-  void _selectGuestChild() {
+  void _selectGuestChild() async {
     print('[STATE] _selectGuestChild called at ${DateTime.now()}');
     
     // Store reference before any operations
@@ -428,21 +428,26 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     // Use the new synchronous method
     appModeNotifier.selectChildAndSwitchMode(guestProfile);
     
+    // Add a small delay to ensure state propagation
+    await Future.delayed(const Duration(milliseconds: 50));
+    
     // Verify state was updated
     final currentState = ref.read(appModeProvider);
     print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
     
+    if (!mounted) return;
+    
     print('[NAV] About to navigate to /child-home for guest');
     print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
     
-    // Navigate immediately - state is already set
+    // Navigate after ensuring state is set
     context.go('/child-home');
     
     print('[NAV] context.go(\'/child-home\') called');
     print('[NAV] Navigation command issued for guest');
   }
   
-  void _selectChild(fm.FamilyMember child) {
+  void _selectChild(fm.FamilyMember child) async {
     print('[STATE] _selectChild called for ${child.name} at ${DateTime.now()}');
     
     // Store reference
@@ -480,14 +485,19 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     // Use the new synchronous method
     appModeNotifier.selectChildAndSwitchMode(childProfile);
     
+    // Add a small delay to ensure state propagation
+    await Future.delayed(const Duration(milliseconds: 50));
+    
     // Verify state was updated
     final currentState = ref.read(appModeProvider);
     print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
     
+    if (!mounted) return;
+    
     print('[NAV] About to navigate to /child-home for ${child.name}');
     print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
     
-    // Navigate immediately - state is already set
+    // Navigate after ensuring state is set
     context.go('/child-home');
     
     print('[NAV] context.go(\'/child-home\') called');
