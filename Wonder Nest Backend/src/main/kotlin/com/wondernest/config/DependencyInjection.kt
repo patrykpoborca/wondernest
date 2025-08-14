@@ -8,6 +8,7 @@ import com.wondernest.domain.usecase.*
 import com.wondernest.services.auth.AuthService
 import com.wondernest.services.auth.JwtService
 import com.wondernest.services.email.EmailService
+import com.wondernest.services.family.FamilyService
 import com.wondernest.services.notification.NotificationService
 import com.wondernest.services.storage.StorageService
 import io.ktor.server.application.*
@@ -35,26 +36,29 @@ val databaseModule = module {
 val repositoryModule = module {
     single<UserRepository> { UserRepositoryImpl() }
     single<FamilyRepository> { FamilyRepositoryImpl() }
-    single<ChildRepository> { ChildRepositoryImpl() }
-    single<ContentRepository> { ContentRepositoryImpl() }
-    single<AudioSessionRepository> { AudioSessionRepositoryImpl() }
-    single<AnalyticsRepository> { AnalyticsRepositoryImpl() }
-    single<SubscriptionRepository> { SubscriptionRepositoryImpl() }
+    // TODO: Remove references to non-existent repositories when implementing
+    // single<ChildRepository> { ChildRepositoryImpl() }
+    // single<ContentRepository> { ContentRepositoryImpl() }
+    // single<AudioSessionRepository> { AudioSessionRepositoryImpl() }
+    // single<AnalyticsRepository> { AnalyticsRepositoryImpl() }
+    // single<SubscriptionRepository> { SubscriptionRepositoryImpl() }
 }
 
 val useCaseModule = module {
-    single { CreateUserUseCase(get()) }
-    single { AuthenticateUserUseCase(get(), get()) }
-    single { CreateChildProfileUseCase(get()) }
-    single { GetContentLibraryUseCase(get()) }
-    single { CreateAudioSessionUseCase(get()) }
-    single { GetChildAnalyticsUseCase(get()) }
-    single { UpdateSubscriptionUseCase(get()) }
+    // TODO: Implement use cases when needed
+    // single { CreateUserUseCase(get()) }
+    // single { AuthenticateUserUseCase(get(), get()) }
+    // single { CreateChildProfileUseCase(get()) }
+    // single { GetContentLibraryUseCase(get()) }
+    // single { CreateAudioSessionUseCase(get()) }
+    // single { GetChildAnalyticsUseCase(get()) }
+    // single { UpdateSubscriptionUseCase(get()) }
 }
 
 val serviceModule = module {
     single { JwtService() }
-    single { AuthService(get(), get()) }
+    single { AuthService(get(), get(), get(), get()) } // userRepository, familyRepository, jwtService, emailService
+    single { FamilyService(get()) } // familyRepository
     single { EmailService() }
     single { NotificationService() }
     single { StorageService() }

@@ -7,6 +7,7 @@ import com.wondernest.domain.model.User
 import com.wondernest.domain.model.UserSession
 import com.wondernest.domain.model.PasswordResetToken
 import com.wondernest.domain.repository.UserRepository
+import com.wondernest.domain.repository.FamilyRepository
 import com.wondernest.services.email.EmailService
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -23,8 +24,11 @@ private val logger = KotlinLogging.logger {}
 data class SignupRequest(
     val email: String,
     val password: String,
+    val name: String? = null, // Combined name for Flutter compatibility
     val firstName: String? = null,
     val lastName: String? = null,
+    val phoneNumber: String? = null,
+    val countryCode: String = "US",
     val timezone: String = "UTC",
     val language: String = "en"
 )
@@ -54,11 +58,155 @@ data class OAuthLoginRequest(
 
 class AuthService(
     private val userRepository: UserRepository,
+    private val familyRepository: FamilyRepository,
     private val jwtService: JwtService,
     private val emailService: EmailService? = null
 ) {
     private val passwordEncoder = BCryptPasswordEncoder(12)
     private val secureRandom = SecureRandom()
+
+    suspend fun signupParent(request: SignupRequest): AuthResponse {
+        // Validate email format
+        if (!isValidEmail(request.email)) {
+            throw IllegalArgumentException("Invalid email format")
+        }
+
+        // Check if user already exists
+        val existingUser = userRepository.getUserByEmail(request.email)
+        if (existingUser != null) {
+            throw IllegalArgumentException("User with this email already exists")
+        }
+
+        // Validate password strength
+        validatePassword(request.password)
+
+        // Create parent user
+        val now = Clock.System.now()
+        val hashedPassword = passwordEncoder.encode(request.password)
+        
+        // Parse name fields
+        val firstName = request.firstName ?: request.name?.split(" ")?.firstOrNull()
+        val lastName = request.lastName ?: request.name?.split(" ")?.drop(1)?.joinToString(" ")?.takeIf { it.isNotBlank() }
+        
+        val newUser = User(
+            id = UUID.randomUUID(),
+            email = request.email.lowercase(),
+            emailVerified = false,
+            authProvider = AuthProvider.EMAIL,
+            firstName = firstName?.trim(),
+            lastName = lastName?.trim(),
+            timezone = request.timezone,
+            language = request.language,
+            status = UserStatus.PENDING_VERIFICATION,
+            role = UserRole.PARENT,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        val createdUser = userRepository.createUser(newUser)
+        
+        // Store password hash separately
+        userRepository.updateUserPassword(createdUser.id, hashedPassword)
+
+        // Create family for the parent using the user's first name
+        val familyName = "${newUser.firstName ?: "Unknown"}'s Family"
+        val family = com.wondernest.domain.model.Family(
+            id = UUID.randomUUID(),
+            name = familyName,
+            createdBy = createdUser.id,
+            timezone = request.timezone,
+            language = request.language,
+            familySettings = com.wondernest.domain.model.FamilySettings(),
+            createdAt = now,
+            updatedAt = now
+        )
+
+        val createdFamily = familyRepository.createFamily(family)
+
+        // Add user as family member
+        val familyMember = com.wondernest.domain.model.FamilyMember(
+            id = UUID.randomUUID(),
+            familyId = createdFamily.id,
+            userId = createdUser.id,
+            role = "parent",
+            permissions = mapOf(
+                "manage_children" to true,
+                "view_analytics" to true,
+                "manage_content" to true,
+                "manage_family" to true
+            ),
+            joinedAt = now
+        )
+
+        familyRepository.addFamilyMember(familyMember)
+
+        // Send verification email
+        try {
+            emailService?.sendVerificationEmail(createdUser)
+        } catch (e: Exception) {
+            logger.warn(e) { "Failed to send verification email to ${createdUser.email}" }
+        }
+
+        // Generate tokens with family context
+        val tokenPair = jwtService.generateTokenWithFamilyContext(createdUser, createdFamily.id)
+        
+        // Create session
+        val session = createUserSession(createdUser, tokenPair)
+        userRepository.createSession(session)
+
+        logger.info { "Parent signed up with family: ${createdUser.email} (${createdUser.id}) - Family: ${createdFamily.name} (${createdFamily.id})" }
+
+        return AuthResponse(
+            user = createdUser,
+            accessToken = tokenPair.accessToken,
+            refreshToken = tokenPair.refreshToken,
+            expiresIn = tokenPair.expiresIn
+        )
+    }
+
+    suspend fun loginParent(request: LoginRequest): AuthResponse {
+        val user = userRepository.getUserByEmail(request.email.lowercase())
+            ?: throw SecurityException("Invalid credentials")
+
+        if (user.status == UserStatus.SUSPENDED) {
+            throw SecurityException("Account suspended")
+        }
+
+        if (user.role != UserRole.PARENT) {
+            throw SecurityException("This endpoint is for parents only")
+        }
+
+        // Check password
+        val passwordHash = userRepository.getUserPasswordHash(user.id)
+            ?: throw SecurityException("Invalid credentials")
+
+        if (!passwordEncoder.matches(request.password, passwordHash)) {
+            throw SecurityException("Invalid credentials")
+        }
+
+        // Get family context
+        val family = familyRepository.getFamilyByUserId(user.id)
+            ?: throw SecurityException("No family found for this parent")
+
+        // Update last login
+        userRepository.updateLastLogin(user.id)
+
+        // Generate tokens with family context
+        val tokenPair = jwtService.generateTokenWithFamilyContext(user, family.id)
+        
+        // Create session
+        val session = createUserSession(user, tokenPair)
+        userRepository.createSession(session)
+
+        logger.info { "Parent logged in with family context: ${user.email} (${user.id}) - Family: ${family.name} (${family.id})" }
+
+        return AuthResponse(
+            user = user,
+            accessToken = tokenPair.accessToken,
+            refreshToken = tokenPair.refreshToken,
+            expiresIn = tokenPair.expiresIn
+        )
+    }
 
     suspend fun signup(request: SignupRequest): AuthResponse {
         // Validate email format

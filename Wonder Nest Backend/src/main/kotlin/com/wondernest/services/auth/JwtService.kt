@@ -27,6 +27,7 @@ class JwtService {
 
     fun generateToken(user: User): TokenPair {
         val now = Clock.System.now()
+        val nonce = UUID.randomUUID().toString() // Ensure token uniqueness
         val expiresAt = now.plus(expiresIn, DateTimeUnit.MILLISECOND)
         val refreshExpiresAt = now.plus(refreshExpiresIn, DateTimeUnit.MILLISECOND)
         
@@ -38,16 +39,55 @@ class JwtService {
             .withClaim("email", user.email)
             .withClaim("role", user.role.name)
             .withClaim("verified", user.emailVerified)
+            .withClaim("nonce", nonce) // Add unique nonce for token uniqueness
             .withIssuedAt(Date(now.toEpochMilliseconds()))
             .withExpiresAt(Date(expiresAt.toEpochMilliseconds()))
             .sign(algorithm)
         
+        val refreshNonce = UUID.randomUUID().toString() // Separate nonce for refresh token
         val refreshToken = JWT.create()
             .withIssuer(issuer)
             .withAudience("$audience-refresh")
             .withSubject(user.id.toString())
             .withClaim("userId", user.id.toString())
             .withClaim("type", "refresh")
+            .withClaim("nonce", refreshNonce) // Add unique nonce for refresh token uniqueness
+            .withIssuedAt(Date(now.toEpochMilliseconds()))
+            .withExpiresAt(Date(refreshExpiresAt.toEpochMilliseconds()))
+            .sign(algorithm)
+        
+        return TokenPair(accessToken, refreshToken, expiresIn)
+    }
+
+    fun generateTokenWithFamilyContext(user: User, familyId: UUID): TokenPair {
+        val now = Clock.System.now()
+        val nonce = UUID.randomUUID().toString() // Ensure token uniqueness
+        val expiresAt = now.plus(expiresIn, DateTimeUnit.MILLISECOND)
+        val refreshExpiresAt = now.plus(refreshExpiresIn, DateTimeUnit.MILLISECOND)
+        
+        val accessToken = JWT.create()
+            .withIssuer(issuer)
+            .withAudience(audience)
+            .withSubject(user.id.toString())
+            .withClaim("userId", user.id.toString())
+            .withClaim("familyId", familyId.toString())
+            .withClaim("email", user.email)
+            .withClaim("role", user.role.name)
+            .withClaim("verified", user.emailVerified)
+            .withClaim("nonce", nonce) // Add unique nonce for token uniqueness
+            .withIssuedAt(Date(now.toEpochMilliseconds()))
+            .withExpiresAt(Date(expiresAt.toEpochMilliseconds()))
+            .sign(algorithm)
+        
+        val refreshNonce = UUID.randomUUID().toString() // Separate nonce for refresh token
+        val refreshToken = JWT.create()
+            .withIssuer(issuer)
+            .withAudience("$audience-refresh")
+            .withSubject(user.id.toString())
+            .withClaim("userId", user.id.toString())
+            .withClaim("familyId", familyId.toString())
+            .withClaim("type", "refresh")
+            .withClaim("nonce", refreshNonce) // Add unique nonce for refresh token uniqueness
             .withIssuedAt(Date(now.toEpochMilliseconds()))
             .withExpiresAt(Date(refreshExpiresAt.toEpochMilliseconds()))
             .sign(algorithm)
@@ -96,6 +136,15 @@ class JwtService {
         return try {
             val jwt = JWT.decode(token)
             jwt.getClaim("role").asString()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun extractFamilyIdFromToken(token: String): String? {
+        return try {
+            val jwt = JWT.decode(token)
+            jwt.getClaim("familyId").asString()
         } catch (e: Exception) {
             null
         }

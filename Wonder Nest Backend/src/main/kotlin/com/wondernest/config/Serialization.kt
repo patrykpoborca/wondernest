@@ -6,6 +6,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
+import java.util.UUID
 
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
@@ -17,7 +18,7 @@ fun Application.configureSerialization() {
             
             // Register custom serializers
             serializersModule = SerializersModule {
-                contextual(UUIDSerializer)
+                contextual(UUID::class, UUIDSerializer)
             }
         })
     }

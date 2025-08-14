@@ -4,6 +4,7 @@ import com.wondernest.api.analytics.analyticsRoutes
 import com.wondernest.api.audio.audioRoutes
 import com.wondernest.api.auth.authRoutes
 import com.wondernest.api.content.contentRoutes
+import com.wondernest.api.coppa.coppaRoutes
 import com.wondernest.api.family.familyRoutes
 import com.wondernest.api.health.healthRoutes
 import io.ktor.http.*
@@ -75,6 +76,7 @@ fun Application.configureRouting() {
             contentRoutes()
             audioRoutes()
             analyticsRoutes()
+            coppaRoutes()
         }
     }
 }

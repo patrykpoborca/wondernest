@@ -36,6 +36,16 @@ data class PasswordResetConfirmRequest(
 data class RefreshTokenRequest(val refreshToken: String)
 
 @Serializable
+data class PinVerificationRequest(val pin: String)
+
+@Serializable  
+data class PinVerificationResponse(
+    val verified: Boolean,
+    val message: String,
+    val sessionToken: String? = null
+)
+
+@Serializable
 data class MessageResponse(val message: String)
 
 fun Route.authRoutes() {
@@ -44,7 +54,115 @@ fun Route.authRoutes() {
     route("/auth") {
         
         rateLimit(RateLimitName("auth")) {
-            // Sign up
+            // Parent-specific registration (Flutter expects this endpoint)
+            post("/parent/register") {
+                try {
+                    val rawRequest = call.receive<SignupRequest>()
+                    call.application.environment.log.info("Received parent signup request: email=${rawRequest.email}, name=${rawRequest.firstName} ${rawRequest.lastName}")
+                    
+                    // Validate request
+                    val validationResult = AuthValidation.validateSignupRequest(rawRequest)
+                    if (!validationResult.isValid) {
+                        call.application.environment.log.warn("Parent signup validation failed: ${validationResult.errors}")
+                        call.respond(HttpStatusCode.BadRequest, MessageResponse("Validation failed: ${validationResult.errors.joinToString(", ")}"))
+                        return@post
+                    }
+                    
+                    // Sanitize request
+                    val sanitizedRequest = AuthValidation.sanitizeSignupRequest(rawRequest)
+                    call.application.environment.log.info("Sanitized parent signup request: ${sanitizedRequest}")
+                    
+                    // Create parent account with family
+                    val response = authService.signupParent(sanitizedRequest)
+                    call.application.environment.log.info("Parent signup successful for user: ${sanitizedRequest.email}")
+                    call.respond(HttpStatusCode.Created, response)
+                } catch (e: AuthValidationException) {
+                    call.application.environment.log.warn("Parent signup validation exception: ${e.message}", e)
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
+                } catch (e: IllegalArgumentException) {
+                    call.application.environment.log.warn("Parent signup illegal argument: ${e.message}", e)
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Invalid input"))
+                } catch (e: ContentTransformationException) {
+                    call.application.environment.log.warn("JSON parsing error: ${e.message}", e)
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse("Invalid JSON format"))
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Parent signup error", e)
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Registration failed"))
+                }
+            }
+
+            // Parent-specific login (Flutter expects this endpoint)  
+            post("/parent/login") {
+                try {
+                    val rawRequest = call.receive<LoginRequest>()
+                    call.application.environment.log.info("Received parent login request: email=${rawRequest.email}")
+                    
+                    // Validate request
+                    AuthValidation.validateLoginRequest(rawRequest).throwIfInvalid()
+                    
+                    // Sanitize request
+                    val sanitizedRequest = AuthValidation.sanitizeLoginRequest(rawRequest)
+                    
+                    // Login with family context
+                    val response = authService.loginParent(sanitizedRequest)
+                    call.application.environment.log.info("Parent login successful for user: ${sanitizedRequest.email}")
+                    call.respond(HttpStatusCode.OK, response)
+                } catch (e: AuthValidationException) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse(e.message ?: "Validation failed"))
+                } catch (e: SecurityException) {
+                    call.respond(HttpStatusCode.Unauthorized, MessageResponse("Invalid credentials"))
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Parent login error", e)
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Login failed"))
+                }
+            }
+
+            // PIN verification endpoint (Flutter expects this for parent mode switching)
+            post("/parent/verify-pin") {
+                try {
+                    val rawRequest = call.receive<PinVerificationRequest>()
+                    
+                    // Basic validation
+                    if (rawRequest.pin.isBlank() || rawRequest.pin.length != 4 || !rawRequest.pin.all { it.isDigit() }) {
+                        call.respond(HttpStatusCode.BadRequest, PinVerificationResponse(
+                            verified = false,
+                            message = "Invalid PIN format. Must be 4 digits."
+                        ))
+                        return@post
+                    }
+                    
+                    // TODO: PRODUCTION - Implement proper PIN storage and verification
+                    // For now, we'll use a default PIN for development/demo
+                    val defaultPin = "1234" // TODO: Remove this and implement proper PIN management
+                    
+                    if (rawRequest.pin == defaultPin) {
+                        // Generate a temporary session token for parent mode
+                        // TODO: Implement proper parent mode session management
+                        val sessionToken = "parent_mode_${System.currentTimeMillis()}"
+                        
+                        call.respond(HttpStatusCode.OK, PinVerificationResponse(
+                            verified = true,
+                            message = "PIN verified successfully",
+                            sessionToken = sessionToken
+                        ))
+                        call.application.environment.log.info("PIN verification successful")
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, PinVerificationResponse(
+                            verified = false,
+                            message = "Invalid PIN"
+                        ))
+                        call.application.environment.log.warn("PIN verification failed")
+                    }
+                } catch (e: Exception) {
+                    call.application.environment.log.error("PIN verification error", e)
+                    call.respond(HttpStatusCode.InternalServerError, PinVerificationResponse(
+                        verified = false,
+                        message = "PIN verification failed"
+                    ))
+                }
+            }
+
+            // Generic signup (keeping for backward compatibility)
             post("/signup") {
                 try {
                     val rawRequest = call.receive<SignupRequest>()

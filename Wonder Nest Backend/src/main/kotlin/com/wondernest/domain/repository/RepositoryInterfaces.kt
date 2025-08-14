@@ -1,10 +1,7 @@
 package com.wondernest.domain.repository
 
-import java.util.*
-
-// Placeholder interfaces for other repositories
-interface FamilyRepository
-interface ChildRepository  
+// Minimal interfaces for repositories that aren't implemented yet
+interface ChildRepository
 interface ContentRepository
 interface AudioSessionRepository
 interface AnalyticsRepository
