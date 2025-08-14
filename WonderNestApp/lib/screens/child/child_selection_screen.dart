@@ -486,7 +486,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     appModeNotifier.selectChildAndSwitchMode(childProfile);
     
     // Add a small delay to ensure state propagation
-    await Future.delayed(const Duration(milliseconds: 50));
+    // await Future.delayed(const Duration(milliseconds: 50));
     
     // Verify state was updated
     final currentState = ref.read(appModeProvider);

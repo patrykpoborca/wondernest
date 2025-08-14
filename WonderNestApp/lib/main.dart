@@ -3,13 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 // Theme
 import 'core/theme/app_theme.dart';
-
-// Models
-import 'models/app_mode.dart';
 
 // Providers
 import 'providers/app_mode_provider.dart';
@@ -61,29 +56,45 @@ void main() async {
   );
 }
 
-class WonderNestApp extends ConsumerWidget {
+class WonderNestApp extends ConsumerStatefulWidget {
   const WonderNestApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final appModeState = ref.watch(appModeProvider);
-    
+  ConsumerState<WonderNestApp> createState() => _WonderNestAppState();
+}
+
+class _WonderNestAppState extends ConsumerState<WonderNestApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = _createRouter();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'WonderNest',
       theme: AppTheme.lightTheme,
-      routerConfig: _createRouter(ref, appModeState),
+      routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );
   }
 
-  GoRouter _createRouter(WidgetRef ref, AppModeState appModeState) {
+  GoRouter _createRouter() {
     return GoRouter(
       // Start with child selection for kid-first approach
       initialLocation: '/child-selection',
       
+      
       redirect: (context, state) {
+        // Read the app mode state directly inside the redirect callback
+        final appModeState = ref.read(appModeProvider);
         final currentPath = state.matchedLocation;
+        
         print('[REDIRECT] Router check for: $currentPath at ${DateTime.now()}');
+        print('[REDIRECT] App mode: ${appModeState.currentMode}');
         print('[REDIRECT] Full state info:');
         print('[REDIRECT]   - path: ${state.path}');
         print('[REDIRECT]   - fullPath: ${state.fullPath}');
