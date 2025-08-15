@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/child_profile.dart';
-import '../../models/app_mode.dart';
 
 class ChildHome extends ConsumerStatefulWidget {
   const ChildHome({Key? key}) : super(key: key);
@@ -21,6 +20,16 @@ class ChildHome extends ConsumerStatefulWidget {
 class _ChildHomeState extends ConsumerState<ChildHome> {
   late String todaysSurprise;
   late List<ActivityItem> todaysActivities;
+
+  Future<bool> _onWillPop() async {
+    // From child home, back button should go to child selection
+    // Don't show exit dialog here - that's handled at the child selection level
+    if (context.mounted) {
+      print('[NAV] Back button pressed in ChildHome - navigating to child selection');
+      context.go('/child-selection');
+    }
+    return false; // Prevent default back behavior since we handle navigation manually
+  }
 
   @override
   void initState() {
@@ -195,13 +204,19 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     
     print('[RENDER] Rendering full child home for: ${activeChild.name}');
     
-    return Theme(
-      data: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: GoogleFonts.comicNeue().fontFamily,
-        useMaterial3: true,
-      ),
-      child: Scaffold(
+    return PopScope(
+      canPop: false, // Always intercept the back button
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Already handled
+        await _onWillPop();
+      },
+      child: Theme(
+        data: ThemeData(
+          primarySwatch: Colors.blue,
+          fontFamily: GoogleFonts.comicNeue().fontFamily,
+          useMaterial3: true,
+        ),
+        child: Scaffold(
         backgroundColor: AppColors.kidBackgroundLight,
         body: SafeArea(
           child: SingleChildScrollView(
@@ -221,6 +236,7 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

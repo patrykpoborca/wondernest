@@ -8,6 +8,8 @@ import '../../providers/family_provider.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/family_member.dart' as fm;
 import '../../models/child_profile.dart';
+import '../../models/app_mode.dart';
+import '../../widgets/exit_confirmation_dialog.dart';
 
 class ChildSelectionScreen extends ConsumerStatefulWidget {
   const ChildSelectionScreen({super.key});
@@ -18,6 +20,24 @@ class ChildSelectionScreen extends ConsumerStatefulWidget {
 
 class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
 
+  Future<bool> _onWillPop() async {
+    // In kid mode, prevent direct app exit - require PIN
+    final appModeState = ref.read(appModeProvider);
+    if (appModeState.currentMode == AppMode.kid) {
+      // Show PIN dialog for exit confirmation
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const ExitConfirmationDialog(),
+      );
+      
+      return shouldExit ?? false; // Default to false if dialog is dismissed
+    }
+    
+    // In parent mode, allow normal back navigation
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     print('[WIDGET] ChildSelectionScreen.build() called at ${DateTime.now()}');
@@ -26,9 +46,19 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     print('[CHECK] ChildSelectionScreen - currentMode: ${appModeState.currentMode}');
     print('[CHECK] ChildSelectionScreen - activeChild: ${appModeState.activeChild?.name ?? 'null'}');
 
-    return Scaffold(
-      backgroundColor: AppColors.kidBackgroundLight,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false, // Always intercept the back button
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Already handled
+        
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.kidBackgroundLight,
+        appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -77,6 +107,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
           error: (error, stackTrace) => _buildNoChildrenState(context), // Show no children state on error too
         ),
       ),
+    ),
     );
   }
 

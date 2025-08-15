@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/game_model.dart';
 import '../../core/services/api_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -65,7 +66,17 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false, // Always intercept the back button
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Already handled
+        // From game, back button should go to child home
+        if (context.mounted) {
+          print('[NAV] Back button pressed in game - navigating to child home');
+          context.go('/child-home');
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.kidBackgroundLight,
       body: SafeArea(
         child: Stack(
@@ -121,6 +132,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

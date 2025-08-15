@@ -41,10 +41,20 @@ data class LoginRequest(
 
 @Serializable
 data class AuthResponse(
-    val user: User,
+    val success: Boolean = true,
+    val data: AuthData
+)
+
+@Serializable 
+data class AuthData(
+    val userId: String,
+    val email: String,
     val accessToken: String,
     val refreshToken: String,
-    val expiresIn: Long
+    val expiresIn: Long,
+    val hasPin: Boolean = false,
+    val requiresPinSetup: Boolean = false,
+    val children: List<String> = emptyList()
 )
 
 @Serializable
@@ -129,12 +139,7 @@ class AuthService(
             familyId = createdFamily.id,
             userId = createdUser.id,
             role = "parent",
-            permissions = mapOf(
-                "manage_children" to true,
-                "view_analytics" to true,
-                "manage_content" to true,
-                "manage_family" to true
-            ),
+            permissions = emptyMap(), // Simplified - not stored in database
             joinedAt = now
         )
 
@@ -157,10 +162,16 @@ class AuthService(
         logger.info { "Parent signed up with family: ${createdUser.email} (${createdUser.id}) - Family: ${createdFamily.name} (${createdFamily.id})" }
 
         return AuthResponse(
-            user = createdUser,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = createdUser.id.toString(),
+                email = createdUser.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = false,
+                requiresPinSetup = true,
+                children = emptyList()
+            )
         )
     }
 
@@ -200,11 +211,21 @@ class AuthService(
 
         logger.info { "Parent logged in with family context: ${user.email} (${user.id}) - Family: ${family.name} (${family.id})" }
 
+        // Get children for the family to include in response
+        val children = familyRepository.getChildrenByFamily(family.id)
+        val childrenIds = children.map { it.id.toString() }
+
         return AuthResponse(
-            user = user,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = user.id.toString(),
+                email = user.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = true, // TODO: Check if user has PIN set up
+                requiresPinSetup = false,
+                children = childrenIds
+            )
         )
     }
 
@@ -264,10 +285,16 @@ class AuthService(
         logger.info { "User signed up: ${createdUser.email} (${createdUser.id})" }
 
         return AuthResponse(
-            user = createdUser,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = createdUser.id.toString(),
+                email = createdUser.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = false,
+                requiresPinSetup = true,
+                children = emptyList()
+            )
         )
     }
 
@@ -300,10 +327,16 @@ class AuthService(
         logger.info { "User logged in: ${user.email} (${user.id})" }
 
         return AuthResponse(
-            user = user,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = user.id.toString(),
+                email = user.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = false, // TODO: Check if user has PIN set up
+                requiresPinSetup = true,
+                children = emptyList()
+            )
         )
     }
 
@@ -350,10 +383,16 @@ class AuthService(
         logger.info { "OAuth login: ${user.email} (${user.id}) via ${provider}" }
 
         return AuthResponse(
-            user = user,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = user.id.toString(),
+                email = user.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = false, // TODO: Check if user has PIN set up
+                requiresPinSetup = true,
+                children = emptyList()
+            )
         )
     }
 
@@ -376,10 +415,16 @@ class AuthService(
         userRepository.createSession(session)
 
         return AuthResponse(
-            user = user,
-            accessToken = tokenPair.accessToken,
-            refreshToken = tokenPair.refreshToken,
-            expiresIn = tokenPair.expiresIn
+            data = AuthData(
+                userId = user.id.toString(),
+                email = user.email,
+                accessToken = tokenPair.accessToken,
+                refreshToken = tokenPair.refreshToken,
+                expiresIn = tokenPair.expiresIn,
+                hasPin = false, // TODO: Check if user has PIN set up
+                requiresPinSetup = false,
+                children = emptyList()
+            )
         )
     }
 

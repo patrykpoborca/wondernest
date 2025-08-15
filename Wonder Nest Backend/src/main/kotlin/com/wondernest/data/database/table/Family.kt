@@ -32,89 +32,30 @@ data class ThemePreferences(
     val animations: Boolean = true
 )
 
-object Families : UUIDTable("families") {
-    val name = varchar("name", 200)
-    val createdBy = reference("created_by", Users).nullable()
-    
-    // Family settings
-    val timezone = varchar("timezone", 50).default("UTC")
-    val language = varchar("language", 10).default("en")
-    val familySettings = jsonb<FamilySettings>("family_settings",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(FamilySettings())
-    
+object Families : UUIDTable("family.families") {
+    val name = varchar("name", 100)
+    val createdBy = reference("created_by", Users)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
 }
 
-object FamilyMembers : UUIDTable("family_members") {
+object FamilyMembers : UUIDTable("family.family_members") {
     val familyId = reference("family_id", Families)
     val userId = reference("user_id", Users)
-    val role = varchar("role", 50).default("parent")
-    val permissions = jsonb<Map<String, Boolean>>("permissions",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(emptyMap())
-    
+    val role = varchar("role", 20).default("member")
     val joinedAt = timestamp("joined_at").defaultExpression(CurrentTimestamp())
-    val leftAt = timestamp("left_at").nullable()
-    
-    init {
-        uniqueIndex(familyId, userId)
-    }
 }
 
-object ChildProfiles : UUIDTable("child_profiles") {
+object ChildProfiles : UUIDTable("family.child_profiles") {
     val familyId = reference("family_id", Families)
-    
-    // Basic information (minimal for privacy)
-    val firstName = varchar("first_name", 100)
+    val name = varchar("name", 100)
+    val nickname = varchar("nickname", 50).nullable()
     val birthDate = date("birth_date")
     val gender = varchar("gender", 20).nullable()
-    
-    // Development information
-    val primaryLanguage = varchar("primary_language", 10).default("en")
-    val additionalLanguages = jsonb<List<String>>("additional_languages",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(emptyList())
-    
-    // Interests and preferences (for content curation)
-    val interests = jsonb<List<String>>("interests",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(emptyList())
-    val favoriteCharacters = jsonb<List<String>>("favorite_characters",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(emptyList())
-    val contentPreferences = jsonb<ContentPreferences>("content_preferences",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(ContentPreferences())
-    
-    // Special needs or development notes
-    val specialNeeds = jsonb<List<String>>("special_needs",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).nullable()
-    val developmentNotes = text("development_notes").nullable()
-    val receivesIntervention = bool("receives_intervention").default(false)
-    val interventionType = varchar("intervention_type", 100).nullable()
-    
-    // Avatar and customization
-    val avatarUrl = varchar("avatar_url", 500).nullable()
-    val themePreferences = jsonb<ThemePreferences>("theme_preferences",
-        serialize = { Json.encodeToString(it) },
-        deserialize = { Json.decodeFromString(it) }
-    ).default(ThemePreferences())
-    
-    // Privacy settings
-    val dataSharingConsent = bool("data_sharing_consent").default(false)
-    val researchParticipationConsent = bool("research_participation_consent").default(false)
-    
-    // Audit fields
+    val avatarUrl = text("avatar_url").nullable()
+    val interests = text("interests").nullable() // Store as JSON string
+    val favoriteColors = text("favorite_colors").nullable() // Store as JSON string
+    val isActive = bool("is_active").default(true)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp())
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp())
     val archivedAt = timestamp("archived_at").nullable()

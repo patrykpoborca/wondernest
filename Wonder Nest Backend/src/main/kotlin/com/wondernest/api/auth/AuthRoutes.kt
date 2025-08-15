@@ -292,7 +292,23 @@ fun Route.authRoutes() {
             }
         }
 
-        // Refresh token (higher rate limit)
+        // Refresh token endpoint for Flutter compatibility
+        route("/session") {
+            post("/refresh") {
+                try {
+                    val request = call.receive<RefreshTokenRequest>()
+                    val response = authService.refreshToken(request.refreshToken)
+                    call.respond(HttpStatusCode.OK, response)
+                } catch (e: SecurityException) {
+                    call.respond(HttpStatusCode.Unauthorized, MessageResponse("Invalid refresh token"))
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Token refresh error", e)
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Token refresh failed"))
+                }
+            }
+        }
+
+        // Legacy refresh token endpoint (higher rate limit)
         post("/refresh") {
             try {
                 val request = call.receive<RefreshTokenRequest>()

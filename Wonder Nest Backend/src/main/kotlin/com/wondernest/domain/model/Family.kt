@@ -9,7 +9,7 @@ import java.util.UUID
 data class Family(
     @Contextual val id: UUID,
     val name: String,
-    @Contextual val createdBy: UUID?,
+    @Contextual val createdBy: UUID,
     val timezone: String = "UTC",
     val language: String = "en",
     val familySettings: FamilySettings,

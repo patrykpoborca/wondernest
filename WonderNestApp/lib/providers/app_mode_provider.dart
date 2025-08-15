@@ -218,6 +218,18 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
     }
   }
 
+  Future<bool> verifyPin(String pin) async {
+    final storedPin = await _secureStorage.read(key: 'parent_pin');
+    
+    if (storedPin == null) {
+      // No PIN set up yet - for security, reject verification
+      return false;
+    }
+    
+    // Verify PIN (in production, use proper hashing)
+    return storedPin == pin;
+  }
+
   Future<void> changeParentPin(String oldPin, String newPin) async {
     final storedPin = await _secureStorage.read(key: 'parent_pin');
     if (storedPin == oldPin) {

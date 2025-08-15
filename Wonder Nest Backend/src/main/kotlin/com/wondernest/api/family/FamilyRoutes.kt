@@ -182,16 +182,54 @@ fun Route.familyRoutes() {
             }
         }
 
+        // Direct children endpoints for Flutter compatibility
+        route("/children") {
+            // Get all children for the authenticated family (Flutter expects this path)
+            get {
+                try {
+                    val principal = call.principal<JWTPrincipal>()
+                    val familyId = principal?.payload?.getClaim("familyId")?.asString()
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("auth_error", "No family context in token"))
+
+                    val children = familyService.getChildren(UUID.fromString(familyId))
+                    call.respond(HttpStatusCode.OK, children)
+                } catch (e: IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("invalid_family_id", e.message ?: "Invalid family ID"))
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Error retrieving children", e)
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("server_error", "Failed to retrieve children"))
+                }
+            }
+
+            // Create new child profile (Flutter expects this path)
+            post {
+                try {
+                    val principal = call.principal<JWTPrincipal>()
+                    val familyId = principal?.payload?.getClaim("familyId")?.asString()
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("auth_error", "No family context in token"))
+
+                    val request = call.receive<CreateChildRequest>()
+                    
+                    // Basic validation
+                    if (request.name.isBlank()) {
+                        return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("validation_error", "Child name is required"))
+                    }
+
+                    val childProfile = familyService.createChild(UUID.fromString(familyId), request)
+                    call.respond(HttpStatusCode.Created, childProfile)
+                } catch (e: IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("validation_error", e.message ?: "Invalid input"))
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Error creating child profile", e)
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("server_error", "Failed to create child profile"))
+                }
+            }
+        }
+        
         // Legacy endpoints for backward compatibility
         route("/families") {
             get {
                 call.respond(HttpStatusCode.OK, MessageResponse("Use /family/profile instead"))
-            }
-        }
-        
-        route("/children") {
-            get {
-                call.respond(HttpStatusCode.OK, MessageResponse("Use /family/children instead"))
             }
         }
     }

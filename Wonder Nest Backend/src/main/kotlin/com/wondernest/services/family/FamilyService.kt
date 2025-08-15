@@ -14,7 +14,8 @@ data class CreateChildRequest(
     val name: String,
     val birthDate: String, // ISO date string like "2020-01-15"
     val gender: String? = null,
-    val avatarUrl: String? = null,
+    val avatar: String? = null, // Flutter sends 'avatar' not 'avatarUrl'
+    val avatarUrl: String? = null, // Keep for backward compatibility
     val interests: List<String> = emptyList()
 )
 
@@ -88,7 +89,7 @@ class FamilyService(
             age = age,
             birthDate = birthDate,
             gender = request.gender?.trim(),
-            avatarUrl = request.avatarUrl?.trim(),
+            avatarUrl = (request.avatar ?: request.avatarUrl)?.trim(), // Handle both field names
             interests = request.interests,
             contentSettings = ContentSettings(
                 maxAgeRating = minOf(age + 2, 18), // Conservative age rating

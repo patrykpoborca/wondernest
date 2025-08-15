@@ -13,12 +13,19 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import java.util.*
 import kotlinx.datetime.Clock
+import java.security.MessageDigest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 
 class UserRepositoryImpl : UserRepository {
     private val db = DatabaseFactory()
+
+    private fun hashToken(token: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hashBytes = digest.digest(token.toByteArray())
+        return hashBytes.joinToString("") { "%02x".format(it) }
+    }
 
     override suspend fun createUser(user: User): User = db.dbQuery {
         println("DEBUG: Attempting to insert user with ID: ${user.id}, email: ${user.email}")
@@ -117,7 +124,7 @@ class UserRepositoryImpl : UserRepository {
         UserSessions.insert {
             it[id] = session.id
             it[userId] = session.userId
-            it[tokenHash] = session.sessionToken
+            it[tokenHash] = hashToken(session.sessionToken)
             it[expiresAt] = session.expiresAt
             it[createdAt] = session.createdAt
             it[lastAccessed] = session.lastActivity
@@ -128,7 +135,7 @@ class UserRepositoryImpl : UserRepository {
 
     override suspend fun getSessionByToken(token: String): UserSession? = db.dbQuery {
         UserSessions.select { 
-            (UserSessions.tokenHash eq token) and 
+            (UserSessions.tokenHash eq hashToken(token)) and 
             (UserSessions.expiresAt greater Clock.System.now())
         }
         .map { rowToUserSession(it) }
