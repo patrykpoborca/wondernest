@@ -318,20 +318,240 @@ kubectl apply -f k8s/
 - **Database**: Optimized for read-heavy workloads
 - **Cache Hit Rate**: > 90% for frequently accessed data
 
+## Troubleshooting
+
+### Common Issues & Solutions
+
+#### Database Connection Issues
+
+**Problem**: `Connection refused` to PostgreSQL
+```bash
+# Check if PostgreSQL is running
+docker ps | grep postgres
+
+# If not running, start it
+docker-compose up -d postgres
+
+# Check logs for errors
+docker logs wondernest_postgres
+
+# Test connection manually
+./verify-database.sh
+```
+
+**Problem**: `Authentication failed for user wondernest_app`
+```bash
+# Reset database permissions
+./scripts/fix-existing-db-permissions.sql
+
+# Or recreate the database
+docker-compose down -v
+docker-compose up -d postgres
+./setup-database.sh
+```
+
+#### Migration Issues
+
+**Problem**: `Migration failed` or `Checksum mismatch`
+```bash
+# Check migration status
+./gradlew flywayInfo
+
+# For development, repair and retry
+./gradlew flywayRepair
+./gradlew flywayMigrate
+
+# For production, never use repair - investigate and fix
+```
+
+**Problem**: `Baseline not found`
+```bash
+# Create baseline (first time setup)
+./gradlew flywayBaseline
+./gradlew flywayMigrate
+```
+
+#### API Issues
+
+**Problem**: `404 Not Found` for API endpoints
+```bash
+# Check if server is running
+curl http://localhost:8080/health
+
+# Check routing configuration
+# Verify endpoint exists in appropriate Routes.kt file
+
+# Check logs for routing errors
+docker logs wondernest_api
+```
+
+**Problem**: `JWT token invalid` or `Authentication failed`
+```bash
+# Verify JWT secret is set
+echo $JWT_SECRET
+
+# Test login flow
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}'
+```
+
+#### Redis Connection Issues
+
+**Problem**: `Could not connect to Redis`
+```bash
+# Check Redis status
+docker ps | grep redis
+
+# Test Redis connection
+docker exec -it wondernest_redis redis-cli -a wondernest_redis_password_dev ping
+
+# Check Redis logs
+docker logs wondernest_redis
+```
+
+#### Performance Issues
+
+**Problem**: Slow database queries
+```sql
+-- Check active connections
+SELECT count(*) FROM pg_stat_activity;
+
+-- Check slow queries
+SELECT query, mean_exec_time, calls 
+FROM pg_stat_statements 
+ORDER BY mean_exec_time DESC 
+LIMIT 10;
+```
+
+**Problem**: High memory usage
+```bash
+# Check container resource usage
+docker stats
+
+# Check Java heap usage
+jps -l
+jstat -gc [PID]
+```
+
+#### Development Environment
+
+**Problem**: Tests failing
+```bash
+# Clean and rebuild
+./gradlew clean build
+
+# Run tests with debug output
+./gradlew test --info --stacktrace
+
+# Check test containers
+docker ps -a | grep testcontainers
+```
+
+**Problem**: Port conflicts
+```bash
+# Check what's using port 8080
+lsof -i :8080
+
+# Change port in docker-compose.yml
+# Or kill conflicting process
+kill -9 [PID]
+```
+
+#### Useful Debug Commands
+
+```bash
+# Check all services status
+docker-compose ps
+
+# View all logs
+docker-compose logs
+
+# Follow specific service logs
+docker-compose logs -f api
+
+# Check environment variables
+docker exec wondernest_api env | grep DB_
+
+# Test database connection from API container
+docker exec wondernest_api psql $DB_URL -c "SELECT 1;"
+
+# Check disk space
+df -h
+du -sh docker/volumes/*
+```
+
+#### Quick Recovery Commands
+
+```bash
+# Nuclear option - restart everything
+docker-compose down -v
+docker-compose up -d
+./gradlew flywayMigrate
+
+# Reset just the database
+./scripts/reset-db.sh
+
+# Rebuild and restart API
+docker-compose build api
+docker-compose up -d api
+```
+
 ## License
 
 This project is proprietary software for WonderNest. All rights reserved.
 
-## Support
+## Additional Resources
 
-For technical questions or support:
-- Create an issue in the repository
-- Contact the development team
-- Review the API documentation
+### Documentation Files
+- `DATABASE_SETUP.md` - Detailed database setup instructions
+- `FLYWAY_MIGRATION_GUIDE.md` - Complete migration management guide
+- `INFRASTRUCTURE_GUIDE.md` - Infrastructure setup and configuration
+- `LOCAL_DEVELOPMENT.md` - Local development environment setup
+- `TESTING_INFRASTRUCTURE_SUMMARY.md` - Testing strategy and implementation
+- `SWAGGER_DOCUMENTATION.md` - API documentation with Swagger UI
+- `ENDPOINT_TESTING_PLAN.md` - Manual endpoint testing procedures
+
+### Support Channels
+- **Technical Issues**: Create GitHub issue with reproduction steps
+- **Development Questions**: Check documentation files first
+- **Database Issues**: Use `./verify-database.sh` for diagnostics
+- **API Testing**: Use test scripts in `test-scripts/` directory
+
+### Quick Reference
+
+**Default Ports**:
+- API Server: 8080
+- PostgreSQL: 5433
+- Redis: 6379
+- pgAdmin: 5050
+- Prometheus: 9090
+- Grafana: 3000
+
+**Default Credentials**:
+- Database: wondernest_app / wondernest_secure_password_dev
+- pgAdmin: admin@wondernest.dev / wondernest_pgadmin_password
+- Grafana: admin / admin
+
+**Key Commands**:
+```bash
+# Start everything
+docker-compose up -d
+
+# Run migrations  
+./gradlew flywayMigrate
+
+# Test health
+curl http://localhost:8080/health
+
+# View logs
+docker-compose logs -f api
+```
 
 ---
 
-**Version**: 0.0.1  
-**Last Updated**: January 2025  
-**Built with**: Kotlin, KTOR, PostgreSQL, Redis
+**Version**: 1.0.0  
+**Last Updated**: August 2025  
+**Built with**: Kotlin 2.1.10, KTOR 3.2.3, PostgreSQL 15, Redis 7, Flyway 10.4.1  
+**License**: Proprietary - WonderNest Platform
 

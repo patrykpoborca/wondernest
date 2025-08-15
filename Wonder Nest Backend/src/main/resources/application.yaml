@@ -20,6 +20,13 @@ database:
     connectionTimeout: 30000
     idleTimeout: 600000
     maxLifetime: 1800000
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baselineOnMigrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    validateOnMigrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
+    cleanOnValidationError: ${FLYWAY_CLEAN_ON_VALIDATION_ERROR:false}
+    outOfOrder: ${FLYWAY_OUT_OF_ORDER:false}
+    table: ${FLYWAY_TABLE:flyway_schema_history}
 
 # Redis Configuration
 redis:

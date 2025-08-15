@@ -54,10 +54,19 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
       body: SafeArea(
         child: familyAsyncValue.when(
           data: (family) {
+            print('[DATA] Family loaded: ${family.name}');
+            print('[DATA] Total members: ${family.members.length}');
+            print('[DATA] Children count: ${family.children.length}');
+            for (var child in family.children) {
+              print('[DATA] Child: ${child.name} (${child.age} years) - ${child.role}');
+            }
+            
             // If family is null or has no children, show the no children state
             if (family.children.isEmpty) {
+              print('[DATA] No children found - showing no children state');
               return _buildNoChildrenState(context);
             }
+            print('[DATA] Children found - showing child selection');
             return _buildChildSelection(context, family);
           },
           loading: () => const Center(
@@ -72,6 +81,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
   }
 
   Widget _buildChildSelection(BuildContext context, fm.Family family) {
+    print('[RENDER] _buildChildSelection called with ${family.children.length} children');
     final children = family.children;
 
     if (children.isEmpty) {

@@ -70,7 +70,7 @@ class FamilyApiService {
   static fm.Family? _mockFamily;
 
   Future<fm.Family> getFamily() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     // Initialize with mock data if needed
     _mockFamily ??= fm.Family(
@@ -83,6 +83,7 @@ class FamilyApiService {
             email: 'parent@wondernest.com',
             role: fm.MemberRole.parent,
             lastActive: DateTime.now(),
+            createdAt: DateTime.now().subtract(const Duration(days: 60)),
           ),
           fm.FamilyMember(
             id: 'child_001',
@@ -92,6 +93,7 @@ class FamilyApiService {
             avatarUrl: '🐻',
             interests: ['Animals', 'Stories', 'Music', 'Art'],
             lastActive: DateTime.now().subtract(const Duration(hours: 2)),
+            createdAt: DateTime.now().subtract(const Duration(days: 30)),
           ),
           fm.FamilyMember(
             id: 'child_002',
@@ -101,6 +103,7 @@ class FamilyApiService {
             avatarUrl: '🦄',
             interests: ['Science', 'Games', 'Sports', 'Technology'],
             lastActive: DateTime.now().subtract(const Duration(hours: 1)),
+            createdAt: DateTime.now().subtract(const Duration(days: 25)),
           ),
           fm.FamilyMember(
             id: 'child_003',
@@ -110,6 +113,7 @@ class FamilyApiService {
             avatarUrl: '🦋',
             interests: ['Dancing', 'Colors', 'Animals', 'Music'],
             lastActive: DateTime.now().subtract(const Duration(minutes: 30)),
+            createdAt: DateTime.now().subtract(const Duration(days: 20)),
           ),
         ],
         subscriptionPlan: 'free',

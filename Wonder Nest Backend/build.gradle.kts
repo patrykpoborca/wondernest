@@ -10,6 +10,7 @@ plugins {
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.serialization") version "2.1.10"
     id("io.ktor.plugin") version "3.2.3"
+    id("org.flywaydb.flyway") version "10.4.1"
 }
 
 group = "com.wondernest"
@@ -25,7 +26,16 @@ repositories {
     mavenCentral()
 }
 
+// Add configuration for Flyway runtime dependencies
+configurations {
+    create("flywayRuntime")
+}
+
 dependencies {
+    // Flyway runtime dependencies (for Gradle plugin)
+    "flywayRuntime"("org.postgresql:postgresql:$postgresql_version")
+    "flywayRuntime"("org.flywaydb:flyway-database-postgresql:10.4.1")
+    
     // Core Ktor dependencies
     implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
@@ -149,4 +159,83 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// =============================================================================
+// Flyway Configuration for Database Migrations
+// =============================================================================
+
+flyway {
+    // Database connection configuration - uses same env vars as application
+    url = System.getenv("DB_URL") ?: run {
+        val dbHost = System.getenv("DB_HOST") ?: "localhost"
+        val dbPort = System.getenv("DB_PORT") ?: "5433"
+        val dbName = System.getenv("DB_NAME") ?: "wondernest_prod"
+        "jdbc:postgresql://$dbHost:$dbPort/$dbName"
+    }
+    user = System.getenv("DB_USERNAME") ?: "wondernest_app"
+    password = System.getenv("DB_PASSWORD") ?: "wondernest_secure_password_dev"
+    driver = "org.postgresql.Driver"
+    
+    // Use the flywayRuntime configuration for dependencies
+    configurations = arrayOf("flywayRuntime")
+    
+    // Migration settings
+    locations = arrayOf("classpath:db/migration")
+    table = "flyway_schema_history"
+    validateMigrationNaming = true
+    validateOnMigrate = true
+    cleanOnValidationError = false
+    mixed = false
+    outOfOrder = false
+    
+    // Environment-specific settings
+    val environment = System.getenv("KTOR_ENV") ?: "production"
+    if (environment == "development") {
+        cleanDisabled = false  // Allow clean in development
+    } else {
+        cleanDisabled = true   // Prevent accidental clean in production
+    }
+    
+    // Encoding and file patterns
+    encoding = "UTF-8"
+    sqlMigrationSuffixes = arrayOf(".sql")
+}
+
+// Custom Gradle tasks for migration management
+tasks.register("flywayStatus") {
+    group = "flyway"
+    description = "Shows the current migration status"
+    dependsOn("flywayInfo")
+}
+
+tasks.register("flywayMigrateVerbose") {
+    group = "flyway"
+    description = "Migrates the database with verbose output"
+    doFirst {
+        println("========================================")
+        println("Running database migrations...")
+        println("URL: ${flyway.url}")
+        println("User: ${flyway.user}")
+        println("Locations: ${flyway.locations.joinToString(", ")}")
+        println("========================================")
+    }
+    dependsOn("flywayMigrate")
+    doLast {
+        println("========================================")
+        println("Migration completed successfully!")
+        println("========================================")
+    }
+}
+
+tasks.register("flywayValidateVerbose") {
+    group = "flyway"
+    description = "Validates migration files with verbose output"
+    doFirst {
+        println("Validating migration files...")
+    }
+    dependsOn("flywayValidate")
+    doLast {
+        println("Migration validation completed!")
+    }
 }
