@@ -55,8 +55,10 @@ class ApiService {
                 'refreshToken': refreshToken,
               });
               
-              final newToken = response.data['accessToken'];
-              final newRefreshToken = response.data['refreshToken'];
+              // Handle response structure with data wrapper
+              final responseData = response.data['data'] ?? response.data;
+              final newToken = responseData['accessToken'];
+              final newRefreshToken = responseData['refreshToken'];
               
               await _storage.write(key: tokenKey, value: newToken);
               await _storage.write(key: refreshTokenKey, value: newRefreshToken);
@@ -105,20 +107,34 @@ class ApiService {
   
   Future<void> _checkBackendAvailability() async {
     try {
-      await _dio.get('/health').timeout(const Duration(seconds: 2));
+      // Check the actual health endpoint (without /api/v1 prefix)
+      final healthDio = Dio(BaseOptions(
+        baseUrl: 'http://localhost:8080',
+        connectTimeout: const Duration(seconds: 2),
+        receiveTimeout: const Duration(seconds: 2),
+      ));
+      await healthDio.get('/health');
       _useMockService = false;
+      print('✅ Connected to real backend at http://localhost:8080');
     } catch (e) {
       // Backend not available, using mock service
       _useMockService = true;
+      print('⚠️ Backend not available, using mock service');
     }
   }
   
   // Health check endpoint
-  Future<Response> healthCheck() {
+  Future<Response> healthCheck() async {
     if (_useMockService) {
       return _mockService.healthCheck();
     }
-    return _dio.get('/health');
+    // Health endpoint is at root level, not under /api/v1
+    final healthDio = Dio(BaseOptions(
+      baseUrl: 'http://localhost:8080',
+      connectTimeout: const Duration(seconds: 2),
+      receiveTimeout: const Duration(seconds: 2),
+    ));
+    return healthDio.get('/health');
   }
   
   // Auth endpoints
@@ -169,32 +185,117 @@ class ApiService {
     return _dio.get('/family/profile');
   }
   
-  // Family endpoints
-  Future<Response> getFamilies() {
-    return _dio.get('/families');
+  // PIN management endpoints
+  Future<Response> setupPin(String pin) {
+    if (_useMockService) {
+      return _mockService.setupPin(pin);
+    }
+    return _dio.post('/auth/parent/setup-pin', data: {
+      'pin': pin,
+    });
   }
   
-  Future<Response> createFamily(String name) {
-    return _dio.post('/families', data: {
-      'name': name,
+  Future<Response> verifyPin(String pin) {
+    if (_useMockService) {
+      return _mockService.verifyPin(pin);
+    }
+    return _dio.post('/auth/parent/verify-pin', data: {
+      'pin': pin,
     });
+  }
+  
+  // Family endpoints
+  Future<Response> getFamilyProfile() {
+    if (_useMockService) {
+      return _mockService.getFamilyProfile();
+    }
+    return _dio.get('/family/profile');
+  }
+  
+  Future<Response> updateFamilySettings(Map<String, dynamic> settings) {
+    if (_useMockService) {
+      return _mockService.updateFamilySettings(settings);
+    }
+    return _dio.put('/family/settings', data: settings);
   }
   
   // Children endpoints
   Future<Response> getChildren() {
-    return _dio.get('/children');
+    if (_useMockService) {
+      return _mockService.getChildren();
+    }
+    return _dio.get('/family/children');
   }
   
   Future<Response> createChild({
     required String name,
     required DateTime birthDate,
-    required String avatar,
+    String? gender,
+    List<String>? interests,
+    String? avatar,
   }) {
-    return _dio.post('/children', data: {
+    if (_useMockService) {
+      return _mockService.createChild(
+        name: name,
+        birthDate: birthDate,
+        gender: gender,
+        interests: interests,
+        avatar: avatar,
+      );
+    }
+    
+    // Format birthDate as YYYY-MM-DD for backend
+    final formattedDate = '${birthDate.year.toString().padLeft(4, '0')}-'
+        '${birthDate.month.toString().padLeft(2, '0')}-'
+        '${birthDate.day.toString().padLeft(2, '0')}';
+    
+    return _dio.post('/family/children', data: {
       'name': name,
-      'birthDate': birthDate.toIso8601String(),
-      'avatar': avatar,
+      'birthDate': formattedDate,
+      if (gender != null) 'gender': gender,
+      if (interests != null && interests.isNotEmpty) 'interests': interests,
+      if (avatar != null) 'avatar': avatar,
     });
+  }
+  
+  Future<Response> updateChild({
+    required String childId,
+    required String name,
+    required DateTime birthDate,
+    String? gender,
+    List<String>? interests,
+    String? avatar,
+  }) {
+    if (_useMockService) {
+      return _mockService.updateChild(
+        childId: childId,
+        name: name,
+        birthDate: birthDate,
+        gender: gender,
+        interests: interests,
+        avatar: avatar,
+      );
+    }
+    
+    // Format birthDate as YYYY-MM-DD for backend
+    final formattedDate = '${birthDate.year.toString().padLeft(4, '0')}-'
+        '${birthDate.month.toString().padLeft(2, '0')}-'
+        '${birthDate.day.toString().padLeft(2, '0')}';
+    
+    return _dio.put('/family/children/$childId', data: {
+      'name': name,
+      'birthDate': formattedDate,
+      if (gender != null) 'gender': gender,
+      if (interests != null) 'interests': interests,
+      if (avatar != null) 'avatar': avatar,
+    });
+  }
+  
+  Future<Response> deleteChild(String childId) {
+    if (_useMockService) {
+      return _mockService.deleteChild(childId);
+    }
+    return _dio.delete('/family/children/$childId');
   }
   
   // Content endpoints

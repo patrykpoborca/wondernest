@@ -258,4 +258,195 @@ class MockApiService {
       },
     );
   }
+  
+  // Children management mocks
+  Future<Response> getChildren() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Get children from the first user's data (simplified for mock)
+    final children = _users.values.isNotEmpty 
+        ? (_users.values.first['children'] ?? [])
+        : [];
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/children'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': children,
+      },
+    );
+  }
+  
+  Future<Response> createChild({
+    required String name,
+    required DateTime birthDate,
+    String? gender,
+    List<String>? interests,
+    String? avatar,
+  }) async {
+    await Future.delayed(const Duration(seconds: 1));
+    
+    final childId = 'child_${DateTime.now().millisecondsSinceEpoch}';
+    final child = {
+      'id': childId,
+      'name': name,
+      'birthDate': birthDate.toIso8601String(),
+      'gender': gender,
+      'interests': interests ?? [],
+      'avatar': avatar ?? '🐻',
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+    
+    // Add to first user's children (simplified for mock)
+    if (_users.isNotEmpty) {
+      final firstUser = _users.values.first;
+      final children = List<Map<String, dynamic>>.from(firstUser['children'] ?? []);
+      children.add(child);
+      firstUser['children'] = children;
+    }
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/children'),
+      statusCode: 201,
+      data: {
+        'success': true,
+        'data': child,
+      },
+    );
+  }
+  
+  Future<Response> updateChild({
+    required String childId,
+    required String name,
+    required DateTime birthDate,
+    String? gender,
+    List<String>? interests,
+    String? avatar,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    final updatedChild = {
+      'id': childId,
+      'name': name,
+      'birthDate': birthDate.toIso8601String(),
+      'gender': gender,
+      'interests': interests ?? [],
+      'avatar': avatar,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/children/$childId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': updatedChild,
+      },
+    );
+  }
+  
+  Future<Response> deleteChild(String childId) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/children/$childId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'message': 'Child archived successfully',
+      },
+    );
+  }
+  
+  // PIN management mocks
+  Future<Response> setupPin(String pin) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Store PIN for the current user (simplified)
+    if (_users.isNotEmpty) {
+      _users.values.first['hasPin'] = true;
+      _users.values.first['pin'] = pin; // In real app, this would be hashed
+    }
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/auth/parent/setup-pin'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'message': 'PIN setup successfully',
+      },
+    );
+  }
+  
+  Future<Response> verifyPin(String pin) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Check PIN (simplified - any 6 digits work in mock)
+    if (pin.length == 6 && RegExp(r'^\d+$').hasMatch(pin)) {
+      return Response(
+        requestOptions: RequestOptions(path: '/auth/parent/verify-pin'),
+        statusCode: 200,
+        data: {
+          'success': true,
+          'valid': true,
+        },
+      );
+    }
+    
+    throw DioException(
+      requestOptions: RequestOptions(path: '/auth/parent/verify-pin'),
+      response: Response(
+        requestOptions: RequestOptions(path: '/auth/parent/verify-pin'),
+        statusCode: 401,
+        data: {
+          'success': false,
+          'error': {
+            'code': 'INVALID_PIN',
+            'message': 'Invalid PIN',
+          },
+        },
+      ),
+    );
+  }
+  
+  // Family management mocks
+  Future<Response> getFamilyProfile() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/profile'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'familyId': 'fam_mock_001',
+          'familyName': 'Mock Family',
+          'parentName': 'Mock Parent',
+          'children': _users.values.isNotEmpty 
+              ? (_users.values.first['children'] ?? [])
+              : [],
+          'subscription': {
+            'plan': 'free',
+            'validUntil': '2025-12-31',
+            'maxChildren': 5,
+          },
+        },
+      },
+    );
+  }
+  
+  Future<Response> updateFamilySettings(Map<String, dynamic> settings) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/family/settings'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'message': 'Settings updated successfully',
+        'data': settings,
+      },
+    );
+  }
 }

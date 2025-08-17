@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../models/family_member.dart' as fm;
-import '../core/services/mock_api_service.dart';
+import '../core/services/api_service.dart';
 
 // Selected child provider
 final selectedChildProvider = StateProvider<fm.FamilyMember?>((ref) => null);
@@ -64,94 +65,193 @@ final familyProvider = AsyncNotifierProvider<FamilyNotifier, fm.Family>(() {
   return FamilyNotifier();
 });
 
-// Mock Family API Service extension
+// Family API Service that integrates with real backend
 class FamilyApiService {
-  // Simulated database
-  static fm.Family? _mockFamily;
+  final ApiService _apiService = ApiService();
+  
+  // Cache for offline support
+  static fm.Family? _cachedFamily;
 
   Future<fm.Family> getFamily() async {
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // Initialize with mock data if needed
-    _mockFamily ??= fm.Family(
-        id: 'fam_001',
-        name: 'The Wonder Family',
-        members: [
-          fm.FamilyMember(
-            id: 'parent_001',
-            name: 'Parent User',
-            email: 'parent@wondernest.com',
+    try {
+      // Get family profile from backend
+      final response = await _apiService.getFamilyProfile();
+      
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'];
+          
+          // Get children from backend
+          final childrenResponse = await _apiService.getChildren();
+          List<fm.FamilyMember> members = [];
+          
+          // Add parent member
+          members.add(fm.FamilyMember(
+            id: data['parentId'] ?? 'parent_001',
+            name: data['parentName'] ?? 'Parent',
+            email: data['parentEmail'],
             role: fm.MemberRole.parent,
             lastActive: DateTime.now(),
-            createdAt: DateTime.now().subtract(const Duration(days: 60)),
-          ),
-          fm.FamilyMember(
-            id: 'child_001',
-            name: 'Emma',
-            role: fm.MemberRole.child,
-            age: 5,
-            avatarUrl: '🐻',
-            interests: ['Animals', 'Stories', 'Music', 'Art'],
-            lastActive: DateTime.now().subtract(const Duration(hours: 2)),
-            createdAt: DateTime.now().subtract(const Duration(days: 30)),
-          ),
-          fm.FamilyMember(
-            id: 'child_002',
-            name: 'Liam',
-            role: fm.MemberRole.child,
-            age: 7,
-            avatarUrl: '🦄',
-            interests: ['Science', 'Games', 'Sports', 'Technology'],
-            lastActive: DateTime.now().subtract(const Duration(hours: 1)),
-            createdAt: DateTime.now().subtract(const Duration(days: 25)),
-          ),
-          fm.FamilyMember(
-            id: 'child_003',
-            name: 'Sophia',
-            role: fm.MemberRole.child,
-            age: 3,
-            avatarUrl: '🦋',
-            interests: ['Dancing', 'Colors', 'Animals', 'Music'],
-            lastActive: DateTime.now().subtract(const Duration(minutes: 30)),
-            createdAt: DateTime.now().subtract(const Duration(days: 20)),
-          ),
-        ],
+            createdAt: DateTime.now(),
+          ));
+          
+          // Add children if available
+          if (childrenResponse.statusCode == 200) {
+            final childrenData = childrenResponse.data;
+            if (childrenData['success'] == true && childrenData['data'] != null) {
+              final children = childrenData['data'] as List;
+              
+              for (final child in children) {
+                // Calculate age from birthDate
+                DateTime? birthDate;
+                int? age;
+                
+                if (child['birthDate'] != null) {
+                  try {
+                    birthDate = DateTime.parse(child['birthDate']);
+                    age = DateTime.now().difference(birthDate).inDays ~/ 365;
+                  } catch (e) {
+                    // Handle parse error
+                  }
+                }
+                
+                members.add(fm.FamilyMember(
+                  id: child['id'] ?? '',
+                  name: child['name'] ?? 'Child',
+                  role: fm.MemberRole.child,
+                  age: age,
+                  avatarUrl: child['avatar'] ?? '🐻',
+                  interests: List<String>.from(child['interests'] ?? []),
+                  createdAt: child['createdAt'] != null 
+                      ? DateTime.parse(child['createdAt'])
+                      : DateTime.now(),
+                ));
+              }
+            }
+          }
+          
+          final family = fm.Family(
+            id: data['familyId'] ?? 'fam_001',
+            name: data['familyName'] ?? 'My Family',
+            members: members,
+            subscriptionPlan: data['subscription']?['plan'] ?? 'free',
+          );
+          
+          // Cache for offline support
+          _cachedFamily = family;
+          return family;
+        }
+      }
+    } catch (e) {
+      // If error and we have cached data, return it
+      if (_cachedFamily != null) {
+        return _cachedFamily!;
+      }
+      
+      // Otherwise return a default family structure
+      return fm.Family(
+        id: 'fam_default',
+        name: 'My Family',
+        members: [],
         subscriptionPlan: 'free',
       );
-
-    return _mockFamily!;
+    }
+    
+    // Return cached or default if something went wrong
+    return _cachedFamily ?? fm.Family(
+      id: 'fam_default',
+      name: 'My Family',
+      members: [],
+      subscriptionPlan: 'free',
+    );
   }
 
   Future<void> addFamilyMember(fm.FamilyMember member) async {
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (_mockFamily != null) {
-      final updatedMembers = [..._mockFamily!.members, member];
-      _mockFamily = _mockFamily!.copyWith(members: updatedMembers);
+    if (member.role == fm.MemberRole.child) {
+      // Parse birth date from settings or calculate from age
+      DateTime birthDate = DateTime.now();
+      
+      if (member.settings != null && member.settings!['birthDate'] != null) {
+        try {
+          birthDate = DateTime.parse(member.settings!['birthDate']);
+        } catch (e) {
+          // Fallback to age calculation if parse fails
+          if (member.age != null) {
+            birthDate = DateTime.now().subtract(Duration(days: member.age! * 365));
+          }
+        }
+      } else if (member.age != null) {
+        birthDate = DateTime.now().subtract(Duration(days: member.age! * 365));
+      }
+      
+      // Extract gender from settings
+      String? gender;
+      if (member.settings != null && member.settings!['gender'] != null) {
+        gender = member.settings!['gender'];
+      }
+      
+      final response = await _apiService.createChild(
+        name: member.name,
+        birthDate: birthDate,
+        gender: gender,
+        interests: member.interests,
+        avatar: member.avatarUrl,
+      );
+      
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final error = response.data?['error']?['message'] ?? 'Failed to add child';
+        throw Exception(error);
+      }
     }
   }
 
   Future<void> updateFamilyMember(fm.FamilyMember member) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (_mockFamily != null) {
-      final updatedMembers = _mockFamily!.members.map((m) {
-        if (m.id == member.id) {
-          return member;
+    if (member.role == fm.MemberRole.child) {
+      // Parse birth date from settings or calculate from age
+      DateTime birthDate = DateTime.now();
+      
+      if (member.settings != null && member.settings!['birthDate'] != null) {
+        try {
+          birthDate = DateTime.parse(member.settings!['birthDate']);
+        } catch (e) {
+          // Fallback to age calculation if parse fails
+          if (member.age != null) {
+            birthDate = DateTime.now().subtract(Duration(days: member.age! * 365));
+          }
         }
-        return m;
-      }).toList();
-      _mockFamily = _mockFamily!.copyWith(members: updatedMembers);
+      } else if (member.age != null) {
+        birthDate = DateTime.now().subtract(Duration(days: member.age! * 365));
+      }
+      
+      // Extract gender from settings
+      String? gender;
+      if (member.settings != null && member.settings!['gender'] != null) {
+        gender = member.settings!['gender'];
+      }
+      
+      final response = await _apiService.updateChild(
+        childId: member.id,
+        name: member.name,
+        birthDate: birthDate,
+        gender: gender,
+        interests: member.interests,
+        avatar: member.avatarUrl,
+      );
+      
+      if (response.statusCode != 200) {
+        final error = response.data?['error']?['message'] ?? 'Failed to update child';
+        throw Exception(error);
+      }
     }
   }
 
   Future<void> removeFamilyMember(String memberId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (_mockFamily != null) {
-      final updatedMembers =
-          _mockFamily!.members.where((m) => m.id != memberId).toList();
-      _mockFamily = _mockFamily!.copyWith(members: updatedMembers);
+    final response = await _apiService.deleteChild(memberId);
+    
+    if (response.statusCode != 200) {
+      throw Exception('Failed to remove child');
     }
   }
 }

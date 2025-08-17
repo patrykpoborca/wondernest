@@ -33,6 +33,8 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
   final int _totalSteps = 4;
   File? _avatarFile;
   double _selectedAge = 5;
+  DateTime? _selectedBirthDate;
+  String? _selectedGender;
   final Set<String> _selectedInterests = {};
 
   @override
@@ -275,51 +277,103 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            '${_selectedAge.round()} years old',
-            style: theme.textTheme.displaySmall?.copyWith(
+            'Birth Date',
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
             ),
           ),
-          const SizedBox(height: 32),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 8,
-              thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 16,
-              ),
-              overlayShape: const RoundSliderOverlayShape(
-                overlayRadius: 28,
-              ),
-            ),
-            child: Slider(
-              value: _selectedAge,
-              min: 2,
-              max: 13,
-              divisions: 11,
-              label: '${_selectedAge.round()} years',
-              onChanged: (value) {
+          const SizedBox(height: 24),
+          // Birth date picker
+          InkWell(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedBirthDate ?? DateTime.now().subtract(Duration(days: 365 * 5)),
+                firstDate: DateTime.now().subtract(Duration(days: 365 * 14)), // Max 14 years old
+                lastDate: DateTime.now().subtract(Duration(days: 365)), // Min 1 year old
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: theme.colorScheme,
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              
+              if (picked != null) {
                 setState(() {
-                  _selectedAge = value;
+                  _selectedBirthDate = picked;
+                  _selectedAge = (DateTime.now().difference(picked).inDays / 365).clamp(1, 14);
                 });
                 ref
                     .read(childProfileFormProvider.notifier)
-                    .updateAge(value.round());
-              },
+                    .updateAge(_selectedAge.round());
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _selectedBirthDate != null 
+                      ? theme.colorScheme.primary 
+                      : theme.colorScheme.outline,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                color: _selectedBirthDate != null
+                    ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
+                    : Colors.transparent,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    PhosphorIcons.calendar(),
+                    color: _selectedBirthDate != null 
+                        ? theme.colorScheme.primary 
+                        : theme.colorScheme.onSurface,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    _selectedBirthDate != null
+                        ? '${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}'
+                        : 'Select Birth Date',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: _selectedBirthDate != null 
+                          ? theme.colorScheme.primary 
+                          : theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (_selectedBirthDate != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '(${_selectedAge.round()} years old)',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
+          ),
+          const SizedBox(height: 32),
+          // Gender selection (optional)
+          Text(
+            'Gender (Optional)',
+            style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                '2 years',
-                style: theme.textTheme.bodySmall,
-              ),
-              Text(
-                '13 years',
-                style: theme.textTheme.bodySmall,
-              ),
+              _buildGenderOption('Male', PhosphorIcons.user(), theme),
+              const SizedBox(width: 12),
+              _buildGenderOption('Female', PhosphorIcons.userFocus(), theme),
+              const SizedBox(width: 12),
+              _buildGenderOption('Other', PhosphorIcons.users(), theme),
             ],
           ),
           const SizedBox(height: 32),
@@ -338,7 +392,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Age helps us recommend age-appropriate content and ensure COPPA compliance.',
+                    'Birth date helps us recommend age-appropriate content and ensure COPPA compliance.',
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -346,6 +400,47 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+  
+  Widget _buildGenderOption(String gender, IconData icon, ThemeData theme) {
+    final isSelected = _selectedGender == gender;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedGender = isSelected ? null : gender;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isSelected
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+              : Colors.transparent,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              gender,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -654,17 +749,64 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
   }
 
   Future<void> _submitProfile() async {
+    // Validate required fields
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a name for your child'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _currentStep = 0;
+        _pageController.jumpToPage(0);
+      });
+      return;
+    }
+    
+    if (_nameController.text.trim().length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Name must be at least 2 characters'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _currentStep = 0;
+        _pageController.jumpToPage(0);
+      });
+      return;
+    }
+    
+    if (_selectedBirthDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select your child\'s birth date'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _currentStep = 1;
+        _pageController.jumpToPage(1);
+      });
+      return;
+    }
+    
     final formNotifier = ref.read(childProfileFormProvider.notifier);
     formNotifier.setLoading(true);
 
     try {
       final member = fm.FamilyMember(
         id: widget.childId ?? 'child_${DateTime.now().millisecondsSinceEpoch}',
-        name: _nameController.text,
+        name: _nameController.text.trim(),
         role: fm.MemberRole.child,
         age: _selectedAge.round(),
         interests: _selectedInterests.toList(),
         avatarUrl: _avatarFile?.path ?? '',
+        settings: {
+          'birthDate': _selectedBirthDate?.toIso8601String(),
+          'gender': _selectedGender,
+        },
       );
 
       if (widget.isEditing) {
