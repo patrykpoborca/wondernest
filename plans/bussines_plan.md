@@ -72,24 +72,40 @@ Data Models: Parent, Child, Content, UsageLog, Session, AudioData, Login/Signup 
 6. Monetization Strategy
 Freemium Model:
 
-Free tier: Basic content curation, usage logs.
+Free tier: Basic content curation, usage logs, 3 mini-games.
 
-Premium tier: Audio analysis reports, advanced insights, multiple profiles, offline mode.
+Premium tier: Audio analysis reports, advanced insights, multiple profiles, offline mode, unlimited games.
+
+In-Game Purchases:
+
+Virtual currency (Wonder Coins) for cosmetics and power-ups.
+
+Seasonal game packs and exclusive content.
+
+Premium game subscriptions.
 
 B2B Licensing:
 
 Partner with early childhood education centers for group subscriptions.
 
+Enterprise game development SDK for educational institutions.
+
 Affiliate Content Links:
 
 Monetize recommended games/videos via safe partnerships.
 
+Sponsored educational mini-games from trusted brands.
+
 7. Competitive Advantages
-Differentiation: Combines curated screen time with speech environment analytics—a currently under-served niche.
+Differentiation: Combines curated screen time with speech environment analytics and comprehensive mini-game platform—a currently under-served niche.
 
-Safety & Trust: Parental control first, ad-free, fully COPPA-compliant.
+Game-Based Insights: Revolutionary approach using gameplay patterns to generate developmental insights.
 
-Cross-Platform: Single codebase for iOS and Android.
+Safety & Trust: Parental control first, ad-free, fully COPPA-compliant, privacy-first game design.
+
+Cross-Platform: Single codebase for iOS and Android, plugin architecture for rapid game deployment.
+
+Network Effects: Cross-game achievements and social features create strong retention.
 
 8. Roadmap
 Phase 1 – MVP (3–4 Months)
@@ -114,9 +130,17 @@ Content recommendations
 
 Phase 3 – Differentiation (3–4 Months)
 
-Wearable integration
+Comprehensive Mini-Game Platform
 
-Gamified rewards
+Plugin-based game architecture
+
+Cross-game achievement system
+
+Virtual currency and rewards
+
+Developmental insights from gameplay
+
+Wearable integration
 
 Machine learning developmental insights
 

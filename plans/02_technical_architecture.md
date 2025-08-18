@@ -726,6 +726,95 @@ CREATE TABLE content_sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Mini-Game Platform Schema
+CREATE SCHEMA IF NOT EXISTS games;
+
+CREATE TABLE games.games (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    type VARCHAR(50) NOT NULL, -- 'web', 'native', 'hybrid'
+    game_url TEXT,
+    description TEXT,
+    age_range INT4RANGE,
+    categories TEXT[],
+    skills_developed TEXT[],
+    difficulty_levels JSONB,
+    metadata JSONB,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games.game_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    game_id UUID REFERENCES games.games(id),
+    child_id UUID REFERENCES children(id),
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    duration_seconds INTEGER,
+    score INTEGER,
+    level_reached INTEGER,
+    achievements_unlocked TEXT[],
+    interaction_data JSONB,
+    cognitive_metrics JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games.achievements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    game_id UUID REFERENCES games.games(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    icon_url TEXT,
+    points INTEGER DEFAULT 10,
+    criteria JSONB,
+    is_secret BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games.child_achievements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    child_id UUID REFERENCES children(id),
+    achievement_id UUID REFERENCES games.achievements(id),
+    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    game_session_id UUID REFERENCES games.game_sessions(id),
+    UNIQUE(child_id, achievement_id)
+);
+
+CREATE TABLE games.virtual_currency (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    child_id UUID REFERENCES children(id) UNIQUE,
+    balance INTEGER DEFAULT 0,
+    total_earned INTEGER DEFAULT 0,
+    total_spent INTEGER DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games.currency_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    child_id UUID REFERENCES children(id),
+    amount INTEGER NOT NULL,
+    transaction_type VARCHAR(50), -- 'earned', 'spent', 'bonus', 'refund'
+    source VARCHAR(100), -- game_id, achievement_id, purchase_id
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games.game_analytics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    child_id UUID REFERENCES children(id),
+    game_id UUID REFERENCES games.games(id),
+    date DATE NOT NULL,
+    total_play_time_minutes INTEGER DEFAULT 0,
+    sessions_count INTEGER DEFAULT 0,
+    average_score DECIMAL(10,2),
+    skill_progression JSONB,
+    engagement_score DECIMAL(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(child_id, game_id, date)
+);
+
 -- Indexes for performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_children_parent ON children(parent_id);
@@ -734,6 +823,11 @@ CREATE INDEX idx_audio_sessions_date ON audio_sessions(start_time);
 CREATE INDEX idx_content_sessions_child ON content_sessions(child_id);
 CREATE INDEX idx_subscriptions_user ON subscriptions(user_id);
 CREATE INDEX idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX idx_game_sessions_child ON games.game_sessions(child_id);
+CREATE INDEX idx_game_sessions_game ON games.game_sessions(game_id);
+CREATE INDEX idx_game_sessions_date ON games.game_sessions(start_time);
+CREATE INDEX idx_child_achievements_child ON games.child_achievements(child_id);
+CREATE INDEX idx_game_analytics_child_date ON games.game_analytics(child_id, date);
 ```
 
 ### MongoDB Schema
