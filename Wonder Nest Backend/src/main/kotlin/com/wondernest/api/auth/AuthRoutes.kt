@@ -33,7 +33,7 @@ data class PasswordResetConfirmRequest(
 )
 
 @Serializable
-data class RefreshTokenRequest(val refreshToken: String)
+data class RefreshTokenRequest(val refreshToken: String?)
 
 @Serializable
 data class PinVerificationRequest(val pin: String)
@@ -297,6 +297,10 @@ fun Route.authRoutes() {
             post("/refresh") {
                 try {
                     val request = call.receive<RefreshTokenRequest>()
+                    if (request.refreshToken.isNullOrBlank()) {
+                        call.respond(HttpStatusCode.BadRequest, MessageResponse("Refresh token is required"))
+                        return@post
+                    }
                     val response = authService.refreshToken(request.refreshToken)
                     call.respond(HttpStatusCode.OK, response)
                 } catch (e: SecurityException) {
@@ -312,6 +316,10 @@ fun Route.authRoutes() {
         post("/refresh") {
             try {
                 val request = call.receive<RefreshTokenRequest>()
+                if (request.refreshToken.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, MessageResponse("Refresh token is required"))
+                    return@post
+                }
                 val response = authService.refreshToken(request.refreshToken)
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: SecurityException) {

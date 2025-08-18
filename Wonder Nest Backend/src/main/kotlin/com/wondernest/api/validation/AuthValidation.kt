@@ -94,14 +94,12 @@ object AuthValidation {
             validations.add(ValidationResult.failure("Invalid email format"))
         }
         
-        // Check for security threats
-        if (ValidationUtils.containsSqlInjection(request.email) || ValidationUtils.containsXss(request.email)) {
+        // Check for security threats in email (for login, be more lenient than signup)
+        if (ValidationUtils.containsXss(request.email)) {
             validations.add(ValidationResult.failure("Invalid characters in email"))
         }
         
-        if (ValidationUtils.containsSqlInjection(request.password)) {
-            validations.add(ValidationResult.failure("Invalid characters in password"))
-        }
+        // Note: Don't check password for SQL injection as it may contain legitimate special characters
         
         // Password presence check (don't validate strength for login)
         if (request.password.isBlank()) {
