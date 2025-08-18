@@ -288,13 +288,17 @@ class MockApiService {
     await Future.delayed(const Duration(seconds: 1));
     
     final childId = 'child_${DateTime.now().millisecondsSinceEpoch}';
+    // Calculate age from birth date
+    final age = DateTime.now().difference(birthDate).inDays ~/ 365;
+    
     final child = {
       'id': childId,
       'name': name,
       'birthDate': birthDate.toIso8601String(),
+      'age': age,
       'gender': gender,
       'interests': interests ?? [],
-      'avatar': avatar ?? '🐻',
+      'avatarUrl': avatar ?? '🐻', // Use avatarUrl to match backend response
       'createdAt': DateTime.now().toIso8601String(),
     };
     
@@ -414,23 +418,30 @@ class MockApiService {
   Future<Response> getFamilyProfile() async {
     await Future.delayed(const Duration(milliseconds: 500));
     
+    // Get first user as the parent (simplified for mock)
+    final user = _users.values.isNotEmpty ? _users.values.first : null;
+    final children = user?['children'] ?? [];
+    
     return Response(
       requestOptions: RequestOptions(path: '/family/profile'),
       statusCode: 200,
       data: {
         'success': true,
         'data': {
-          'familyId': 'fam_mock_001',
-          'familyName': 'Mock Family',
-          'parentName': 'Mock Parent',
-          'children': _users.values.isNotEmpty 
-              ? (_users.values.first['children'] ?? [])
-              : [],
-          'subscription': {
-            'plan': 'free',
-            'validUntil': '2025-12-31',
-            'maxChildren': 5,
+          'family': {
+            'id': 'fam_mock_001',
+            'name': 'Mock Family',
+            'createdAt': DateTime.now().toIso8601String(),
           },
+          'members': user != null ? [{
+            'userId': user['userId'],
+            'firstName': user['firstName'] ?? 'Mock',
+            'lastName': user['lastName'] ?? 'Parent',
+            'email': user['email'],
+            'role': 'parent',
+            'joinedAt': user['createdAt'],
+          }] : [],
+          'children': children,
         },
       },
     );

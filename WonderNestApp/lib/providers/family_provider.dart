@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/family_member.dart' as fm;
+import '../core/services/api_service.dart';
 import 'auth_provider.dart';
 
 // Selected child provider
@@ -117,66 +118,73 @@ class FamilyApiService {
         
         if (responseData['success'] == true && responseData['data'] != null) {
           final data = responseData['data'];
-          
-          // Get children from backend
-          final childrenResponse = await _apiService.getChildren();
           List<fm.FamilyMember> members = [];
           
-          // Add parent member
-          members.add(fm.FamilyMember(
-            id: data['parentId'] ?? 'parent_001',
-            name: data['parentName'] ?? 'Parent',
-            email: data['parentEmail'],
-            role: fm.MemberRole.parent,
-            lastActive: DateTime.now(),
-            createdAt: DateTime.now(),
-          ));
+          // The family profile response now includes a complete structure:
+          // - family: basic family info
+          // - members: all family members 
+          // - children: detailed child profiles
           
-          // Add children if available
-          if (childrenResponse.statusCode == 200) {
-            final childrenData = childrenResponse.data;
-            if (childrenData['success'] == true && childrenData['data'] != null) {
-              final children = childrenData['data'] as List;
-              
-              for (final child in children) {
-                // Calculate age from birthDate
-                DateTime? birthDate;
-                int? age;
-                
-                if (child['birthDate'] != null) {
-                  try {
-                    birthDate = DateTime.parse(child['birthDate']);
-                    age = DateTime.now().difference(birthDate).inDays ~/ 365;
-                  } catch (e) {
-                    // Handle parse error
-                  }
-                }
-                
-                members.add(fm.FamilyMember(
-                  id: child['id'] ?? '',
-                  name: child['name'] ?? 'Child',
-                  role: fm.MemberRole.child,
-                  age: age,
-                  avatarUrl: child['avatar'] ?? '🐻',
-                  interests: List<String>.from(child['interests'] ?? []),
-                  createdAt: child['createdAt'] != null 
-                      ? DateTime.parse(child['createdAt'])
-                      : DateTime.now(),
-                ));
-              }
+          // Extract family info
+          final family = data['family'];
+          final familyMembers = data['members'] as List? ?? [];
+          final children = data['children'] as List? ?? [];
+          
+          // Add parent members
+          for (final member in familyMembers) {
+            if (member['role'] == 'parent') {
+              members.add(fm.FamilyMember(
+                id: member['userId'] ?? 'parent_001',
+                name: '${member['firstName'] ?? 'Parent'} ${member['lastName'] ?? ''}',
+                email: member['email'],
+                role: fm.MemberRole.parent,
+                lastActive: DateTime.now(),
+                createdAt: member['joinedAt'] != null 
+                    ? DateTime.parse(member['joinedAt'])
+                    : DateTime.now(),
+              ));
             }
           }
           
-          final family = fm.Family(
-            id: data['familyId'] ?? 'fam_001',
-            name: data['familyName'] ?? 'My Family',
+          // Add children from detailed child profiles
+          for (final child in children) {
+            // Calculate age from birthDate or use provided age
+            int? age = child['age'];
+            if (age == null && child['birthDate'] != null) {
+              try {
+                final birthDate = DateTime.parse(child['birthDate']);
+                age = DateTime.now().difference(birthDate).inDays ~/ 365;
+              } catch (e) {
+                // Handle parse error
+              }
+            }
+            
+            members.add(fm.FamilyMember(
+              id: child['id'] ?? '',
+              name: child['name'] ?? 'Child',
+              role: fm.MemberRole.child,
+              age: age,
+              avatarUrl: child['avatarUrl'] ?? '🐻',
+              interests: List<String>.from(child['interests'] ?? []),
+              createdAt: child['createdAt'] != null 
+                  ? DateTime.parse(child['createdAt'])
+                  : DateTime.now(),
+            ));
+          }
+          
+          final familyData = fm.Family(
+            id: family['id'] ?? 'fam_001',
+            name: family['name'] ?? 'My Family',
             members: members,
-            subscriptionPlan: data['subscription']?['plan'] ?? 'free',
+            subscriptionPlan: 'free', // TODO: Get from family settings
+            createdAt: family['createdAt'] != null 
+                ? DateTime.parse(family['createdAt'])
+                : DateTime.now(),
           );
           
           // Cache for offline support
-          _cachedFamily = family;
-          return family;
+          _cachedFamily = familyData;
+          return familyData;
         }
       }
     } catch (e) {
