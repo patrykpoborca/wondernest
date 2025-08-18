@@ -98,10 +98,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
           final responseData = e.response?.data;
           if (responseData is Map<String, dynamic>) {
-            if (responseData['error'] != null && responseData['error']['message'] != null) {
-              errorMessage = responseData['error']['message'].toString();
-            } else if (responseData['message'] != null) {
+            // Handle flat error structure: { "error": "UNAUTHORIZED", "message": "Authentication required" }
+            if (responseData['message'] != null) {
               errorMessage = responseData['message'].toString();
+            } else if (responseData['error'] is Map && responseData['error']['message'] != null) {
+              // Handle nested error structure: { "error": { "message": "..." } }
+              errorMessage = responseData['error']['message'].toString();
+            } else if (responseData['error'] is String) {
+              // Handle string error: { "error": "UNAUTHORIZED" }
+              errorMessage = responseData['error'].toString();
             }
           }
         } else if (e.response?.statusCode == 500) {
@@ -181,14 +186,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (e.response?.statusCode == 400) {
           final responseData = e.response?.data;
           if (responseData is Map<String, dynamic>) {
-            if (responseData['error'] != null && responseData['error']['message'] != null) {
+            // Handle flat error structure: { "error": "EMAIL_EXISTS", "message": "Account already exists" }
+            if (responseData['message'] != null) {
+              errorMessage = responseData['message'].toString();
+            } else if (responseData['error'] is Map && responseData['error']['message'] != null) {
+              // Handle nested error structure: { "error": { "message": "...", "code": "EMAIL_EXISTS" } }
               errorMessage = responseData['error']['message'].toString();
               // Check for specific error codes
               if (responseData['error']['code'] == 'EMAIL_EXISTS') {
                 errorMessage = 'An account with this email already exists.';
               }
-            } else if (responseData['message'] != null) {
-              errorMessage = responseData['message'].toString();
+            } else if (responseData['error'] is String) {
+              // Handle string error: { "error": "EMAIL_EXISTS" }
+              if (responseData['error'] == 'EMAIL_EXISTS') {
+                errorMessage = 'An account with this email already exists.';
+              } else {
+                errorMessage = responseData['error'].toString();
+              }
             }
           }
         } else if (e.response?.statusCode == 409) {
