@@ -2,13 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../models/family_member.dart' as fm;
 import '../core/services/api_service.dart';
+import 'auth_provider.dart';
 
 // Selected child provider
 final selectedChildProvider = StateProvider<fm.FamilyMember?>((ref) => null);
 
 // Family API service provider
 final familyApiServiceProvider = Provider<FamilyApiService>((ref) {
-  return FamilyApiService();
+  return FamilyApiService(ref.read(apiServiceProvider));
 });
 
 // Family state notifier
@@ -67,7 +68,9 @@ final familyProvider = AsyncNotifierProvider<FamilyNotifier, fm.Family>(() {
 
 // Family API Service that integrates with real backend
 class FamilyApiService {
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService;
+  
+  FamilyApiService(this._apiService);
   
   // Cache for offline support
   static fm.Family? _cachedFamily;

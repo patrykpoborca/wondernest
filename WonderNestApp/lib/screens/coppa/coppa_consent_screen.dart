@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/services/api_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
 
 class CoppaConsentScreen extends ConsumerStatefulWidget {
@@ -22,7 +22,7 @@ class CoppaConsentScreen extends ConsumerStatefulWidget {
 }
 
 class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
-  final ApiService _apiService = ApiService();
+  late final ApiService _apiService;
   final _formKey = GlobalKey<FormState>();
   final _signatureController = TextEditingController();
   
@@ -36,6 +36,12 @@ class _CoppaConsentScreenState extends ConsumerState<CoppaConsentScreen> {
   bool _analyticsConsent = false;
   bool _audioMonitoringConsent = false;
   bool _educationalDataConsent = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _apiService = ref.read(apiServiceProvider);
+  }
   
   // Verification
   String _verificationMethod = 'credit_card';

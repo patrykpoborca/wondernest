@@ -3,7 +3,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/game_model.dart';
-import '../../core/services/api_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
 
 class MiniGameFramework extends ConsumerStatefulWidget {
@@ -49,7 +49,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
   @override
   void initState() {
     super.initState();
-    _apiService = ApiService();
+    _apiService = ref.read(apiServiceProvider);
     _startTime = DateTime.now();
     _loadGameProgress();
   }

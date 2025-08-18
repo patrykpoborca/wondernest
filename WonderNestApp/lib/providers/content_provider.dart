@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/content_model.dart';
+import '../core/services/api_service.dart';
 import 'family_provider.dart';
+import 'auth_provider.dart';
 
 // Content API service provider
 final contentApiServiceProvider = Provider<ContentApiService>((ref) {
-  return ContentApiService();
+  return ContentApiService(ref.read(apiServiceProvider));
 });
 
 // Search query provider
@@ -184,6 +186,10 @@ final recentlyWatchedProvider = FutureProvider<List<ContentModel>>((ref) async {
 
 // Mock Content API Service
 class ContentApiService {
+  final ApiService _apiService;
+  
+  ContentApiService(this._apiService);
+  
   // Simulated database
   static final List<ContentModel> _mockContent = _generateMockContent();
 

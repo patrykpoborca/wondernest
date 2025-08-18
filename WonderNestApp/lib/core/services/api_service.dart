@@ -8,6 +8,10 @@ class ApiService {
   static const String tokenKey = 'auth_token';
   static const String refreshTokenKey = 'refresh_token';
   
+  // Singleton instance
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   
@@ -15,7 +19,7 @@ class ApiService {
   static bool _useMockService = false;
   final MockApiService _mockService = MockApiService();
   
-  ApiService() {
+  ApiService._internal() {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -51,7 +55,17 @@ class ApiService {
           final refreshToken = await _storage.read(key: refreshTokenKey);
           if (refreshToken != null) {
             try {
-              final response = await _dio.post('/auth/session/refresh', data: {
+              // Create a new Dio instance for refresh to avoid interceptor loops
+              final refreshDio = Dio(BaseOptions(
+                baseUrl: baseUrl,
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              ));
+              
+              final response = await refreshDio.post('/auth/session/refresh', data: {
                 'refreshToken': refreshToken,
               });
               
@@ -63,7 +77,7 @@ class ApiService {
               await _storage.write(key: tokenKey, value: newToken);
               await _storage.write(key: refreshTokenKey, value: newRefreshToken);
               
-              // Retry the original request
+              // Retry the original request with new token
               error.requestOptions.headers['Authorization'] = 'Bearer $newToken';
               final cloneReq = await _dio.request(
                 error.requestOptions.path,

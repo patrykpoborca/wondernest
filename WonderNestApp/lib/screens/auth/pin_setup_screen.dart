@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/services/api_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/custom_text_field.dart';
 
 class PinSetupScreen extends ConsumerStatefulWidget {
@@ -19,12 +19,18 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
-  final _apiService = ApiService();
+  late final ApiService _apiService;
   
   bool _obscurePin = true;
   bool _obscureConfirmPin = true;
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService = ref.read(apiServiceProvider);
+  }
 
   @override
   void dispose() {

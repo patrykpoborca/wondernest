@@ -3,6 +3,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/services/api_service.dart';
 
+// Export ApiService for convenience
+export '../core/services/api_service.dart' show ApiService;
+
+// API Service Provider - singleton instance
+final apiServiceProvider = Provider<ApiService>((ref) {
+  return ApiService();
+});
+
 // Auth State Model
 class AuthState {
   final bool isLoading;
@@ -34,9 +42,9 @@ class AuthState {
 
 // Auth State Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService;
 
-  AuthNotifier() : super(AuthState()) {
+  AuthNotifier(this._apiService) : super(AuthState()) {
     checkLoginStatus();
   }
 
@@ -237,7 +245,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 // Auth Provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
-  (ref) => AuthNotifier(),
+  (ref) => AuthNotifier(ref.read(apiServiceProvider)),
 );
 
 // Convenience providers

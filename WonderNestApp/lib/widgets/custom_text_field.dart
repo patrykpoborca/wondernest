@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -12,6 +13,7 @@ class CustomTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final bool readOnly;
   final int? maxLines;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomTextField({
     super.key,
@@ -25,6 +27,7 @@ class CustomTextField extends StatelessWidget {
     this.onTap,
     this.readOnly = false,
     this.maxLines = 1,
+    this.inputFormatters,
   });
 
   @override
@@ -37,6 +40,7 @@ class CustomTextField extends StatelessWidget {
       onTap: onTap,
       readOnly: readOnly,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.poppins(
         color: Colors.white,
         fontSize: 16,
