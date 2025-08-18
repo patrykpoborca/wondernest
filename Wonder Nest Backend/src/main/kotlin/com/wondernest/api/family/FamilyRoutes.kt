@@ -35,7 +35,10 @@ fun Route.familyRoutes() {
                     val familyProfile = familyService.getFamilyProfile(UUID.fromString(familyId))
                         ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("family_not_found", "Family not found"))
 
-                    call.respond(HttpStatusCode.OK, familyProfile)
+                    call.respond(HttpStatusCode.OK, mapOf(
+                        "success" to true,
+                        "data" to familyProfile
+                    ))
                 } catch (e: IllegalArgumentException) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("invalid_family_id", e.message ?: "Invalid family ID"))
                 } catch (e: Exception) {
@@ -54,7 +57,10 @@ fun Route.familyRoutes() {
                             ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("auth_error", "No family context in token"))
 
                         val children = familyService.getChildren(UUID.fromString(familyId))
-                        call.respond(HttpStatusCode.OK, children)
+                        call.respond(HttpStatusCode.OK, mapOf(
+                            "success" to true,
+                            "data" to children
+                        ))
                     } catch (e: IllegalArgumentException) {
                         call.respond(HttpStatusCode.BadRequest, ErrorResponse("invalid_family_id", e.message ?: "Invalid family ID"))
                     } catch (e: Exception) {
@@ -78,7 +84,10 @@ fun Route.familyRoutes() {
                         }
 
                         val childProfile = familyService.createChild(UUID.fromString(familyId), request)
-                        call.respond(HttpStatusCode.Created, childProfile)
+                        call.respond(HttpStatusCode.Created, mapOf(
+                            "success" to true,
+                            "data" to childProfile
+                        ))
                     } catch (e: IllegalArgumentException) {
                         call.respond(HttpStatusCode.BadRequest, ErrorResponse("validation_error", e.message ?: "Invalid input"))
                     } catch (e: Exception) {
@@ -98,7 +107,10 @@ fun Route.familyRoutes() {
                             val childProfile = familyService.getChildProfile(childId)
                                 ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("child_not_found", "Child profile not found"))
 
-                            call.respond(HttpStatusCode.OK, childProfile)
+                            call.respond(HttpStatusCode.OK, mapOf(
+                                "success" to true,
+                                "data" to childProfile
+                            ))
                         } catch (e: IllegalArgumentException) {
                             call.respond(HttpStatusCode.BadRequest, ErrorResponse("invalid_child_id", "Invalid child ID format"))
                         } catch (e: Exception) {
@@ -117,7 +129,10 @@ fun Route.familyRoutes() {
                             val updatedProfile = familyService.updateChild(childId, request)
                                 ?: return@put call.respond(HttpStatusCode.NotFound, ErrorResponse("child_not_found", "Child profile not found"))
 
-                            call.respond(HttpStatusCode.OK, updatedProfile)
+                            call.respond(HttpStatusCode.OK, mapOf(
+                                "success" to true,
+                                "data" to updatedProfile
+                            ))
                         } catch (e: IllegalArgumentException) {
                             call.respond(HttpStatusCode.BadRequest, ErrorResponse("validation_error", e.message ?: "Invalid input"))
                         } catch (e: Exception) {
@@ -192,7 +207,10 @@ fun Route.familyRoutes() {
                         ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("auth_error", "No family context in token"))
 
                     val children = familyService.getChildren(UUID.fromString(familyId))
-                    call.respond(HttpStatusCode.OK, children)
+                    call.respond(HttpStatusCode.OK, mapOf(
+                        "success" to true,
+                        "data" to children
+                    ))
                 } catch (e: IllegalArgumentException) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("invalid_family_id", e.message ?: "Invalid family ID"))
                 } catch (e: Exception) {
@@ -216,7 +234,10 @@ fun Route.familyRoutes() {
                     }
 
                     val childProfile = familyService.createChild(UUID.fromString(familyId), request)
-                    call.respond(HttpStatusCode.Created, childProfile)
+                    call.respond(HttpStatusCode.Created, mapOf(
+                        "success" to true,
+                        "data" to childProfile
+                    ))
                 } catch (e: IllegalArgumentException) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("validation_error", e.message ?: "Invalid input"))
                 } catch (e: Exception) {
