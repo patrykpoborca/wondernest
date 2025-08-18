@@ -46,7 +46,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
 
     if (success && mounted) {
-      context.go('/onboarding');
+      // After successful signup, go to child selection
+      // This will show "no children" state and allow them to add children
+      context.go('/child-selection');
     }
   }
 

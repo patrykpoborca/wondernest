@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import '../models/family_member.dart' as fm;
-import '../core/services/api_service.dart';
 import 'auth_provider.dart';
 
 // Selected child provider
@@ -16,15 +14,43 @@ final familyApiServiceProvider = Provider<FamilyApiService>((ref) {
 class FamilyNotifier extends AsyncNotifier<fm.Family> {
   @override
   Future<fm.Family> build() async {
+    // Check if user is authenticated before fetching family
+    final authState = ref.read(authProvider);
+    if (!authState.isLoggedIn) {
+      // Return empty family if not logged in
+      return fm.Family(
+        id: 'empty',
+        name: 'My Family',
+        members: [],
+        subscriptionPlan: 'free',
+      );
+    }
     return await _fetchFamily();
   }
 
   Future<fm.Family> _fetchFamily() async {
-    final service = ref.read(familyApiServiceProvider);
-    return await service.getFamily();
+    try {
+      final service = ref.read(familyApiServiceProvider);
+      return await service.getFamily();
+    } catch (e) {
+      // If error occurs (likely auth error), return empty family
+      print('[FamilyProvider] Error fetching family: $e');
+      return fm.Family(
+        id: 'empty',
+        name: 'My Family',
+        members: [],
+        subscriptionPlan: 'free',
+      );
+    }
   }
 
   Future<void> refresh() async {
+    // Check if user is authenticated before refreshing
+    final authState = ref.read(authProvider);
+    if (!authState.isLoggedIn) {
+      return;
+    }
+    
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       return await _fetchFamily();
@@ -32,6 +58,12 @@ class FamilyNotifier extends AsyncNotifier<fm.Family> {
   }
 
   Future<void> addChild(fm.FamilyMember child) async {
+    // Check if user is authenticated before adding child
+    final authState = ref.read(authProvider);
+    if (!authState.isLoggedIn) {
+      throw Exception('You must be logged in to add a child profile');
+    }
+    
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final service = ref.read(familyApiServiceProvider);

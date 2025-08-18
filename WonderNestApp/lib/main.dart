@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 
 // Providers
 import 'providers/app_mode_provider.dart';
+import 'providers/auth_provider.dart';
 
 // Screens
 import 'screens/auth/welcome_screen.dart';
@@ -65,15 +66,39 @@ class WonderNestApp extends ConsumerStatefulWidget {
 
 class _WonderNestAppState extends ConsumerState<WonderNestApp> {
   late final GoRouter _router;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _router = _createRouter();
+    // Initialize auth state on app startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).checkLoginStatus().then((_) {
+        setState(() {
+          _isInitialized = true;
+        });
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show loading screen while initializing auth
+    if (!_isInitialized) {
+      return MaterialApp(
+        title: 'WonderNest',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: AppTheme.lightTheme.colorScheme.surface,
+          body: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+    
     return MaterialApp.router(
       title: 'WonderNest',
       theme: AppTheme.lightTheme,
@@ -84,36 +109,52 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
 
   GoRouter _createRouter() {
     return GoRouter(
-      // Start with child selection for kid-first approach
-      initialLocation: '/child-selection',
-      
+      // Start with welcome screen by default
+      initialLocation: '/welcome',
       
       redirect: (context, state) {
-        // Read the app mode state directly inside the redirect callback
+        // Read the auth and app mode states
+        final authState = ref.read(authProvider);
         final appModeState = ref.read(appModeProvider);
         final currentPath = state.matchedLocation;
         
         print('[REDIRECT] Router check for: $currentPath at ${DateTime.now()}');
+        print('[REDIRECT] Auth status: ${authState.isLoggedIn}');
         print('[REDIRECT] App mode: ${appModeState.currentMode}');
-        print('[REDIRECT] Full state info:');
-        print('[REDIRECT]   - path: ${state.path}');
-        print('[REDIRECT]   - fullPath: ${state.fullPath}');
-        print('[REDIRECT]   - uri: ${state.uri}');
-        print('[REDIRECT]   - matchedLocation: ${state.matchedLocation}');
         
-        // Kid mode routes - ALWAYS allow access (kid-first approach)
+        // Auth routes that don't require login
+        final publicRoutes = ['/welcome', '/login', '/signup'];
+        final isPublicRoute = publicRoutes.any((route) => currentPath == route);
+        
+        // Check if user is logged in
+        if (!authState.isLoggedIn) {
+          // If not logged in and not on a public route, redirect to welcome
+          if (!isPublicRoute) {
+            print('[REDIRECT] Not logged in, redirecting to /welcome');
+            return '/welcome';
+          }
+          print('[REDIRECT] Not logged in but on public route: $currentPath');
+          return null; // Allow access to public routes
+        }
+        
+        // User is logged in
+        if (isPublicRoute) {
+          // If logged in and on auth route, redirect to child selection
+          print('[REDIRECT] Already logged in, redirecting to /child-selection');
+          return '/child-selection';
+        }
+        
+        // Kid mode routes - allow access if logged in
         final kidRoutes = ['/child-selection', '/child-home', '/game'];
         final isKidRoute = kidRoutes.any((route) => currentPath.startsWith(route));
         
         if (isKidRoute) {
-          print('[REDIRECT] Kid route detected - allowing immediate access to: $currentPath');
-          print('[REDIRECT] Returning null to allow navigation');
-          return null; // Always allow kid routes
+          print('[REDIRECT] Kid route detected - allowing access to: $currentPath');
+          return null; // Allow kid routes for logged in users
         }
         
-        // For non-kid routes, we'll need to check auth status
-        // But for now, just allow everything else too to focus on fixing the child-home issue
-        print('[REDIRECT] Non-kid route, allowing for now: $currentPath');
+        // All other routes allowed for logged in users
+        print('[REDIRECT] Allowing access to: $currentPath');
         return null;
       },
       

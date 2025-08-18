@@ -54,9 +54,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     const secureStorage = FlutterSecureStorage();
     await secureStorage.write(key: 'onboarding_completed', value: 'true');
     
-    // Navigate to parent dashboard
+    // Navigate to child selection after onboarding
     if (mounted) {
-      context.go('/parent-dashboard');
+      context.go('/child-selection');
     }
   }
   

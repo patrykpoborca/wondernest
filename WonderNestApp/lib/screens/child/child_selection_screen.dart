@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/app_mode_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/family_member.dart' as fm;
 import '../../models/child_profile.dart';
 import '../../models/app_mode.dart';
@@ -610,9 +611,20 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
-                      context.go('/pin-entry?redirect=/parent-dashboard');
+                      
+                      // Check if user has a PIN set up
+                      final authState = ref.read(authProvider);
+                      final requiresPinSetup = authState.user?['requiresPinSetup'] ?? false;
+                      
+                      if (requiresPinSetup) {
+                        // New user needs to set up PIN first
+                        context.go('/pin-entry?setup=true&redirect=/parent-dashboard');
+                      } else {
+                        // Existing user can enter PIN to access parent mode
+                        context.go('/pin-entry?redirect=/parent-dashboard');
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.kidSafeBlue,
