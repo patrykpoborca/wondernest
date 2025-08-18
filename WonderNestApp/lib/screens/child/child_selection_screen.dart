@@ -295,7 +295,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              child.name,
+              child.name ?? 'Unnamed Child',
               style: GoogleFonts.comicNeue(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -498,7 +498,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     // Convert FamilyMember to ChildProfile for compatibility
     final childProfile = ChildProfile(
       id: child.id,
-      name: child.name,
+      name: child.name ?? 'Unnamed Child',
       age: child.age ?? 5,
       avatarUrl: child.avatarUrl,
       birthDate: DateTime.now().subtract(Duration(days: (child.age ?? 5) * 365)),

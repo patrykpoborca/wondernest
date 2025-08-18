@@ -7,7 +7,7 @@ enum MemberRole { parent, child }
 @JsonSerializable()
 class FamilyMember {
   final String id;
-  final String name;
+  final String? name;
   final String? email;
   final MemberRole role;
   final int? age;
@@ -20,7 +20,7 @@ class FamilyMember {
 
   FamilyMember({
     required this.id,
-    required this.name,
+    this.name,
     this.email,
     required this.role,
     this.age,
@@ -75,11 +75,22 @@ class FamilyMember {
   }
 
   String get initials {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
+    if (name == null || name!.trim().isEmpty) {
+      return '?';
+    }
+    
+    final trimmedName = name!.trim();
+    final parts = trimmedName.split(' ');
+    
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return name.substring(0, 1).toUpperCase();
+    
+    if (trimmedName.isNotEmpty) {
+      return trimmedName.substring(0, 1).toUpperCase();
+    }
+    
+    return '?';
   }
 }
 

@@ -61,7 +61,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
         ),
       );
       if (child.id.isNotEmpty) {
-        _nameController.text = child.name;
+        _nameController.text = child.name ?? '';
         _selectedAge = child.age?.toDouble() ?? 5;
         _selectedInterests.addAll(child.interests);
       }

@@ -236,7 +236,7 @@ class FamilyApiService {
       }
       
       final response = await _apiService.createChild(
-        name: member.name,
+        name: member.name ?? 'Unnamed Child',
         birthDate: birthDate,
         gender: gender,
         interests: member.interests,
@@ -276,7 +276,7 @@ class FamilyApiService {
       
       final response = await _apiService.updateChild(
         childId: member.id,
-        name: member.name,
+        name: member.name ?? 'Unnamed Child',
         birthDate: birthDate,
         gender: gender,
         interests: member.interests,

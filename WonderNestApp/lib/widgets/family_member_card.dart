@@ -81,9 +81,14 @@ class FamilyMemberCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            member.name,
+                            member.name?.trim().isNotEmpty == true
+                                ? member.name!
+                                : 'Unnamed Member',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                              fontStyle: member.name?.trim().isNotEmpty == true
+                                  ? FontStyle.normal
+                                  : FontStyle.italic,
                             ),
                           ),
                         ),
