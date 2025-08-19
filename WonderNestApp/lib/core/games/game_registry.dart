@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/child_profile.dart';
+import '../../games/sticker_book/sticker_book_plugin.dart';
 import 'game_plugin.dart';
 
 /// Manages registration and discovery of game plugins
@@ -162,7 +163,7 @@ class GameRegistry {
       debugPrint('Initializing Game Registry...');
       
       // Register built-in games here
-      // This will be expanded as we add more games
+      await _registerBuiltInGames();
       
       _initialized = true;
       debugPrint('Game Registry initialized successfully');
@@ -170,6 +171,15 @@ class GameRegistry {
       debugPrint('Failed to initialize Game Registry: $e');
       rethrow;
     }
+  }
+
+  /// Register all built-in games
+  Future<void> _registerBuiltInGames() async {
+    // Register the sticker book game plugin
+    final stickerBookPlugin = StickerBookPlugin();
+    await registerGame(stickerBookPlugin);
+    
+    debugPrint('Registered ${_registeredGames.length} built-in games');
   }
 
   /// Dispose all registered games

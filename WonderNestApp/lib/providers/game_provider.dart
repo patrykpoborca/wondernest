@@ -2,8 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../core/games/game_plugin.dart';
 import '../core/games/game_registry.dart';
-import '../models/child_profile.dart';
-import '../core/services/api_service.dart';
 import 'auth_provider.dart';
 
 /// State for a single game session

@@ -71,6 +71,10 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
 
     // Generate varied activities for the toy box
     todaysActivities = _generateActivities();
+    print('[ACTIVITIES] Generated ${todaysActivities.length} activities:');
+    for (final activity in todaysActivities) {
+      print('[ACTIVITY] ${activity.id}: ${activity.title} (${activity.emoji})');
+    }
   }
 
   // Removed automatic redirect - let parent handle navigation
@@ -78,6 +82,17 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
 
   List<ActivityItem> _generateActivities() {
     return [
+      // Featured: Sticker Book Game (prominently displayed first)
+      ActivityItem(
+        id: 'sticker_book',
+        title: 'Sticker Book',
+        subtitle: 'Collect colorful stickers!',
+        emoji: '🌈',
+        color: AppColors.warningOrange,
+        type: ActivityType.game,
+        progress: 0.0, // Start fresh
+        description: 'Collect colorful stickers by completing fun activities! Match shapes, colors, and patterns to fill your sticker books.',
+      ),
       ActivityItem(
         id: 'story_adventure',
         title: 'Story Adventure',
@@ -131,12 +146,12 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       ActivityItem(
         id: 'dance_party',
         title: 'Dance Party',
-        subtitle: 'Move and groove!',
+        subtitle: 'Move to the music!',
         emoji: '💃',
-        color: AppColors.accentPurple,
+        color: AppColors.warningOrange,
         type: ActivityType.physical,
         progress: 0.2,
-        description: 'Dance along to fun music and get moving!',
+        description: 'Dance and move to fun music! Learn new moves and express yourself!',
       ),
     ];
   }
@@ -756,8 +771,13 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   }
 
   void _launchActivity(ActivityItem activity) {
-    // For now, just show a simple dialog
-    // In a real app, this would launch different activities based on type
+    // Handle sticker book game directly
+    if (activity.id == 'sticker_book') {
+      _launchStickerBookGame();
+      return;
+    }
+
+    // For other activities, show the dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -836,6 +856,25 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
         ),
       ),
     );
+  }
+
+  void _launchStickerBookGame() {
+    final appModeState = ref.read(appModeProvider);
+    final activeChild = appModeState.activeChild;
+    
+    if (activeChild == null) {
+      print('[ERROR] Cannot launch sticker book game - no active child');
+      return;
+    }
+
+    print('[GAME] Launching sticker book game for child: ${activeChild.name}');
+    
+    // Navigate to the sticker book game using the plugin route
+    context.go('/game/sticker_book', extra: {
+      'gameId': 'sticker_book',
+      'childId': activeChild.id,
+      'childName': activeChild.name,
+    });
   }
 
   void _startActivity(ActivityItem activity) {

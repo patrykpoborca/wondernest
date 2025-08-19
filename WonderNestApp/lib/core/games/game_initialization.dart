@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/child_profile.dart';
-import '../services/api_service.dart';
+import '../../providers/auth_provider.dart';
 import 'game_plugin.dart';
 import 'game_registry.dart';
 import 'game_persistence.dart';

@@ -22,6 +22,7 @@ import 'screens/child/child_selection_screen.dart';
 import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
 import 'screens/games/mini_game_framework.dart';
+import 'screens/games/game_plugin_framework.dart';
 import 'screens/family/family_overview_screen.dart';
 import 'screens/family/child_profile_screen.dart';
 import 'screens/content/content_library_screen.dart';
@@ -286,7 +287,7 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
           builder: (context, state) => const ContentFilterSettingsScreen(),
         ),
         
-        // Mini-Game Framework
+        // Mini-Game Framework (Legacy web games)
         GoRoute(
           path: '/game',
           builder: (context, state) {
@@ -314,6 +315,27 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
             return MiniGameFramework(
               game: game,
               childId: gameData['childId'] ?? '',
+            );
+          },
+        ),
+
+        // Game Plugin Framework (New plugin-based games)
+        GoRoute(
+          path: '/game/:gameId',
+          builder: (context, state) {
+            final gameId = state.pathParameters['gameId'] ?? '';
+            final gameData = state.extra as Map<String, dynamic>?;
+            
+            if (gameData == null || gameId.isEmpty) {
+              // Return to child home if no game data
+              print('[ROUTE] No game data provided for gameId: $gameId');
+              return const ChildHome();
+            }
+            
+            return GamePluginFramework(
+              gameId: gameId,
+              childId: gameData['childId'] ?? '',
+              childName: gameData['childName'] ?? '',
             );
           },
         ),
