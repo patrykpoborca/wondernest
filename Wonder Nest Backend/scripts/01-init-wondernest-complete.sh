@@ -54,9 +54,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$WONDERNEST_DB_NAM
 
     COMMENT ON ROLE $WONDERNEST_APP_USER IS 'Application user for WonderNest backend services';
     COMMENT ON ROLE $WONDERNEST_ANALYTICS_USER IS 'Read-only user for analytics and reporting';
+    
+    -- Grant database-level CREATE permission to allow schema creation by Flyway
+    GRANT CREATE ON DATABASE $WONDERNEST_DB_NAME TO $WONDERNEST_APP_USER;
 EOSQL
 
-echo "✅ Application users created"
+echo "✅ Application users created with database CREATE permissions"
 
 # Check if the database is already initialized by looking for the core schema
 INITIALIZED=$(psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$WONDERNEST_DB_NAME" --tuples-only --no-align -c "SELECT EXISTS(SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'core');")

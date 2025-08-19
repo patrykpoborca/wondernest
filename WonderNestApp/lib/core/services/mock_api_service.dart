@@ -460,4 +460,138 @@ class MockApiService {
       },
     );
   }
+
+  // Game endpoints
+  Future<Response> saveGameProgress({
+    required String gameId,
+    required String childId,
+    required int score,
+    required int level,
+    required int playTimeMinutes,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/games/progress'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'gameId': gameId,
+          'childId': childId,
+          'score': score,
+          'level': level,
+          'playTimeMinutes': playTimeMinutes,
+          'savedAt': DateTime.now().toIso8601String(),
+        },
+      },
+    );
+  }
+
+  Future<Response> saveGameEvent(Map<String, dynamic> eventData) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/games/events'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'eventId': 'evt_${DateTime.now().millisecondsSinceEpoch}',
+          'savedAt': DateTime.now().toIso8601String(),
+        },
+      },
+    );
+  }
+
+  Future<Response> getChildGameData(String childId) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/games/child/$childId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'gameProgress': [
+            {
+              'gameId': 'sticker_book',
+              'childId': childId,
+              'score': 150,
+              'level': 2,
+              'data': {
+                'totalStickersCollected': 15,
+                'completedPages': ['animals_farm'],
+                'unlockedStickers': ['cow', 'pig', 'chicken'],
+              },
+              'lastModified': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+            },
+          ],
+          'achievements': [
+            {
+              'id': 'first_sticker',
+              'gameId': 'sticker_book',
+              'childId': childId,
+              'unlockedAt': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+            },
+          ],
+          'virtualCurrency': {
+            'balance': 75,
+            'transactions': [
+              {
+                'amount': 10,
+                'reason': 'Sticker collected',
+                'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+                'balanceAfter': 75,
+              },
+            ],
+          },
+        },
+      },
+    );
+  }
+
+  Future<Response> unlockAchievement({
+    required String gameId,
+    required String childId,
+    required String achievementId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/games/achievements/unlock'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'achievementId': achievementId,
+          'gameId': gameId,
+          'childId': childId,
+          'unlockedAt': DateTime.now().toIso8601String(),
+        },
+      },
+    );
+  }
+
+  Future<Response> updateVirtualCurrency({
+    required String childId,
+    required int balance,
+    required List<Map<String, dynamic>> transactions,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/games/currency/update'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'childId': childId,
+          'balance': balance,
+          'transactionCount': transactions.length,
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      },
+    );
+  }
 }

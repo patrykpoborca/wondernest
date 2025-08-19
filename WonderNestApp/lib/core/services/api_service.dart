@@ -335,12 +335,73 @@ class ApiService {
     required int level,
     required int playTimeMinutes,
   }) {
+    if (_useMockService) {
+      return _mockService.saveGameProgress(
+        gameId: gameId,
+        childId: childId,
+        score: score,
+        level: level,
+        playTimeMinutes: playTimeMinutes,
+      );
+    }
     return _dio.post('/games/progress', data: {
       'gameId': gameId,
       'childId': childId,
       'score': score,
       'level': level,
       'playTimeMinutes': playTimeMinutes,
+    });
+  }
+
+  Future<Response> saveGameEvent(Map<String, dynamic> eventData) {
+    if (_useMockService) {
+      return _mockService.saveGameEvent(eventData);
+    }
+    return _dio.post('/games/events', data: eventData);
+  }
+
+  Future<Response> getChildGameData(String childId) {
+    if (_useMockService) {
+      return _mockService.getChildGameData(childId);
+    }
+    return _dio.get('/games/child/$childId');
+  }
+
+  Future<Response> unlockAchievement({
+    required String gameId,
+    required String childId,
+    required String achievementId,
+  }) {
+    if (_useMockService) {
+      return _mockService.unlockAchievement(
+        gameId: gameId,
+        childId: childId,
+        achievementId: achievementId,
+      );
+    }
+    return _dio.post('/games/achievements/unlock', data: {
+      'gameId': gameId,
+      'childId': childId,
+      'achievementId': achievementId,
+    });
+  }
+
+  Future<Response> updateVirtualCurrency({
+    required String childId,
+    required int balance,
+    required List<Map<String, dynamic>> transactions,
+  }) {
+    if (_useMockService) {
+      return _mockService.updateVirtualCurrency(
+        childId: childId,
+        balance: balance,
+        transactions: transactions,
+      );
+    }
+    return _dio.post('/games/currency/update', data: {
+      'childId': childId,
+      'balance': balance,
+      'transactions': transactions,
     });
   }
   

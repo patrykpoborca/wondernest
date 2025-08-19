@@ -3,6 +3,7 @@ package com.wondernest.config
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
+import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
@@ -19,6 +20,7 @@ fun Application.configureSerialization() {
             // Register custom serializers
             serializersModule = SerializersModule {
                 contextual(UUID::class, UUIDSerializer)
+                contextual(Instant::class, InstantSerializer)
             }
         })
     }

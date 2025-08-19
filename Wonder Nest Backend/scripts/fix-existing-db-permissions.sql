@@ -18,6 +18,9 @@ BEGIN
 END
 $$;
 
+-- Grant database-level CREATE permission to allow schema creation by Flyway
+GRANT CREATE ON DATABASE wondernest_prod TO wondernest_app;
+
 -- Grant CREATE privileges on all schemas to wondernest_app
 GRANT CREATE ON SCHEMA public TO wondernest_app;
 GRANT CREATE ON SCHEMA core, family, subscription, content, audio, analytics, ml, safety, audit TO wondernest_app;
