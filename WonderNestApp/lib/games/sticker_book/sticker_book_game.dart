@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:math' as math;
 import '../../core/games/game_plugin.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/child_profile.dart';
@@ -9,6 +10,8 @@ import 'models/sticker_models.dart';
 import 'widgets/creative_canvas.dart';
 import 'widgets/infinite_canvas.dart';
 import 'data/sticker_library.dart';
+import 'services/mode_manager.dart';
+import 'services/voice_guidance.dart';
 
 /// Enhanced Sticker Book Creator Game
 class StickerBookGame extends ConsumerStatefulWidget {
@@ -32,6 +35,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   late StickerBookGameState gameState;
   late AnimationController _toolbarController;
   late AnimationController _sidebarController;
+  late StickerBookModeManager _modeManager;
   
   // UI State
   final bool _showToolbar = true;
@@ -42,8 +46,25 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   @override
   void initState() {
     super.initState();
+    _initializeModeManager();
     _initializeGame();
     _setupAnimations();
+    _initializeVoiceGuidance();
+  }
+
+  void _initializeModeManager() {
+    _modeManager = StickerBookModeManager(childAge: widget.child.age);
+  }
+  
+  void _initializeVoiceGuidance() async {
+    await voiceGuidanceService.initialize();
+    voiceGuidanceService.setEnabled(_modeManager.shouldUseVoiceGuidance);
+    
+    if (_modeManager.shouldUseVoiceGuidance) {
+      // Welcome the child
+      await Future.delayed(const Duration(milliseconds: 500));
+      await voiceGuidanceService.speakWelcome(widget.child.name);
+    }
   }
 
   void _initializeGame() {
@@ -77,6 +98,8 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       projects: [defaultProject],
       stickerPacks: stickerPacks,
       currentProjectId: defaultProject.id,
+      ageMode: _modeManager.ageMode,
+      childAge: widget.child.age,
     );
   }
 
@@ -98,6 +121,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   void dispose() {
     _toolbarController.dispose();
     _sidebarController.dispose();
+    voiceGuidanceService.dispose();
     super.dispose();
   }
 
@@ -123,8 +147,8 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
             // Backgrounds sidebar
             if (_showBackgrounds) _buildBackgroundsSidebar(),
             
-            // Flip book controls (when in flip book mode)
-            if (_isFlipBookMode()) _buildFlipBookControls(),
+            // Flip book controls (when in flip book mode and for big kids only)
+            if (_isFlipBookMode() && _modeManager.isBigKidMode) _buildFlipBookControls(),
           ],
         ),
       ),
@@ -145,44 +169,84 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       child: Padding(
         padding: EdgeInsets.only(
           top: 80,
-          left: _showToolbar ? 80 : 16,
+          left: _showToolbar ? (_modeManager.isLittleKidMode ? 90 : 80) : 16,
           right: (_showStickerPacks || _showBackgrounds) ? 320 : 16,
           bottom: _isFlipBookMode() ? 120 : 16,
         ),
         child: Center(
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(_modeManager.isLittleKidMode ? 20 : 16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
+                  color: Colors.black.withValues(alpha: _modeManager.isLittleKidMode ? 0.15 : 0.1),
+                  blurRadius: _modeManager.isLittleKidMode ? 30 : 20,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: canvas.isInfinite
-                ? InfiniteCanvasWidget(
-                    canvas: canvas,
-                    availableStickers: gameState.availableStickers,
-                    selectedTool: gameState.selectedTool,
-                    selectedColor: gameState.selectedColor,
-                    selectedBrushSize: gameState.selectedBrushSize,
-                    selectedBrushType: gameState.selectedBrushType,
-                    onCanvasChanged: _onCanvasChanged,
-                    onToolRequest: _handleToolRequest,
-                  )
-                : CreativeCanvasWidget(
-                    canvas: canvas,
-                    availableStickers: gameState.availableStickers,
-                    selectedTool: gameState.selectedTool,
-                    selectedColor: gameState.selectedColor,
-                    selectedBrushSize: gameState.selectedBrushSize,
-                    selectedBrushType: gameState.selectedBrushType,
-                    onCanvasChanged: _onCanvasChanged,
-                    onToolRequest: _handleToolRequest,
-                  ),
+            child: _buildCanvasWidget(canvas),
           ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildCanvasWidget(CreativeCanvas canvas) {
+    // For little kids, always use simple fixed canvas
+    if (_modeManager.isLittleKidMode) {
+      return _buildSimpleCanvas(canvas);
+    }
+    
+    // For big kids, use the appropriate canvas type
+    return canvas.isInfinite && _modeManager.allowPanZoom
+        ? InfiniteCanvasWidget(
+            canvas: canvas,
+            availableStickers: gameState.availableStickers,
+            selectedTool: gameState.selectedTool,
+            selectedColor: gameState.selectedColor,
+            selectedBrushSize: gameState.selectedBrushSize,
+            selectedBrushType: gameState.selectedBrushType,
+            onCanvasChanged: _onCanvasChanged,
+            onToolRequest: _handleToolRequest,
+          )
+        : CreativeCanvasWidget(
+            canvas: canvas,
+            availableStickers: gameState.availableStickers,
+            selectedTool: gameState.selectedTool,
+            selectedColor: gameState.selectedColor,
+            selectedBrushSize: gameState.selectedBrushSize,
+            selectedBrushType: gameState.selectedBrushType,
+            onCanvasChanged: _onCanvasChanged,
+            onToolRequest: _handleToolRequest,
+          );
+  }
+  
+  Widget _buildSimpleCanvas(CreativeCanvas canvas) {
+    final fixedSize = _modeManager.fixedCanvasSize!;
+    
+    return Container(
+      width: fixedSize.width,
+      height: fixedSize.height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.blue[200]!,
+          width: 3,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17),
+        child: CreativeCanvasWidget(
+          canvas: canvas,
+          availableStickers: gameState.availableStickers,
+          selectedTool: gameState.selectedTool,
+          selectedColor: gameState.selectedColor,
+          selectedBrushSize: gameState.selectedBrushSize,
+          selectedBrushType: gameState.selectedBrushType,
+          onCanvasChanged: _onCanvasChanged,
+          onToolRequest: _handleToolRequest,
         ),
       ),
     );
@@ -252,18 +316,19 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
                 ),
               ),
               
-              // Mode toggle
-              IconButton(
-                onPressed: _toggleCreationMode,
-                icon: Icon(
-                  _isFlipBookMode() ? Icons.auto_stories : Icons.crop_landscape,
-                  color: Colors.white,
+              // Mode toggle (only for big kids)
+              if (_modeManager.isBigKidMode)
+                IconButton(
+                  onPressed: _toggleCreationMode,
+                  icon: Icon(
+                    _isFlipBookMode() ? Icons.auto_stories : Icons.crop_landscape,
+                    color: Colors.white,
+                  ),
+                  tooltip: _isFlipBookMode() ? 'Switch to Canvas' : 'Switch to Flip Book',
                 ),
-                tooltip: _isFlipBookMode() ? 'Switch to Canvas' : 'Switch to Flip Book',
-              ),
               
-              // Infinite canvas toggle (only show if in canvas mode)
-              if (!_isFlipBookMode())
+              // Infinite canvas toggle (only show if in canvas mode and for big kids)
+              if (!_isFlipBookMode() && _modeManager.showInfiniteCanvas)
                 IconButton(
                   onPressed: _toggleInfiniteCanvas,
                   icon: Icon(
@@ -306,7 +371,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
           ),
         ),
         child: Container(
-          width: 70,
+          width: _modeManager.isLittleKidMode ? 90 : 70,
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -321,32 +386,8 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
             children: [
               const SizedBox(height: 10),
               
-              // Tool buttons
-              _buildToolButton(
-                CanvasTool.select,
-                Icons.pan_tool,
-                'Select',
-              ),
-              _buildToolButton(
-                CanvasTool.sticker,
-                Icons.auto_awesome,
-                'Stickers',
-              ),
-              _buildToolButton(
-                CanvasTool.draw,
-                Icons.brush,
-                'Draw',
-              ),
-              _buildToolButton(
-                CanvasTool.text,
-                Icons.text_fields,
-                'Text',
-              ),
-              _buildToolButton(
-                CanvasTool.eraser,
-                Icons.cleaning_services,
-                'Eraser',
-              ),
+              // Tool buttons - only show age-appropriate tools
+              ..._buildAgeAppropriateToolButtons(),
               
               const Spacer(),
               
@@ -365,72 +406,105 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
     );
   }
 
-  Widget _buildToolButton(CanvasTool tool, IconData icon, String tooltip) {
+  /// Build age-appropriate tool buttons
+  List<Widget> _buildAgeAppropriateToolButtons() {
+    return _modeManager.availableTools.map((tool) {
+      return _buildToolButton(
+        tool,
+        _modeManager.getToolIcon(tool),
+        _modeManager.getToolDisplayName(tool),
+      );
+    }).toList();
+  }
+
+  Widget _buildToolButton(CanvasTool tool, IconData icon, String label) {
     final isSelected = gameState.selectedTool == tool;
+    final buttonSize = _modeManager.getButtonSize(context);
+    final iconSize = _modeManager.getIconSize(context);
+    final showLabel = _modeManager.shouldShowToolLabels;
     
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: _modeManager.isLittleKidMode ? 8 : 4,
+        horizontal: 8,
+      ),
       child: GestureDetector(
         onTap: () => _selectTool(tool),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 54,
-          height: 54,
+          width: buttonSize,
+          height: showLabel ? buttonSize + 20 : buttonSize,
           decoration: BoxDecoration(
             color: isSelected ? Colors.blue[100] : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_modeManager.isLittleKidMode ? 16 : 12),
             border: Border.all(
               color: isSelected ? Colors.blue : Colors.grey[300]!,
-              width: 2,
+              width: _modeManager.isLittleKidMode ? 3 : 2,
             ),
           ),
-          child: Icon(
-            icon,
-            color: isSelected ? Colors.blue : Colors.grey[600],
-            size: 24,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.blue : Colors.grey[600],
+                size: iconSize,
+              ),
+              if (showLabel) ...[
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: _modeManager.isLittleKidMode ? 12 : 10,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.blue : Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
           ),
         ),
       ).animate(target: isSelected ? 1 : 0)
        .scale(
          begin: const Offset(1.0, 1.0),
-         end: const Offset(1.1, 1.1),
+         end: Offset(_modeManager.isLittleKidMode ? 1.05 : 1.1, _modeManager.isLittleKidMode ? 1.05 : 1.1),
          duration: 200.ms,
        ),
     );
   }
 
   Widget _buildColorPicker() {
-    final colors = [
-      Colors.black,
-      Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.yellow,
-      Colors.purple,
-      Colors.orange,
-      Colors.pink,
-    ];
+    final colors = _modeManager.getAgeAppropriateColors();
+    final swatchSize = _modeManager.getColorSwatchSize(context);
 
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: EdgeInsets.all(_modeManager.isLittleKidMode ? 12 : 8),
       child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
+        spacing: _modeManager.isLittleKidMode ? 8 : 4,
+        runSpacing: _modeManager.isLittleKidMode ? 8 : 4,
         children: colors.map((color) {
           final isSelected = gameState.selectedColor == color;
           return GestureDetector(
             onTap: () => _selectColor(color),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 24,
-              height: 24,
+              width: swatchSize,
+              height: swatchSize,
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected ? Colors.grey[800]! : Colors.grey[300]!,
-                  width: isSelected ? 3 : 1,
+                  width: isSelected ? (_modeManager.isLittleKidMode ? 4 : 3) : (_modeManager.isLittleKidMode ? 2 : 1),
                 ),
+                boxShadow: _modeManager.isLittleKidMode && isSelected ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ] : null,
               ),
             ),
           );
@@ -568,13 +642,15 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _modeManager.isLittleKidMode ? 3 : 4, // Fewer columns for little kids
+                mainAxisSpacing: _modeManager.isLittleKidMode ? 12 : 8,
+                crossAxisSpacing: _modeManager.isLittleKidMode ? 12 : 8,
                 childAspectRatio: 1,
               ),
-              itemCount: pack.stickers.length,
+              itemCount: _modeManager.isLittleKidMode 
+                  ? math.min(pack.stickers.length, 6) // Limit stickers shown for little kids
+                  : pack.stickers.length,
               itemBuilder: (context, stickerIndex) {
                 final sticker = pack.stickers[stickerIndex];
                 return _buildStickerItem(sticker, stickerIndex);
@@ -587,24 +663,36 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   }
 
   Widget _buildStickerItem(Sticker sticker, int stickerIndex) {
+    final isLittleKid = _modeManager.isLittleKidMode;
+    
     return GestureDetector(
       onTap: () => _addStickerToCanvas(sticker),
       child: Container(
         decoration: BoxDecoration(
           color: sticker.backgroundColor?.withValues(alpha: 0.1) ?? Colors.grey[100],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(isLittleKid ? 12 : 8),
+          border: Border.all(
+            color: Colors.grey[300]!,
+            width: isLittleKid ? 2 : 1,
+          ),
+          boxShadow: isLittleKid ? [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         child: Center(
           child: Text(
             sticker.emoji,
-            style: const TextStyle(fontSize: 24),
+            style: TextStyle(fontSize: isLittleKid ? 32 : 24),
           ),
         ),
       ).animate()
        .scale(
-         delay: Duration(milliseconds: stickerIndex * 50),
-         duration: 300.ms,
+         delay: Duration(milliseconds: stickerIndex * (isLittleKid ? 100 : 50)),
+         duration: (isLittleKid ? 400 : 300).ms,
          curve: Curves.elasticOut,
        ),
     );
@@ -949,9 +1037,19 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
 
   // Event handlers
   void _selectTool(CanvasTool tool) {
+    // Check if tool is available for current age mode
+    if (!_modeManager.isToolAvailable(tool)) {
+      return;
+    }
+    
     setState(() {
       gameState = gameState.copyWith(selectedTool: tool);
     });
+    
+    // Provide voice guidance for little kids
+    if (_modeManager.shouldUseVoiceGuidance) {
+      voiceGuidanceService.speakToolSelection(tool);
+    }
     
     // Auto-show relevant sidebars
     if (tool == CanvasTool.sticker) {
@@ -969,6 +1067,11 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
     setState(() {
       gameState = gameState.copyWith(selectedColor: color);
     });
+    
+    // Provide voice guidance for little kids
+    if (_modeManager.shouldUseVoiceGuidance) {
+      voiceGuidanceService.speakColorSelection(color);
+    }
   }
 
   void _selectBrushSize(double size) {
@@ -1024,6 +1127,16 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
     setState(() {
       gameState = gameState.copyWith(selectedTool: CanvasTool.sticker);
     });
+    
+    // Provide voice feedback for little kids when sticker is selected
+    if (_modeManager.shouldUseVoiceGuidance) {
+      voiceGuidanceService.speakStickerPlaced(sticker);
+      
+      // Give hint about where to place it
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        voiceGuidanceService.speakCanvasHint();
+      });
+    }
   }
 
   void _selectBackground(CanvasBackground background) {
@@ -1223,12 +1336,22 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
 
   void _saveProject() {
     // TODO: Implement project saving to local storage
+    final message = _modeManager.isLittleKidMode 
+        ? 'Your amazing creation is saved!' 
+        : 'Project saved successfully!';
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Project saved successfully!'),
+      SnackBar(
+        content: Text(message),
         backgroundColor: Colors.green,
+        duration: Duration(seconds: _modeManager.isLittleKidMode ? 3 : 2),
       ),
     );
+    
+    // Voice feedback for little kids
+    if (_modeManager.shouldUseVoiceGuidance) {
+      voiceGuidanceService.speakSaveConfirmation();
+    }
   }
 
   void _shareProject() {

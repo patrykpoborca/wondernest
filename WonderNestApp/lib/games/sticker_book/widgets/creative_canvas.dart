@@ -102,6 +102,8 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
                 onPanStart: _handlePanStart,
                 onPanUpdate: _handlePanUpdate,
                 onPanEnd: _handlePanEnd,
+                // Enable better touch handling for drawing
+                behavior: HitTestBehavior.opaque,
                 child: CustomPaint(
                   painter: CanvasPainter(
                     canvas: widget.canvas,
@@ -441,7 +443,7 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
         _startTextInput(position);
         break;
       case CanvasTool.draw:
-        _startDrawing(position);
+        // Don't start drawing on tap down for draw tool, let pan handle it
         break;
       case CanvasTool.eraser:
         _eraseAtPosition(position);
@@ -669,6 +671,14 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
 
   void _continueDrawing(Offset position) {
     if (!_isDrawing) return;
+    
+    // Add some basic stroke smoothing by avoiding duplicate points that are too close
+    if (_currentStroke.isNotEmpty) {
+      final lastPoint = _currentStroke.last;
+      final distance = (position - lastPoint).distance;
+      // Only add point if it's moved at least 2 pixels to reduce noise
+      if (distance < 2.0) return;
+    }
     
     setState(() {
       _currentStroke.add(position);

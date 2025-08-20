@@ -910,6 +910,8 @@ class StickerBookGameState {
   final Map<String, dynamic> settings;
   final int totalCreations;
   final DateTime? lastPlayDate;
+  final AgeMode ageMode;
+  final int childAge;
 
   const StickerBookGameState({
     this.projects = const [],
@@ -924,6 +926,8 @@ class StickerBookGameState {
     this.settings = const {},
     this.totalCreations = 0,
     this.lastPlayDate,
+    this.ageMode = AgeMode.bigKid,
+    this.childAge = 8,
   });
 
   StickerBookProject? get currentProject {
@@ -962,6 +966,36 @@ class StickerBookGameState {
   List<StickerBookProject> get books {
     return projects;
   }
+  
+  /// Get UI scaling configuration based on age mode
+  UIScaling get uiScaling {
+    return ageMode == AgeMode.littleKid ? UIScaling.littleKid : UIScaling.bigKid;
+  }
+  
+  /// Get tool configuration based on age mode
+  ToolConfig get toolConfig {
+    return ageMode == AgeMode.littleKid ? ToolConfig.littleKid : ToolConfig.bigKid;
+  }
+  
+  /// Get canvas configuration based on age mode
+  CanvasConfig get canvasConfig {
+    return ageMode == AgeMode.littleKid ? CanvasConfig.littleKid : CanvasConfig.bigKid;
+  }
+  
+  /// Get available tools for current age mode
+  Set<CanvasTool> get availableTools {
+    return toolConfig.availableTools;
+  }
+  
+  /// Should show tool labels based on age mode
+  bool get shouldShowToolLabels {
+    return toolConfig.showToolLabels;
+  }
+  
+  /// Should use voice guidance based on age mode
+  bool get shouldUseVoiceGuidance {
+    return toolConfig.voiceGuidance;
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -977,6 +1011,8 @@ class StickerBookGameState {
       'settings': settings,
       'totalCreations': totalCreations,
       'lastPlayDate': lastPlayDate?.toIso8601String(),
+      'ageMode': ageMode.name,
+      'childAge': childAge,
     };
   }
 
@@ -1009,6 +1045,11 @@ class StickerBookGameState {
       lastPlayDate: json['lastPlayDate'] != null 
           ? DateTime.parse(json['lastPlayDate']) 
           : null,
+      ageMode: AgeMode.values.firstWhere(
+        (e) => e.name == json['ageMode'],
+        orElse: () => AgeMode.bigKid,
+      ),
+      childAge: json['childAge'] ?? 8,
     );
   }
 
@@ -1025,6 +1066,8 @@ class StickerBookGameState {
     Map<String, dynamic>? settings,
     int? totalCreations,
     DateTime? lastPlayDate,
+    AgeMode? ageMode,
+    int? childAge,
   }) {
     return StickerBookGameState(
       projects: projects ?? this.projects,
@@ -1039,8 +1082,128 @@ class StickerBookGameState {
       settings: settings ?? this.settings,
       totalCreations: totalCreations ?? this.totalCreations,
       lastPlayDate: lastPlayDate ?? this.lastPlayDate,
+      ageMode: ageMode ?? this.ageMode,
+      childAge: childAge ?? this.childAge,
     );
   }
+}
+
+/// Age mode for sticker game
+enum AgeMode {
+  littleKid, // Ages 3-6
+  bigKid,    // Ages 7-12
+}
+
+/// UI scaling configuration
+class UIScaling {
+  final double buttonSize;
+  final double iconSize;
+  final double fontSize;
+  final double touchTargetMin;
+  final double colorSwatchSize;
+  final EdgeInsets padding;
+  
+  const UIScaling({
+    required this.buttonSize,
+    required this.iconSize,
+    required this.fontSize,
+    required this.touchTargetMin,
+    required this.colorSwatchSize,
+    required this.padding,
+  });
+  
+  static const UIScaling littleKid = UIScaling(
+    buttonSize: 64.0,
+    iconSize: 32.0,
+    fontSize: 18.0,
+    touchTargetMin: 64.0,
+    colorSwatchSize: 48.0,
+    padding: EdgeInsets.all(16.0),
+  );
+  
+  static const UIScaling bigKid = UIScaling(
+    buttonSize: 48.0,
+    iconSize: 24.0,
+    fontSize: 14.0,
+    touchTargetMin: 44.0,
+    colorSwatchSize: 32.0,
+    padding: EdgeInsets.all(12.0),
+  );
+}
+
+/// Tool configuration for different age modes
+class ToolConfig {
+  final Set<CanvasTool> availableTools;
+  final bool showToolLabels;
+  final bool voiceGuidance;
+  final bool simplified;
+  
+  const ToolConfig({
+    required this.availableTools,
+    required this.showToolLabels,
+    required this.voiceGuidance,
+    required this.simplified,
+  });
+  
+  static const ToolConfig littleKid = ToolConfig(
+    availableTools: {
+      CanvasTool.sticker,
+      CanvasTool.draw,
+      CanvasTool.eraser,
+    },
+    showToolLabels: true,
+    voiceGuidance: true,
+    simplified: true,
+  );
+  
+  static const ToolConfig bigKid = ToolConfig(
+    availableTools: {
+      CanvasTool.select,
+      CanvasTool.sticker,
+      CanvasTool.draw,
+      CanvasTool.text,
+      CanvasTool.eraser,
+    },
+    showToolLabels: false,
+    voiceGuidance: false,
+    simplified: false,
+  );
+}
+
+/// Canvas behavior configuration
+class CanvasConfig {
+  final bool allowPanZoom;
+  final bool showInfiniteCanvas;
+  final bool showZones;
+  final bool autoSave;
+  final int maxColors;
+  final Size? fixedCanvasSize;
+  
+  const CanvasConfig({
+    required this.allowPanZoom,
+    required this.showInfiniteCanvas,
+    required this.showZones,
+    required this.autoSave,
+    required this.maxColors,
+    this.fixedCanvasSize,
+  });
+  
+  static const CanvasConfig littleKid = CanvasConfig(
+    allowPanZoom: false,
+    showInfiniteCanvas: false,
+    showZones: false,
+    autoSave: true,
+    maxColors: 8,
+    fixedCanvasSize: Size(600, 450), // 4:3 aspect ratio
+  );
+  
+  static const CanvasConfig bigKid = CanvasConfig(
+    allowPanZoom: true,
+    showInfiniteCanvas: true,
+    showZones: true,
+    autoSave: true,
+    maxColors: 16,
+  );
 }
 
 /// Export format options

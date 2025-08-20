@@ -153,13 +153,14 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
         ),
         child: RawGestureDetector(
           gestures: <Type, GestureRecognizerFactory>{
-            // Only enable tap and drawing gestures when not panning/zooming
+            // Enable tap gestures for all tools
             _ConditionalTapGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalTapGestureRecognizer>(
               () => _ConditionalTapGestureRecognizer(),
               (_ConditionalTapGestureRecognizer instance) {
                 instance.onTapDown = _handleTapDown;
               },
             ),
+            // Enable pan gestures for drawing and erasing
             _ConditionalPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalPanGestureRecognizer>(
               () => _ConditionalPanGestureRecognizer(),
               (_ConditionalPanGestureRecognizer instance) {
@@ -167,9 +168,13 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
                 instance.onUpdate = _handlePanUpdate;
                 instance.onEnd = _handlePanEnd;
                 instance.shouldAcceptGesture = _shouldAcceptDrawingGesture;
+                // Lower the minimum distance for better drawing sensitivity
+                instance.minFlingDistance = 0.0;
+                instance.minFlingVelocity = 0.0;
               },
             ),
           },
+          behavior: HitTestBehavior.opaque,
           child: Container(
             width: double.infinity,
             height: double.infinity,
@@ -354,15 +359,19 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
 
   // Event handlers
   void _handleInteractionStart(ScaleStartDetails details) {
-    _clearSelection();
-    // Mark that we're in a pan/zoom interaction
-    _isPanningOrZooming = true;
+    // Only mark as pan/zoom if using multi-touch or not using draw tool
+    if (details.pointerCount > 1 || widget.selectedTool != CanvasTool.draw) {
+      _clearSelection();
+      _isPanningOrZooming = true;
+    }
   }
 
   void _handleInteractionUpdate(ScaleUpdateDetails details) {
-    _updateViewportFromTransform();
-    // Keep marking that we're in interaction
-    _isPanningOrZooming = true;
+    // Only handle as pan/zoom if scale changed or multi-touch or not draw tool
+    if (details.scale != 1.0 || details.pointerCount > 1 || widget.selectedTool != CanvasTool.draw) {
+      _updateViewportFromTransform();
+      _isPanningOrZooming = true;
+    }
   }
 
   void _handleInteractionEnd(ScaleEndDetails details) {
@@ -393,7 +402,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
         _startTextInput(canvasPosition);
         break;
       case CanvasTool.draw:
-        _startDrawing(canvasPosition);
+        // Don't start drawing on tap down, let pan handle it for continuous strokes
         break;
       case CanvasTool.eraser:
         _eraseAtPosition(canvasPosition);
@@ -488,8 +497,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
   
   bool _shouldAcceptDrawingGesture() {
-    // Only allow drawing gestures when we're not panning/zooming and when draw tool is selected
-    return !_isPanningOrZooming && (widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser);
+    // Allow drawing gestures when draw or eraser tool is selected
+    // Don't block on _isPanningOrZooming for single-touch drawing
+    return widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser;
   }
 
   // Navigation methods
@@ -683,6 +693,14 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
 
   void _continueDrawing(Offset position) {
     if (!_isDrawing) return;
+    
+    // Add some basic stroke smoothing by avoiding duplicate points that are too close
+    if (_currentStroke.isNotEmpty) {
+      final lastPoint = _currentStroke.last;
+      final distance = (position - lastPoint).distance;
+      // Only add point if it's moved at least 2 pixels to reduce noise
+      if (distance < 2.0) return;
+    }
     
     setState(() {
       _currentStroke.add(position);
@@ -1472,6 +1490,12 @@ class _ConditionalPanGestureRecognizer extends PanGestureRecognizer {
     if (shouldAcceptGesture?.call() != false) {
       super.addAllowedPointer(event);
     }
+  }
+  
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    // Ensure the gesture completes properly for drawing
+    super.didStopTrackingLastPointer(pointer);
   }
 }
 
