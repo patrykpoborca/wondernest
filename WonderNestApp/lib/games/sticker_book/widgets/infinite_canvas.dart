@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:math' as math;
 import '../models/sticker_models.dart';
 
@@ -43,6 +44,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   // Drawing state
   List<Offset> _currentStroke = [];
   bool _isDrawing = false;
+  bool _isPanningOrZooming = false;
   
   // Text editing
   TextEditingController? _textController;
@@ -149,11 +151,25 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
           zoneStartPoint: _zoneStartPoint,
           showGrid: true,
         ),
-        child: GestureDetector(
-          onTapDown: _handleTapDown,
-          onPanStart: _handlePanStart,
-          onPanUpdate: _handlePanUpdate,
-          onPanEnd: _handlePanEnd,
+        child: RawGestureDetector(
+          gestures: <Type, GestureRecognizerFactory>{
+            // Only enable tap and drawing gestures when not panning/zooming
+            _ConditionalTapGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalTapGestureRecognizer>(
+              () => _ConditionalTapGestureRecognizer(),
+              (_ConditionalTapGestureRecognizer instance) {
+                instance.onTapDown = _handleTapDown;
+              },
+            ),
+            _ConditionalPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalPanGestureRecognizer>(
+              () => _ConditionalPanGestureRecognizer(),
+              (_ConditionalPanGestureRecognizer instance) {
+                instance.onStart = _handlePanStart;
+                instance.onUpdate = _handlePanUpdate;
+                instance.onEnd = _handlePanEnd;
+                instance.shouldAcceptGesture = _shouldAcceptDrawingGesture;
+              },
+            ),
+          },
           child: Container(
             width: double.infinity,
             height: double.infinity,
@@ -339,18 +355,31 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   // Event handlers
   void _handleInteractionStart(ScaleStartDetails details) {
     _clearSelection();
+    // Mark that we're in a pan/zoom interaction
+    _isPanningOrZooming = true;
   }
 
   void _handleInteractionUpdate(ScaleUpdateDetails details) {
     _updateViewportFromTransform();
+    // Keep marking that we're in interaction
+    _isPanningOrZooming = true;
   }
 
   void _handleInteractionEnd(ScaleEndDetails details) {
     _updateViewportFromTransform();
     _updateCanvas();
+    // Small delay before allowing drawing gestures again
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _isPanningOrZooming = false;
+      }
+    });
   }
 
   void _handleTapDown(TapDownDetails details) {
+    // Don't handle taps during pan/zoom interactions
+    if (_isPanningOrZooming) return;
+    
     final canvasPosition = _screenToCanvasPosition(details.localPosition);
     
     switch (widget.selectedTool) {
@@ -377,6 +406,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
 
   void _handlePanStart(DragStartDetails details) {
+    // Don't handle drawing during pan/zoom interactions
+    if (_isPanningOrZooming) return;
+    
     final canvasPosition = _screenToCanvasPosition(details.localPosition);
     
     if (widget.selectedTool == CanvasTool.draw) {
@@ -385,6 +417,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
 
   void _handlePanUpdate(DragUpdateDetails details) {
+    // Don't handle drawing during pan/zoom interactions
+    if (_isPanningOrZooming) return;
+    
     final canvasPosition = _screenToCanvasPosition(details.localPosition);
     
     if (widget.selectedTool == CanvasTool.draw && _isDrawing) {
@@ -395,6 +430,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
 
   void _handlePanEnd(DragEndDetails details) {
+    // Don't handle drawing during pan/zoom interactions
+    if (_isPanningOrZooming) return;
+    
     if (widget.selectedTool == CanvasTool.draw && _isDrawing) {
       _finishDrawing();
     }
@@ -418,7 +456,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     final scale = matrix.getMaxScaleOnAxis();
     final translation = matrix.getTranslation();
     
-    // Transform screen position to canvas position
+    // Transform screen position to canvas position accounting for the transformation matrix
     final canvasX = (screenPosition.dx - translation.x) / scale;
     final canvasY = (screenPosition.dy - translation.y) / scale;
     
@@ -448,10 +486,24 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
       );
     });
   }
+  
+  bool _shouldAcceptDrawingGesture() {
+    // Only allow drawing gestures when we're not panning/zooming and when draw tool is selected
+    return !_isPanningOrZooming && (widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser);
+  }
 
   // Navigation methods
   void _goToHome() {
     _animateToPosition(const Offset(_homePosition, _homePosition));
+    
+    // Show helpful message to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Returned to home position (0, 0)'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.blue,
+      ),
+    );
   }
 
   void _zoomToFitContent() {
@@ -476,8 +528,11 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
 
   void _animateToPositionWithZoom(Offset canvasPosition, double zoom) {
+    // Clamp zoom to valid range
+    final clampedZoom = zoom.clamp(_minZoom, _maxZoom);
+    
     final targetMatrix = Matrix4.identity()
-      ..scale(zoom)
+      ..scale(clampedZoom)
       ..translate(-canvasPosition.dx, -canvasPosition.dy);
     
     _transformController.value = targetMatrix;
@@ -1401,6 +1456,22 @@ class _ZoneNavigatorDialog extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// Custom gesture recognizers that respect pan/zoom state
+class _ConditionalTapGestureRecognizer extends TapGestureRecognizer {
+  // This recognizer is used to handle taps conditionally
+}
+
+class _ConditionalPanGestureRecognizer extends PanGestureRecognizer {
+  bool Function()? shouldAcceptGesture;
+  
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    if (shouldAcceptGesture?.call() != false) {
+      super.addAllowedPointer(event);
+    }
   }
 }
 
