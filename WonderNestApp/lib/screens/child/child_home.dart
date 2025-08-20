@@ -9,13 +9,10 @@ import '../../models/child_profile.dart';
 import '../../core/services/timber_wrapper.dart';
 
 class ChildHome extends ConsumerStatefulWidget {
-  const ChildHome({Key? key}) : super(key: key);
+  const ChildHome({super.key});
 
   @override
-  ConsumerState<ChildHome> createState() {
-    Timber.d('[WIDGET] ChildHome.createState() called at ${DateTime.now()}');
-    return _ChildHomeState();
-  }
+  ConsumerState<ChildHome> createState() => _ChildHomeState();
 }
 
 class _ChildHomeState extends ConsumerState<ChildHome> {
@@ -36,8 +33,7 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   void initState() {
     super.initState();
     Timber.d('[WIDGET] ChildHome.initState() START at ${DateTime.now()}');
-    Timber.d('[WIDGET] ChildHome widget hash: ${this.hashCode}');
-    Timber.d('[WIDGET] Context available: ${context != null}');
+    Timber.d('[WIDGET] ChildHome widget hash: $hashCode');
     
     try {
       final activeChild = ref.read(activeChildProvider);

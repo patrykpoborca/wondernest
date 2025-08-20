@@ -3,7 +3,6 @@ import '../../core/services/timber_wrapper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'mock_api_service.dart';
-import 'logging_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8080/api/v1';

@@ -923,7 +923,7 @@ class InfiniteCanvasPainter extends CustomPainter {
     _drawCenterIndicator(paintCanvas, size);
   }
 
-  void _drawGrid(Canvas canvas, Size size) {
+  void _drawGrid(Canvas paintCanvas, Size size) {
     const gridSpacing = 100.0;
     final paint = Paint()
       ..color = Colors.grey.withValues(alpha: 0.2)
@@ -935,7 +935,7 @@ class InfiniteCanvasPainter extends CustomPainter {
 
     // Draw vertical lines
     for (double x = startX; x <= bounds.right + gridSpacing; x += gridSpacing) {
-      canvas.drawLine(
+      paintCanvas.drawLine(
         Offset(x, bounds.top),
         Offset(x, bounds.bottom),
         paint,
@@ -944,7 +944,7 @@ class InfiniteCanvasPainter extends CustomPainter {
 
     // Draw horizontal lines
     for (double y = startY; y <= bounds.bottom + gridSpacing; y += gridSpacing) {
-      canvas.drawLine(
+      paintCanvas.drawLine(
         Offset(bounds.left, y),
         Offset(bounds.right, y),
         paint,
@@ -957,12 +957,12 @@ class InfiniteCanvasPainter extends CustomPainter {
       ..strokeWidth = 2.0;
 
     if (bounds.contains(Offset.zero)) {
-      canvas.drawLine(
+      paintCanvas.drawLine(
         Offset(0, bounds.top),
         Offset(0, bounds.bottom),
         axisPaint,
       );
-      canvas.drawLine(
+      paintCanvas.drawLine(
         Offset(bounds.left, 0),
         Offset(bounds.right, 0),
         axisPaint,
@@ -970,7 +970,7 @@ class InfiniteCanvasPainter extends CustomPainter {
     }
   }
 
-  void _drawZone(Canvas canvas, StickerZone zone, bool isSelected) {
+  void _drawZone(Canvas paintCanvas, StickerZone zone, bool isSelected) {
     final paint = Paint()
       ..color = zone.color.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
@@ -981,8 +981,8 @@ class InfiniteCanvasPainter extends CustomPainter {
       ..strokeWidth = isSelected ? 3.0 : 1.5
       ..strokeDashArray = [10, 5];
 
-    canvas.drawCircle(zone.center, zone.radius, paint);
-    canvas.drawCircle(zone.center, zone.radius, borderPaint);
+    paintCanvas.drawCircle(zone.center, zone.radius, paint);
+    paintCanvas.drawCircle(zone.center, zone.radius, borderPaint);
 
     // Draw zone label
     final textPainter = TextPainter(
@@ -998,7 +998,7 @@ class InfiniteCanvasPainter extends CustomPainter {
     );
     textPainter.layout();
     textPainter.paint(
-      canvas,
+      paintCanvas,
       Offset(
         zone.center.dx - textPainter.width / 2,
         zone.center.dy - zone.radius - textPainter.height - 10,
@@ -1006,13 +1006,13 @@ class InfiniteCanvasPainter extends CustomPainter {
     );
   }
 
-  void _drawSticker(Canvas canvas, PlacedSticker sticker, bool isSelected) {
+  void _drawSticker(Canvas paintCanvas, PlacedSticker sticker, bool isSelected) {
     if (isSelected) {
       final selectionPaint = Paint()
         ..color = Colors.blue.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4.0;
-      canvas.drawCircle(sticker.position, 35, selectionPaint);
+      paintCanvas.drawCircle(sticker.position, 35, selectionPaint);
     }
 
     // For now, draw emoji as text (in real implementation, you'd load image)
@@ -1027,22 +1027,22 @@ class InfiniteCanvasPainter extends CustomPainter {
     );
     textPainter.layout();
     
-    canvas.save();
-    canvas.translate(sticker.position.dx, sticker.position.dy);
-    canvas.rotate(sticker.rotation);
+    paintCanvas.save();
+    paintCanvas.translate(sticker.position.dx, sticker.position.dy);
+    paintCanvas.rotate(sticker.rotation);
     textPainter.paint(
-      canvas,
+      paintCanvas,
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
-    canvas.restore();
+    paintCanvas.restore();
   }
 
-  void _drawText(Canvas canvas, CanvasText text, bool isSelected) {
+  void _drawText(Canvas paintCanvas, CanvasText text, bool isSelected) {
     if (isSelected) {
       final selectionPaint = Paint()
         ..color = Colors.blue.withValues(alpha: 0.2)
         ..style = PaintingStyle.fill;
-      canvas.drawRect(
+      paintCanvas.drawRect(
         Rect.fromCenter(
           center: text.position,
           width: text.text.length * text.fontSize * 0.6,
@@ -1073,14 +1073,14 @@ class InfiniteCanvasPainter extends CustomPainter {
     );
     textPainter.layout();
     
-    canvas.save();
-    canvas.translate(text.position.dx, text.position.dy);
-    canvas.rotate(text.rotation);
-    textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
-    canvas.restore();
+    paintCanvas.save();
+    paintCanvas.translate(text.position.dx, text.position.dy);
+    paintCanvas.rotate(text.rotation);
+    textPainter.paint(paintCanvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+    paintCanvas.restore();
   }
 
-  void _drawStroke(Canvas canvas, DrawingStroke drawing) {
+  void _drawStroke(Canvas paintCanvas, DrawingStroke drawing) {
     if (drawing.points.length > 1) {
       final path = Path();
       path.moveTo(drawing.points.first.dx, drawing.points.first.dy);
@@ -1089,11 +1089,11 @@ class InfiniteCanvasPainter extends CustomPainter {
         path.lineTo(drawing.points[i].dx, drawing.points[i].dy);
       }
       
-      canvas.drawPath(path, drawing.paintStyle);
+      paintCanvas.drawPath(path, drawing.paintStyle);
     }
   }
 
-  void _drawCurrentStroke(Canvas canvas) {
+  void _drawCurrentStroke(Canvas paintCanvas) {
     final paint = Paint()
       ..color = selectedColor
       ..strokeWidth = selectedBrushSize
@@ -1108,10 +1108,10 @@ class InfiniteCanvasPainter extends CustomPainter {
       path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
     }
     
-    canvas.drawPath(path, paint);
+    paintCanvas.drawPath(path, paint);
   }
 
-  void _drawZoneCreationPreview(Canvas canvas) {
+  void _drawZoneCreationPreview(Canvas paintCanvas) {
     if (zoneStartPoint == null) return;
     
     final paint = Paint()
@@ -1121,17 +1121,17 @@ class InfiniteCanvasPainter extends CustomPainter {
       ..strokeDashArray = [5, 5];
 
     // Draw circle preview (assuming we'll implement mouse position tracking)
-    canvas.drawCircle(zoneStartPoint!, 100, paint);
+    paintCanvas.drawCircle(zoneStartPoint!, 100, paint);
   }
 
-  void _drawCenterIndicator(Canvas canvas, Size size) {
+  void _drawCenterIndicator(Canvas paintCanvas, Size size) {
     final centerPaint = Paint()
       ..color = Colors.red.withValues(alpha: 0.5)
       ..style = PaintingStyle.fill;
 
     // Draw a small dot at the origin if visible
     if (viewport.bounds.contains(Offset.zero)) {
-      canvas.drawCircle(Offset.zero, 3, centerPaint);
+      paintCanvas.drawCircle(Offset.zero, 3, centerPaint);
     }
   }
 

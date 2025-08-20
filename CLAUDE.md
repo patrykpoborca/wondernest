@@ -129,6 +129,12 @@ docker-compose logs -f backend
 - Age-appropriate filtering based on child profile
 - Real-time monitoring in `mini_game_framework.dart`
 
+## Logging Standards
+- **NEVER use print() directly in Flutter code** - Use Timber for all logging
+- Always use structured logging with appropriate levels (debug, info, warn, error)
+- Include context in log messages for better debugging
+- Example: `Timber.d('User logged in: $userId');`
+
 ## Common Issues & Solutions
 
 ### Flutter Issues

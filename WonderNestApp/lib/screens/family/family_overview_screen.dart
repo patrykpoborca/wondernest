@@ -201,7 +201,7 @@ class _FamilyOverviewScreenState extends ConsumerState<FamilyOverviewScreen> {
                               await ref
                                   .read(familyProvider.notifier)
                                   .removeChild(child.id);
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('${child.name} removed'),

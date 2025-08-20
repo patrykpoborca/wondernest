@@ -702,7 +702,9 @@ class _ApprovalDialogState extends State<ApprovalDialog> {
             _authenticationInProgress = false;
           });
         } else {
-          Navigator.of(context).pop(ApprovalResult.rejected());
+          if (context.mounted) {
+            Navigator.of(context).pop(ApprovalResult.rejected());
+          }
         }
       }
     } catch (e) {

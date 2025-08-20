@@ -100,6 +100,7 @@ dependencies:
   # Logging
   logger: ^2.4.0
   timber: ^2.0.0
+  logging: ^1.2.0
   
   # COPPA & Privacy
   secure_application: ^4.1.0

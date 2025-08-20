@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/family_member.dart' as fm;
-import '../core/services/api_service.dart';
 import 'auth_provider.dart';
 import '../../core/services/timber_wrapper.dart';
 
