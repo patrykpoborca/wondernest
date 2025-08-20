@@ -105,6 +105,13 @@ docker-compose logs -f backend
 
 ## Critical Implementation Details
 
+### Logging Standards
+- **NEVER use print() directly in Flutter code** - Use Timber for all logging
+- Timber provides structured logging with proper log levels
+- Use Timber methods: `Timber.d()` for debug, `Timber.i()` for info, `Timber.w()` for warning, `Timber.e()` for error
+- Configure Timber in main.dart with appropriate log levels for debug vs release builds
+- This ensures production-ready logging that can be controlled by environment
+
 ### Audio Privacy
 - All speech recognition happens on-device using `speech_to_text` package
 - Only processed transcriptions (no raw audio) sent to backend

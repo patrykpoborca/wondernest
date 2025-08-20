@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../core/games/game_plugin.dart';
 import '../core/games/game_registry.dart';
 import 'auth_provider.dart';
+import '../../core/services/timber_wrapper.dart';
 
 /// State for a single game session
 class GameSessionState {
@@ -223,7 +224,7 @@ class GameSessionNotifier extends StateNotifier<GameSessionState> {
       await _apiService.saveGameEvent(event.toJson());
     } catch (e) {
       // Will be synced later
-      print('Event sync failed, queued for later: $e');
+      Timber.d('Event sync failed, queued for later: $e');
     }
   }
 
@@ -234,7 +235,7 @@ class GameSessionNotifier extends StateNotifier<GameSessionState> {
           .savedGameData[gameId] ?? {};
       return Map<String, dynamic>.from(savedData);
     } catch (e) {
-      print('Failed to load game data: $e');
+      Timber.d('Failed to load game data: $e');
       return {};
     }
   }
@@ -245,7 +246,7 @@ class GameSessionNotifier extends StateNotifier<GameSessionState> {
       await _ref.read(gamesNotifierProvider.notifier)
           .saveGameData(gameId, state.gameData);
     } catch (e) {
-      print('Failed to save game data: $e');
+      Timber.d('Failed to save game data: $e');
     }
   }
 
@@ -466,7 +467,7 @@ class GamesNotifier extends StateNotifier<GamesState> {
       // This would save to local database/storage
       await _persistGameData(gameId, data);
     } catch (e) {
-      print('Failed to persist game data: $e');
+      Timber.d('Failed to persist game data: $e');
     }
   }
 
@@ -507,7 +508,7 @@ class GamesNotifier extends StateNotifier<GamesState> {
       // For now, just return empty data
       state = state.copyWith(savedGameData: {});
     } catch (e) {
-      print('Failed to load saved game data: $e');
+      Timber.d('Failed to load saved game data: $e');
     }
   }
 
@@ -516,7 +517,7 @@ class GamesNotifier extends StateNotifier<GamesState> {
     try {
       await syncPendingEvents();
     } catch (e) {
-      print('Failed to sync pending events: $e');
+      Timber.d('Failed to sync pending events: $e');
     }
   }
 
@@ -524,7 +525,7 @@ class GamesNotifier extends StateNotifier<GamesState> {
   Future<void> _persistGameData(String gameId, Map<String, dynamic> data) async {
     // Implementation would save to Hive, SQLite, or other local storage
     // For now, just log
-    print('Persisting game data for $gameId: $data');
+    Timber.d('Persisting game data for $gameId: $data');
   }
 }
 

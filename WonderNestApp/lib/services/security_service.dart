@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../core/services/timber_wrapper.dart';
 
 class SecurityService {
   final FlutterSecureStorage _secureStorage;
@@ -55,7 +56,7 @@ class SecurityService {
       
       return true;
     } catch (e) {
-      print('Error setting up PIN: $e');
+      Timber.e('Error: setting up PIN: $e');
       return false;
     }
   }
@@ -85,7 +86,7 @@ class SecurityService {
         return false;
       }
     } catch (e) {
-      print('Error verifying PIN: $e');
+      Timber.e('Error: verifying PIN: $e');
       return false;
     }
   }
@@ -98,7 +99,7 @@ class SecurityService {
       }
       return false;
     } catch (e) {
-      print('Error changing PIN: $e');
+      Timber.e('Error: changing PIN: $e');
       return false;
     }
   }
@@ -110,7 +111,7 @@ class SecurityService {
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       return isAvailable && isDeviceSupported;
     } catch (e) {
-      print('Error checking biometric availability: $e');
+      Timber.e('Error: checking biometric availability: $e');
       return false;
     }
   }
@@ -138,7 +139,7 @@ class SecurityService {
       
       return authenticated;
     } catch (e) {
-      print('Error with biometric authentication: $e');
+      Timber.e('Error: with biometric authentication: $e');
       return false;
     }
   }

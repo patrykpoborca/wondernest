@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../core/services/timber_wrapper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'mock_api_service.dart';
@@ -130,11 +131,11 @@ class ApiService {
       ));
       await healthDio.get('/health');
       _useMockService = false;
-      logger.info('Connected to real backend at http://localhost:8080');
+      Timber.i('[API] Connected to real backend at http://localhost:8080');
     } catch (e) {
       // Backend not available, using mock service
       _useMockService = true;
-      logger.warning('Backend not available, using mock service');
+      Timber.w('[API] Backend not available, using mock service');
     }
   }
   

@@ -11,6 +11,7 @@ import '../../models/family_member.dart' as fm;
 import '../../models/child_profile.dart';
 import '../../models/app_mode.dart';
 import '../../widgets/exit_confirmation_dialog.dart';
+import '../../core/services/timber_wrapper.dart';
 
 class ChildSelectionScreen extends ConsumerStatefulWidget {
   const ChildSelectionScreen({super.key});
@@ -41,11 +42,11 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('[WIDGET] ChildSelectionScreen.build() called at ${DateTime.now()}');
+    Timber.d('[WIDGET] ChildSelectionScreen.build() called at ${DateTime.now()}');
     final familyAsyncValue = ref.watch(familyProvider);
     final appModeState = ref.watch(appModeProvider);
-    print('[CHECK] ChildSelectionScreen - currentMode: ${appModeState.currentMode}');
-    print('[CHECK] ChildSelectionScreen - activeChild: ${appModeState.activeChild?.name ?? 'null'}');
+    Timber.d('[CHECK] ChildSelectionScreen - currentMode: ${appModeState.currentMode}');
+    Timber.d('[CHECK] ChildSelectionScreen - activeChild: ${appModeState.activeChild?.name ?? 'null'}');
 
     return PopScope(
       canPop: false, // Always intercept the back button
@@ -85,19 +86,19 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
       body: SafeArea(
         child: familyAsyncValue.when(
           data: (family) {
-            print('[DATA] Family loaded: ${family.name}');
-            print('[DATA] Total members: ${family.members.length}');
-            print('[DATA] Children count: ${family.children.length}');
+            Timber.d('[DATA] Family loaded: ${family.name}');
+            Timber.d('[DATA] Total members: ${family.members.length}');
+            Timber.d('[DATA] Children count: ${family.children.length}');
             for (var child in family.children) {
-              print('[DATA] Child: ${child.name} (${child.age} years) - ${child.role}');
+              Timber.d('[DATA] Child: ${child.name} (${child.age} years) - ${child.role}');
             }
             
             // If family is null or has no children, show the no children state
             if (family.children.isEmpty) {
-              print('[DATA] No children found - showing no children state');
+              Timber.d('[DATA] No children found - showing no children state');
               return _buildNoChildrenState(context);
             }
-            print('[DATA] Children found - showing child selection');
+            Timber.d('[DATA] Children found - showing child selection');
             return _buildChildSelection(context, family);
           },
           loading: () => const Center(
@@ -113,7 +114,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
   }
 
   Widget _buildChildSelection(BuildContext context, fm.Family family) {
-    print('[RENDER] _buildChildSelection called with ${family.children.length} children');
+    Timber.d('[RENDER] _buildChildSelection called with ${family.children.length} children');
     final children = family.children;
 
     if (children.isEmpty) {
@@ -247,7 +248,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
 
     return GestureDetector(
       onTap: () {
-        print('[TAP] Child card tapped for ${child.name} at ${DateTime.now()}');
+        Timber.d('[TAP] Child card tapped for ${child.name} at ${DateTime.now()}');
         _selectChild(child);
       },
       child: Container(
@@ -372,7 +373,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  print('[TAP] Play as Guest button tapped at ${DateTime.now()}');
+                  Timber.d('[TAP] Play as Guest button tapped at ${DateTime.now()}');
                   _selectGuestChild();
                 },
                 style: ElevatedButton.styleFrom(
@@ -433,7 +434,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
   }
 
   void _selectGuestChild() async {
-    print('[STATE] _selectGuestChild called at ${DateTime.now()}');
+    Timber.d('[STATE] _selectGuestChild called at ${DateTime.now()}');
     
     // Store reference before any operations
     final appModeNotifier = ref.read(appModeProvider.notifier);
@@ -465,7 +466,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
       updatedAt: DateTime.now(),
     );
 
-    print('[STATE] Setting guest child and switching to kid mode');
+    Timber.d('[STATE] Setting guest child and switching to kid mode');
     
     // Use the new synchronous method
     appModeNotifier.selectChildAndSwitchMode(guestProfile);
@@ -475,22 +476,22 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     
     // Verify state was updated
     final currentState = ref.read(appModeProvider);
-    print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
+    Timber.d('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
     
     if (!mounted) return;
     
-    print('[NAV] About to navigate to /child-home for guest');
-    print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
+    Timber.d('[NAV] About to navigate to /child-home for guest');
+    Timber.d('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
     
     // Navigate after ensuring state is set
     context.go('/child-home');
     
-    print('[NAV] context.go(\'/child-home\') called');
-    print('[NAV] Navigation command issued for guest');
+    Timber.d('[NAV] context.go(\'/child-home\') called');
+    Timber.d('[NAV] Navigation command issued for guest');
   }
   
   void _selectChild(fm.FamilyMember child) async {
-    print('[STATE] _selectChild called for ${child.name} at ${DateTime.now()}');
+    Timber.d('[STATE] _selectChild called for ${child.name} at ${DateTime.now()}');
     
     // Store reference
     final appModeNotifier = ref.read(appModeProvider.notifier);
@@ -522,7 +523,7 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
       updatedAt: DateTime.now(),
     );
 
-    print('[STATE] Setting child ${childProfile.name} and switching to kid mode');
+    Timber.d('[STATE] Setting child ${childProfile.name} and switching to kid mode');
     
     // Use the new synchronous method
     appModeNotifier.selectChildAndSwitchMode(childProfile);
@@ -532,18 +533,18 @@ class _ChildSelectionScreenState extends ConsumerState<ChildSelectionScreen> {
     
     // Verify state was updated
     final currentState = ref.read(appModeProvider);
-    print('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
+    Timber.d('[STATE] After update - mode: ${currentState.currentMode}, activeChild: ${currentState.activeChild?.name}');
     
     if (!mounted) return;
     
-    print('[NAV] About to navigate to /child-home for ${child.name}');
-    print('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
+    Timber.d('[NAV] About to navigate to /child-home for ${child.name}');
+    Timber.d('[NAV] Current route: ${GoRouter.of(context).routerDelegate.currentConfiguration.uri}');
     
     // Navigate after ensuring state is set
     context.go('/child-home');
     
-    print('[NAV] context.go(\'/child-home\') called');
-    print('[NAV] Navigation command issued for ${child.name}');
+    Timber.d('[NAV] context.go(\'/child-home\') called');
+    Timber.d('[NAV] Navigation command issued for ${child.name}');
   }
 
   int _getAgeRating(int age) {

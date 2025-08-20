@@ -7,6 +7,7 @@ import '../../core/games/game_initialization.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/timber_wrapper.dart';
 
 /// Framework for running game plugins
 class GamePluginFramework extends ConsumerStatefulWidget {
@@ -40,7 +41,7 @@ class _GamePluginFrameworkState extends ConsumerState<GamePluginFramework> {
 
   Future<void> _initializeGame() async {
     try {
-      print('[GAME] Initializing game plugin: ${widget.gameId}');
+      Timber.d('[GAME] Initializing game plugin: ${widget.gameId}');
       
       // Ensure game system is initialized before accessing registry
       await ref.read(gameInitializationProvider.future);
@@ -76,12 +77,12 @@ class _GamePluginFrameworkState extends ConsumerState<GamePluginFramework> {
         startTime: DateTime.now(),
       );
 
-      print('[GAME] Game plugin initialized successfully');
+      Timber.d('[GAME] Game plugin initialized successfully');
       setState(() {
         isLoading = false;
       });
     } catch (e) {
-      print('[ERROR] Failed to initialize game: $e');
+      Timber.e('[ERROR] Failed to initialize game: $e');
       setState(() {
         error = 'Failed to start game: $e';
         isLoading = false;
@@ -137,9 +138,9 @@ class _GamePluginFrameworkState extends ConsumerState<GamePluginFramework> {
         final sessionNotifier = ref.read(gameSessionProvider(sessionParams).notifier);
         await sessionNotifier.endSession(saveProgress: true);
         
-        print('[GAME] Game session ended successfully');
+        Timber.d('[GAME] Game session ended successfully');
       } catch (e) {
-        print('[ERROR] Failed to end game session: $e');
+        Timber.e('[ERROR] Failed to end game session: $e');
       }
     }
   }

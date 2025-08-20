@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/family_member.dart' as fm;
 import '../core/services/api_service.dart';
 import 'auth_provider.dart';
+import '../../core/services/timber_wrapper.dart';
 
 // Selected child provider
 final selectedChildProvider = StateProvider<fm.FamilyMember?>((ref) => null);
@@ -35,7 +36,7 @@ class FamilyNotifier extends AsyncNotifier<fm.Family> {
       return await service.getFamily();
     } catch (e) {
       // If error occurs (likely auth error), return empty family
-      print('[FamilyProvider] Error fetching family: $e');
+      Timber.d('[FamilyProvider] Error fetching family: $e');
       return fm.Family(
         id: 'empty',
         name: 'My Family',

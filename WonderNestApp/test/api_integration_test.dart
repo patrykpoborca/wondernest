@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import '../lib/core/services/timber_wrapper.dart';
 
 void main() {
   group('Backend Integration Tests', () {
@@ -18,7 +19,7 @@ void main() {
         final response = await dio.get('/health');
         expect(response.statusCode, 200);
         expect(response.data['status'], 'UP');
-        print('✅ Backend health check passed');
+        Timber.d('✅ Backend health check passed');
       } catch (e) {
         fail('Backend is not accessible: $e');
       }
@@ -31,7 +32,7 @@ void main() {
       } catch (e) {
         if (e is DioException) {
           expect(e.response?.statusCode, 401);
-          print('✅ API authentication check passed');
+          Timber.d('✅ API authentication check passed');
         } else {
           rethrow;
         }
@@ -49,7 +50,7 @@ void main() {
       } catch (e) {
         if (e is DioException) {
           expect(e.response?.statusCode, 401);
-          print('✅ Token refresh validation passed');
+          Timber.d('✅ Token refresh validation passed');
         } else {
           rethrow;
         }

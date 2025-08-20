@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/game_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/timber_wrapper.dart';
 
 class MiniGameFramework extends ConsumerStatefulWidget {
   final GameModel game;
@@ -72,7 +73,7 @@ class _MiniGameFrameworkState extends ConsumerState<MiniGameFramework> {
         if (didPop) return; // Already handled
         // From game, back button should go to child home
         if (context.mounted) {
-          print('[NAV] Back button pressed in game - navigating to child home');
+          Timber.d('[NAV] Back button pressed in game - navigating to child home');
           context.go('/child-home');
         }
       },

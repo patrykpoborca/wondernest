@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import '../lib/core/services/timber_wrapper.dart';
 
 void main() {
   group('End-to-End Backend Integration', () {
@@ -45,11 +46,11 @@ void main() {
         // Update dio with auth token
         dio.options.headers['Authorization'] = 'Bearer $accessToken';
         
-        print('✅ Parent registration successful');
-        print('   User ID: $userId');
+        Timber.d('✅ Parent registration successful');
+        Timber.d('   User ID: $userId');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to register parent: $e');
       }
@@ -64,10 +65,10 @@ void main() {
         expect(response.statusCode, 200);
         expect(response.data['success'], true);
         
-        print('✅ PIN setup successful');
+        Timber.d('✅ PIN setup successful');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to setup PIN: $e');
       }
@@ -83,12 +84,12 @@ void main() {
         final family = response.data['data'];
         expect(family, isNotNull);
         
-        print('✅ Family profile retrieved');
-        print('   Family ID: ${family['id']}');
-        print('   Family Name: ${family['name']}');
+        Timber.d('✅ Family profile retrieved');
+        Timber.d('   Family ID: ${family['id']}');
+        Timber.d('   Family Name: ${family['name']}');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to get family profile: $e');
       }
@@ -113,12 +114,12 @@ void main() {
         expect(childId, isNotNull);
         expect(child['name'], 'Test Child');
         
-        print('✅ Child profile created');
-        print('   Child ID: $childId');
-        print('   Child Name: ${child['name']}');
+        Timber.d('✅ Child profile created');
+        Timber.d('   Child ID: $childId');
+        Timber.d('   Child Name: ${child['name']}');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to create child: $e');
       }
@@ -142,11 +143,11 @@ void main() {
         expect(createdChild, isNotNull);
         expect(createdChild['name'], 'Test Child');
         
-        print('✅ Children list retrieved');
-        print('   Total children: ${children.length}');
+        Timber.d('✅ Children list retrieved');
+        Timber.d('   Total children: ${children.length}');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to get children: $e');
       }
@@ -154,7 +155,7 @@ void main() {
 
     test('6. Update child profile', () async {
       if (childId == null) {
-        print('⚠️ Skipping: No child ID available');
+        Timber.d('⚠️ Skipping: No child ID available');
         return;
       }
 
@@ -172,10 +173,10 @@ void main() {
         expect(child['name'], 'Updated Child Name');
         expect(child['interests'], contains('music'));
         
-        print('✅ Child profile updated');
+        Timber.d('✅ Child profile updated');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to update child: $e');
       }
@@ -183,7 +184,7 @@ void main() {
 
     test('7. Submit COPPA consent', () async {
       if (childId == null) {
-        print('⚠️ Skipping: No child ID available');
+        Timber.d('⚠️ Skipping: No child ID available');
         return;
       }
 
@@ -205,10 +206,10 @@ void main() {
         expect(response.statusCode, 200);
         expect(response.data['success'], true);
         
-        print('✅ COPPA consent submitted');
+        Timber.d('✅ COPPA consent submitted');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to submit COPPA consent: $e');
       }
@@ -245,11 +246,11 @@ void main() {
         
         expect(persistedChild, isNotNull);
         
-        print('✅ Data persistence verified');
-        print('   Child data persisted correctly in PostgreSQL');
+        Timber.d('✅ Data persistence verified');
+        Timber.d('   Child data persisted correctly in PostgreSQL');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to verify persistence: $e');
       }
@@ -257,7 +258,7 @@ void main() {
 
     test('9. Delete child profile', () async {
       if (childId == null) {
-        print('⚠️ Skipping: No child ID available');
+        Timber.d('⚠️ Skipping: No child ID available');
         return;
       }
 
@@ -267,7 +268,7 @@ void main() {
         expect(response.statusCode, 200);
         expect(response.data['success'], true);
         
-        print('✅ Child profile deleted');
+        Timber.d('✅ Child profile deleted');
         
         // Verify deletion
         final childrenResponse = await dio.get('/family/children');
@@ -279,10 +280,10 @@ void main() {
         );
         
         expect(deletedChild, isNull);
-        print('   Deletion confirmed - child no longer in database');
+        Timber.d('   Deletion confirmed - child no longer in database');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to delete child: $e');
       }
@@ -302,10 +303,10 @@ void main() {
         expect(data['accessToken'], isNotNull);
         expect(data['refreshToken'], isNotNull);
         
-        print('✅ Token refresh successful');
+        Timber.d('✅ Token refresh successful');
       } catch (e) {
         if (e is DioException) {
-          print('Response: ${e.response?.data}');
+          Timber.d('Response: ${e.response?.data}');
         }
         fail('Failed to refresh token: $e');
       }

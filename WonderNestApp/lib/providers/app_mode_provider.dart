@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/app_mode.dart';
 import '../models/child_profile.dart';
+import '../../core/services/timber_wrapper.dart';
 
 // App Mode State
 class AppModeState {
@@ -48,12 +49,12 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
           currentMode: AppMode.kid, // Default to Kid Mode
           isLocked: true,
         )) {
-    print('[STATE] AppModeNotifier initialized with Kid Mode at ${DateTime.now()}');
+    Timber.d('[STATE] AppModeNotifier initialized with Kid Mode at ${DateTime.now()}');
     _initializeMode();
   }
 
   Future<void> _initializeMode() async {
-    print('[STATE] _initializeMode() called at ${DateTime.now()}');
+    Timber.d('[STATE] _initializeMode() called at ${DateTime.now()}');
     // Always start in Kid Mode for safety and kid-first approach
     // Check if there was a previous parent session that might still be valid
     final lastParentAccessStr = await _secureStorage.read(key: 'last_parent_access');
@@ -77,8 +78,8 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
     // Default to Kid Mode unless there's a valid parent session
     final initialMode = isParentSessionValid ? AppMode.parent : AppMode.kid;
     
-    print('[STATE] Initial mode determined: $initialMode');
-    print('[STATE] Parent session valid: $isParentSessionValid');
+    Timber.d('[STATE] Initial mode determined: $initialMode');
+    Timber.d('[STATE] Parent session valid: $isParentSessionValid');
     
     state = state.copyWith(
       currentMode: initialMode,
@@ -86,7 +87,7 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
       lastParentAccess: isParentSessionValid ? lastParentAccess : null,
     );
     
-    print('[STATE] State after _initializeMode: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
+    Timber.d('[STATE] State after _initializeMode: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
     
     // Start auto-lock timer if in parent mode
     if (initialMode == AppMode.parent) {
@@ -127,14 +128,14 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
 
   // Improved switchToKidMode - state updates first, async operations after
   Future<void> switchToKidMode({ChildProfile? child}) async {
-    print('[STATE] switchToKidMode called at ${DateTime.now()}');
-    print('[STATE] Previous state: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
-    print('[STATE] Child parameter: ${child?.name ?? 'null'} (id: ${child?.id ?? 'null'})');
+    Timber.d('[STATE] switchToKidMode called at ${DateTime.now()}');
+    Timber.d('[STATE] Previous state: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
+    Timber.d('[STATE] Child parameter: ${child?.name ?? 'null'} (id: ${child?.id ?? 'null'})');
     
     _cancelAutoLockTimer();
     
     final newActiveChild = child ?? state.activeChild;
-    print('[STATE] newActiveChild determined: ${newActiveChild?.name ?? 'null'} (id: ${newActiveChild?.id ?? 'null'})');
+    Timber.d('[STATE] newActiveChild determined: ${newActiveChild?.name ?? 'null'} (id: ${newActiveChild?.id ?? 'null'})');
     
     // Update state IMMEDIATELY and SYNCHRONOUSLY
     state = state.copyWith(
@@ -144,15 +145,15 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
       activeChild: newActiveChild,
     );
     
-    print('[STATE] State updated synchronously: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
+    Timber.d('[STATE] State updated synchronously: mode=${state.currentMode}, activeChild=${state.activeChild?.name ?? 'null'}');
     
     // Clear storage asynchronously (non-blocking)
     _secureStorage.delete(key: 'last_parent_access').catchError((e) {
-      print('[ERROR] Failed to clear last_parent_access: $e');
+      Timber.e('[ERROR] Failed to clear last_parent_access: $e');
     });
     
     // State is ready immediately - no delay needed
-    print('[STATE] switchToKidMode completed - ready for navigation');
+    Timber.d('[STATE] switchToKidMode completed - ready for navigation');
   }
 
   void _startAutoLockTimer() {
@@ -178,14 +179,14 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
   }
 
   void setActiveChild(ChildProfile child) {
-    print('[STATE] setActiveChild called for ${child.name} (id: ${child.id}) at ${DateTime.now()}');
+    Timber.d('[STATE] setActiveChild called for ${child.name} (id: ${child.id}) at ${DateTime.now()}');
     state = state.copyWith(activeChild: child);
-    print('[STATE] activeChild set to: ${state.activeChild?.name ?? 'null'}');
+    Timber.d('[STATE] activeChild set to: ${state.activeChild?.name ?? 'null'}');
   }
   
   // New method: Select child and switch to kid mode in one synchronous operation
   void selectChildAndSwitchMode(ChildProfile child) {
-    print('[STATE] selectChildAndSwitchMode called for ${child.name} at ${DateTime.now()}');
+    Timber.d('[STATE] selectChildAndSwitchMode called for ${child.name} at ${DateTime.now()}');
     
     _cancelAutoLockTimer();
     
@@ -197,18 +198,18 @@ class AppModeNotifier extends StateNotifier<AppModeState> {
       activeChild: child,
     );
     
-    print('[STATE] Mode switched to kid with active child: ${state.activeChild?.name}');
+    Timber.d('[STATE] Mode switched to kid with active child: ${state.activeChild?.name}');
     
     // Clean up storage in background
     _secureStorage.delete(key: 'last_parent_access').catchError((e) {
-      print('[ERROR] Failed to clear last_parent_access: $e');
+      Timber.e('[ERROR] Failed to clear last_parent_access: $e');
     });
   }
 
   void clearActiveChild() {
-    print('[STATE] clearActiveChild called at ${DateTime.now()}');
+    Timber.d('[STATE] clearActiveChild called at ${DateTime.now()}');
     state = state.copyWith(clearActiveChild: true);
-    print('[STATE] activeChild cleared, now: ${state.activeChild?.name ?? 'null'}');
+    Timber.d('[STATE] activeChild cleared, now: ${state.activeChild?.name ?? 'null'}');
   }
 
   void updateAutoLockDuration(Duration duration) {

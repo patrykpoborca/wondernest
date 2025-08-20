@@ -6,13 +6,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../models/child_profile.dart';
+import '../../core/services/timber_wrapper.dart';
 
 class ChildHome extends ConsumerStatefulWidget {
   const ChildHome({Key? key}) : super(key: key);
 
   @override
   ConsumerState<ChildHome> createState() {
-    print('[WIDGET] ChildHome.createState() called at ${DateTime.now()}');
+    Timber.d('[WIDGET] ChildHome.createState() called at ${DateTime.now()}');
     return _ChildHomeState();
   }
 }
@@ -25,7 +26,7 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     // From child home, back button should go to child selection
     // Don't show exit dialog here - that's handled at the child selection level
     if (context.mounted) {
-      print('[NAV] Back button pressed in ChildHome - navigating to child selection');
+      Timber.d('[NAV] Back button pressed in ChildHome - navigating to child selection');
       context.go('/child-selection');
     }
     return false; // Prevent default back behavior since we handle navigation manually
@@ -34,24 +35,24 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
   @override
   void initState() {
     super.initState();
-    print('[WIDGET] ChildHome.initState() START at ${DateTime.now()}');
-    print('[WIDGET] ChildHome widget hash: ${this.hashCode}');
-    print('[WIDGET] Context available: ${context != null}');
+    Timber.d('[WIDGET] ChildHome.initState() START at ${DateTime.now()}');
+    Timber.d('[WIDGET] ChildHome widget hash: ${this.hashCode}');
+    Timber.d('[WIDGET] Context available: ${context != null}');
     
     try {
       final activeChild = ref.read(activeChildProvider);
-      print('[INIT] activeChild in initState: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'})');
+      Timber.d('[INIT] activeChild in initState: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'})');
       _generateDailyContent();
-      print('[WIDGET] ChildHome.initState() COMPLETE');
+      Timber.d('[WIDGET] ChildHome.initState() COMPLETE');
     } catch (e, stack) {
-      print('[ERROR] Failed in initState: $e');
-      print('[ERROR] Stack: $stack');
+      Timber.e('[ERROR] Failed in initState: $e');
+      Timber.e('[ERROR] Stack: $stack');
     }
   }
 
   @override
   void dispose() {
-    print('[WIDGET] ChildHome.dispose() called at ${DateTime.now()}');
+    Timber.d('[WIDGET] ChildHome.dispose() called at ${DateTime.now()}');
     super.dispose();
   }
 
@@ -71,9 +72,9 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
 
     // Generate varied activities for the toy box
     todaysActivities = _generateActivities();
-    print('[ACTIVITIES] Generated ${todaysActivities.length} activities:');
+    Timber.d('[ACTIVITIES] Generated ${todaysActivities.length} activities:');
     for (final activity in todaysActivities) {
-      print('[ACTIVITY] ${activity.id}: ${activity.title} (${activity.emoji})');
+      Timber.d('[ACTIVITY] ${activity.id}: ${activity.title} (${activity.emoji})');
     }
   }
 
@@ -158,31 +159,31 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
 
   @override
   Widget build(BuildContext context) {
-    print('[WIDGET] ChildHome.build() START at ${DateTime.now()}');
-    print('[WIDGET] Build context: $context');
-    print('[WIDGET] Widget mounted: $mounted');
+    Timber.d('[WIDGET] ChildHome.build() START at ${DateTime.now()}');
+    Timber.d('[WIDGET] Build context: $context');
+    Timber.d('[WIDGET] Widget mounted: $mounted');
     
     // Watch the entire appModeProvider state, not just activeChildProvider
     // This ensures we get updates when the state changes
     final appModeState = ref.watch(appModeProvider);
     final activeChild = appModeState.activeChild;
     
-    print('[CHECK] activeChild: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'}');
-    print('[CHECK] currentMode: ${appModeState.currentMode}');
-    print('[CHECK] isLocked: ${appModeState.isLocked}');
-    print('[CHECK] activeChild from appModeState: ${appModeState.activeChild?.name ?? 'null'}');
+    Timber.d('[CHECK] activeChild: ${activeChild?.name ?? 'null'} (id: ${activeChild?.id ?? 'null'}');
+    Timber.d('[CHECK] currentMode: ${appModeState.currentMode}');
+    Timber.d('[CHECK] isLocked: ${appModeState.isLocked}');
+    Timber.d('[CHECK] activeChild from appModeState: ${appModeState.activeChild?.name ?? 'null'}');
     
     // If no active child, we need to wait a bit to see if state is being updated
     // This handles the race condition during navigation
     if (activeChild == null) {
-      print('[CHECK] activeChild is null - checking if this is temporary');
-      print('[CHECK] Current app mode: ${appModeState.currentMode}');
+      Timber.d('[CHECK] activeChild is null - checking if this is temporary');
+      Timber.d('[CHECK] Current app mode: ${appModeState.currentMode}');
       
       // If we're in kid mode but no child is selected, redirect to selection
       // Use a post-frame callback to avoid navigation during build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && activeChild == null) {
-          print('[REDIRECT] No active child after frame - going to child selection');
+          Timber.d('[REDIRECT] No active child after frame - going to child selection');
           context.go('/child-selection');
         }
       });
@@ -217,7 +218,7 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       );
     }
     
-    print('[RENDER] Rendering full child home for: ${activeChild.name}');
+    Timber.d('[RENDER] Rendering full child home for: ${activeChild.name}');
     
     return PopScope(
       canPop: false, // Always intercept the back button
@@ -638,8 +639,8 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
           margin: const EdgeInsets.only(bottom: 16),
           child: ElevatedButton(
             onPressed: () {
-              print('[TAP] Switch Profile button tapped at ${DateTime.now()}');
-              print('[NAV] Navigating to /child-selection from ChildHome');
+              Timber.d('[TAP] Switch Profile button tapped at ${DateTime.now()}');
+              Timber.d('[NAV] Navigating to /child-selection from ChildHome');
               context.go('/child-selection');
             },
             style: ElevatedButton.styleFrom(
@@ -863,11 +864,11 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     final activeChild = appModeState.activeChild;
     
     if (activeChild == null) {
-      print('[ERROR] Cannot launch sticker book game - no active child');
+      Timber.e('[ERROR] Cannot launch sticker book game - no active child');
       return;
     }
 
-    print('[GAME] Launching sticker book game for child: ${activeChild.name}');
+    Timber.d('[GAME] Launching sticker book game for child: ${activeChild.name}');
     
     // Navigate to the sticker book game using the plugin route
     context.go('/game/sticker_book', extra: {
