@@ -186,6 +186,8 @@ final recentlyWatchedProvider = FutureProvider<List<ContentModel>>((ref) async {
 
 // Mock Content API Service
 class ContentApiService {
+  // TODO: Use API service for actual content fetching when backend is ready
+  // ignore: unused_field
   final ApiService _apiService;
   
   ContentApiService(this._apiService);

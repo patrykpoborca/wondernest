@@ -30,7 +30,7 @@ class Sticker {
       'category': category,
       'imagePath': imagePath,
       'imageUrl': imageUrl,
-      'backgroundColor': backgroundColor?.value,
+      'backgroundColor': backgroundColor != null ? (backgroundColor!.a.toInt() << 24) | (backgroundColor!.r.toInt() << 16) | (backgroundColor!.g.toInt() << 8) | backgroundColor!.b.toInt() : null,
       'metadata': metadata,
     };
   }
@@ -341,12 +341,12 @@ class StickerTheme {
 
   Map<String, dynamic> toJson() {
     return {
-      'color': color.value,
+      'color': (color.a.toInt() << 24) | (color.r.toInt() << 16) | (color.g.toInt() << 8) | color.b.toInt(),
       'iconCodePoint': icon.codePoint,
       'iconFontFamily': icon.fontFamily,
       'name': name,
-      'secondaryColor': secondaryColor?.value,
-      'backgroundColor': backgroundColor?.value,
+      'secondaryColor': secondaryColor != null ? (secondaryColor!.a.toInt() << 24) | (secondaryColor!.r.toInt() << 16) | (secondaryColor!.g.toInt() << 8) | secondaryColor!.b.toInt() : null,
+      'backgroundColor': backgroundColor != null ? (backgroundColor!.a.toInt() << 24) | (backgroundColor!.r.toInt() << 16) | (backgroundColor!.g.toInt() << 8) | backgroundColor!.b.toInt() : null,
     };
   }
 

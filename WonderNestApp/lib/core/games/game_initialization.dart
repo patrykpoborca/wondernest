@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/child_profile.dart';
 import '../../providers/auth_provider.dart';
@@ -5,13 +6,12 @@ import 'game_plugin.dart';
 import 'game_registry.dart';
 import 'game_persistence.dart';
 import 'achievement_system.dart';
-import '../../games/sticker_book/sticker_book_plugin.dart';
 
 /// Initialize the game system and register all available games
 class GameInitialization {
   static bool _initialized = false;
 
-  static Future<void> initialize(WidgetRef ref) async {
+  static Future<void> initialize(Ref<Object?> ref) async {
     if (_initialized) return;
 
     try {
@@ -19,34 +19,21 @@ class GameInitialization {
       final apiService = ref.read(apiServiceProvider);
       await GamePersistenceManager().initialize(apiService: apiService);
 
-      // Initialize game registry
+      // Initialize game registry (includes built-in game registration)
       final registry = ref.read(gameRegistryProvider);
       await registry.initialize();
-
-      // Register built-in games
-      await _registerBuiltInGames(registry);
 
       // Initialize achievement and currency managers
       _initializeAchievementSystem();
 
       _initialized = true;
-      print('✅ Game system initialized successfully');
+      developer.log('Game system initialized successfully', name: 'GameInitialization');
     } catch (e) {
-      print('❌ Failed to initialize game system: $e');
+      developer.log('Failed to initialize game system', error: e, name: 'GameInitialization');
       rethrow;
     }
   }
 
-  static Future<void> _registerBuiltInGames(GameRegistry registry) async {
-    // Register the sticker book plugin
-    final stickerBookPlugin = StickerBookPlugin();
-    await registry.registerGame(stickerBookPlugin);
-
-    // Future games would be registered here:
-    // await registry.registerGame(PuzzleGamePlugin());
-    // await registry.registerGame(MathGamePlugin());
-    // await registry.registerGame(MemoryGamePlugin());
-  }
 
   static void _initializeAchievementSystem() {
     // Set up achievement and currency system listeners
@@ -83,7 +70,7 @@ class CurrencyNotificationListener implements CurrencyUpdateListener {
   @override
   Future<void> onCurrencyUpdated(String childId, int amount, String reason) async {
     // In a real app, this could show notifications or update UI
-    print('Currency updated for $childId: $amount ($reason)');
+    developer.log('Currency updated for $childId: $amount ($reason)', name: 'CurrencyNotificationListener');
   }
 }
 

@@ -10,6 +10,9 @@ import 'core/theme/app_theme.dart';
 import 'providers/app_mode_provider.dart';
 import 'providers/auth_provider.dart';
 
+// Game System
+import 'core/games/game_initialization.dart';
+
 // Screens
 import 'screens/auth/welcome_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -73,13 +76,25 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
   void initState() {
     super.initState();
     _router = _createRouter();
-    // Initialize auth state on app startup
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authProvider.notifier).checkLoginStatus().then((_) {
+    // Initialize auth state and game system on app startup
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        // Initialize auth state
+        await ref.read(authProvider.notifier).checkLoginStatus();
+        
+        // Initialize game system using the provider
+        await ref.read(gameInitializationProvider.future);
+        
         setState(() {
           _isInitialized = true;
         });
-      });
+      } catch (e) {
+        print('[ERROR] Failed to initialize app: $e');
+        // Still mark as initialized to show the app, even if game system failed
+        setState(() {
+          _isInitialized = true;
+        });
+      }
     });
   }
 

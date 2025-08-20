@@ -41,7 +41,7 @@ void main() {
     test('Token refresh endpoint should work with valid refresh token', () async {
       // This test uses a mock refresh token that would normally be obtained from login
       try {
-        final response = await dio.post('/api/v1/auth/session/refresh', data: {
+        await dio.post('/api/v1/auth/session/refresh', data: {
           'refreshToken': 'invalid-token-for-testing',
         });
         // This should fail with 401 for invalid token

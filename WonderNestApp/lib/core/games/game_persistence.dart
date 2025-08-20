@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../services/api_service.dart';
@@ -233,7 +231,7 @@ class GamePersistenceManager {
     
     try {
       // Load game progress data
-      final response = await _apiService.getChildGameData(childId);
+      final response = await _apiService!.getChildGameData(childId);
       if (response.statusCode == 200 && response.data['success'] == true) {
         final serverData = response.data['data'] as Map<String, dynamic>;
         
@@ -353,7 +351,7 @@ class GamePersistenceManager {
     
     for (final entry in unsyncedItems.entries) {
       try {
-        await _apiService.saveGameProgress(
+        await _apiService!.saveGameProgress(
           gameId: entry.value['gameId'],
           childId: entry.value['childId'],
           score: entry.value['data']['score'] ?? 0,
@@ -386,7 +384,7 @@ class GamePersistenceManager {
     
     for (final entry in unsyncedItems.entries) {
       try {
-        await _apiService.saveGameEvent(
+        await _apiService!.saveGameEvent(
           Map<String, dynamic>.from(entry.value['event'])
         );
         
@@ -415,7 +413,7 @@ class GamePersistenceManager {
     
     for (final entry in unsyncedItems.entries) {
       try {
-        await _apiService.unlockAchievement(
+        await _apiService!.unlockAchievement(
           gameId: entry.value['gameId'],
           childId: entry.value['childId'],
           achievementId: entry.value['achievement']['id'],
@@ -446,7 +444,7 @@ class GamePersistenceManager {
     
     for (final entry in unsyncedItems.entries) {
       try {
-        await _apiService.updateVirtualCurrency(
+        await _apiService!.updateVirtualCurrency(
           childId: entry.value['childId'],
           balance: entry.value['balance'],
           transactions: List<Map<String, dynamic>>.from(

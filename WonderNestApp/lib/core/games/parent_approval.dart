@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/child_profile.dart';
-import '../../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import 'game_plugin.dart';
 import 'game_persistence.dart';
 
@@ -697,6 +694,8 @@ class _ApprovalDialogState extends State<ApprovalDialog> {
       // Navigate to PIN entry or use the existing auth flow
       if (context.mounted) {
         final result = await context.push('/pin-entry');
+        if (!context.mounted) return;
+        
         if (result == true) {
           setState(() {
             _requiresParentAuth = false;
@@ -710,7 +709,9 @@ class _ApprovalDialogState extends State<ApprovalDialog> {
       setState(() {
         _authenticationInProgress = false;
       });
-      Navigator.of(context).pop(ApprovalResult.rejected());
+      if (context.mounted) {
+        Navigator.of(context).pop(ApprovalResult.rejected());
+      }
     }
   }
 

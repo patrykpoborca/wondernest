@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'game_plugin.dart';
@@ -169,7 +170,8 @@ class AchievementManager {
     
     // Multiple games achievements (cross-game)
     if (criteria['type'] == 'multiple_games_played') {
-      final targetGames = criteria['value'] as int;
+      // TODO: Implement cross-game achievement checking
+      // final targetGames = criteria['value'] as int;
       // This would require checking across all games for the child
       return false; // Placeholder
     }
@@ -185,7 +187,7 @@ class AchievementManager {
       try {
         await listener.onAchievementUnlocked(gameId, childId, achievement);
       } catch (e) {
-        print('Error in achievement unlock listener: $e');
+        developer.log('Error in achievement unlock listener', error: e, name: 'AchievementManager');
       }
     }
   }
@@ -261,7 +263,7 @@ class VirtualCurrencyManager {
         try {
           await listener.onCurrencyUpdated(childId, totalAwarded, 'Game rewards');
         } catch (e) {
-          print('Error in currency update listener: $e');
+          developer.log('Error in currency update listener', error: e, name: 'CurrencyManager');
         }
       }
     }
@@ -293,7 +295,7 @@ class VirtualCurrencyManager {
       try {
         await listener.onCurrencyUpdated(childId, -amount, reason);
       } catch (e) {
-        print('Error in currency update listener: $e');
+        developer.log('Error in currency update listener', error: e, name: 'CurrencyManager');
       }
     }
 
@@ -313,7 +315,7 @@ class VirtualCurrencyManager {
       try {
         await listener.onCurrencyUpdated(childId, amount, reason);
       } catch (e) {
-        print('Error in currency update listener: $e');
+        developer.log('Error in currency update listener', error: e, name: 'CurrencyManager');
       }
     }
   }

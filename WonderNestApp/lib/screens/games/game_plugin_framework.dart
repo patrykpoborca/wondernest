@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/games/game_registry.dart';
 import '../../core/games/game_plugin.dart';
+import '../../core/games/game_initialization.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/app_mode_provider.dart';
 import '../../core/theme/app_colors.dart';
@@ -42,8 +42,11 @@ class _GamePluginFrameworkState extends ConsumerState<GamePluginFramework> {
     try {
       print('[GAME] Initializing game plugin: ${widget.gameId}');
       
-      // Get the game plugin from registry
-      final registry = ref.read(gameRegistryProvider);
+      // Ensure game system is initialized before accessing registry
+      await ref.read(gameInitializationProvider.future);
+      
+      // Get the game plugin from initialized registry
+      final registry = await ref.read(initializedGameRegistryProvider.future);
       gamePlugin = registry.getGame(widget.gameId);
       
       if (gamePlugin == null) {

@@ -28,7 +28,8 @@ class StickerBookGame extends ConsumerStatefulWidget {
 class _StickerBookGameState extends ConsumerState<StickerBookGame> {
   late StickerBookGameState gameState;
   PageController? _pageController;
-  int _currentBookIndex = 0;
+  // TODO: Add book switching functionality
+  final int _currentBookIndex = 0;
   int _currentPageIndex = 0;
 
   @override

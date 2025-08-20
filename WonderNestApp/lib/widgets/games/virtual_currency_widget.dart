@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/games/achievement_system.dart';
-import '../../core/theme/app_colors.dart';
 
 /// Widget for displaying virtual currency balance
 class VirtualCurrencyWidget extends ConsumerWidget {

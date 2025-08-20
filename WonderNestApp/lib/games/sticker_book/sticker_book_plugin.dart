@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/games/game_plugin.dart';
-import '../../core/games/achievement_system.dart';
 import '../../models/child_profile.dart';
 import 'sticker_book_game.dart';
 

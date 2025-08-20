@@ -6,7 +6,6 @@ import '../../providers/app_mode_provider.dart';
 import '../../models/app_mode.dart';
 import '../../models/child_profile.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/services/api_service.dart';
 
 class ParentControlDashboard extends ConsumerStatefulWidget {
   const ParentControlDashboard({super.key});
