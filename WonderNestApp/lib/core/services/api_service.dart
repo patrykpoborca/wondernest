@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'mock_api_service.dart';
+import 'logging_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8080/api/v1';
@@ -129,11 +130,11 @@ class ApiService {
       ));
       await healthDio.get('/health');
       _useMockService = false;
-      print('✅ Connected to real backend at http://localhost:8080');
+      logger.info('Connected to real backend at http://localhost:8080');
     } catch (e) {
       // Backend not available, using mock service
       _useMockService = true;
-      print('⚠️ Backend not available, using mock service');
+      logger.warning('Backend not available, using mock service');
     }
   }
   

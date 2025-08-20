@@ -97,6 +97,9 @@ dependencies:
   connectivity_plus: ^6.1.5
   device_info_plus: ^11.3.0
   
+  # Logging
+  logger: ^2.4.0
+  
   # COPPA & Privacy
   secure_application: ^4.1.0
   

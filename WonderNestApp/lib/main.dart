@@ -6,6 +6,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 // Theme
 import 'core/theme/app_theme.dart';
 
+// Logging
+import 'core/services/logging_service.dart';
+
 // Providers
 import 'providers/app_mode_provider.dart';
 import 'providers/auth_provider.dart';
@@ -34,6 +37,9 @@ import 'models/game_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize logging service
+  logger.initialize();
   
   // Initialize Hive for local storage
   await Hive.initFlutter();
@@ -89,7 +95,7 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
           _isInitialized = true;
         });
       } catch (e) {
-        print('[ERROR] Failed to initialize app: $e');
+        logger.error('Failed to initialize app: $e');
         // Still mark as initialized to show the app, even if game system failed
         setState(() {
           _isInitialized = true;
@@ -134,9 +140,9 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         final appModeState = ref.read(appModeProvider);
         final currentPath = state.matchedLocation;
         
-        print('[REDIRECT] Router check for: $currentPath at ${DateTime.now()}');
-        print('[REDIRECT] Auth status: ${authState.isLoggedIn}');
-        print('[REDIRECT] App mode: ${appModeState.currentMode}');
+        logger.debug('Router check for: $currentPath at ${DateTime.now()}');
+        logger.debug('Auth status: ${authState.isLoggedIn}');
+        logger.debug('App mode: ${appModeState.currentMode}');
         
         // Auth routes that don't require login
         final publicRoutes = ['/welcome', '/login', '/signup'];
@@ -146,17 +152,17 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         if (!authState.isLoggedIn) {
           // If not logged in and not on a public route, redirect to welcome
           if (!isPublicRoute) {
-            print('[REDIRECT] Not logged in, redirecting to /welcome');
+            logger.info('Not logged in, redirecting to /welcome');
             return '/welcome';
           }
-          print('[REDIRECT] Not logged in but on public route: $currentPath');
+          logger.debug('Not logged in but on public route: $currentPath');
           return null; // Allow access to public routes
         }
         
         // User is logged in
         if (isPublicRoute) {
           // If logged in and on auth route, redirect to child selection
-          print('[REDIRECT] Already logged in, redirecting to /child-selection');
+          logger.info('Already logged in, redirecting to /child-selection');
           return '/child-selection';
         }
         
@@ -165,12 +171,12 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         final isKidRoute = kidRoutes.any((route) => currentPath.startsWith(route));
         
         if (isKidRoute) {
-          print('[REDIRECT] Kid route detected - allowing access to: $currentPath');
+          logger.debug('Kid route detected - allowing access to: $currentPath');
           return null; // Allow kid routes for logged in users
         }
         
         // All other routes allowed for logged in users
-        print('[REDIRECT] Allowing access to: $currentPath');
+        logger.debug('Allowing access to: $currentPath');
         return null;
       },
       
@@ -179,7 +185,7 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         GoRoute(
           path: '/child-selection',
           builder: (context, state) {
-            print('[ROUTE] Building ChildSelectionScreen at ${DateTime.now()}');
+            logger.debug('Building ChildSelectionScreen at ${DateTime.now()}');
             return const ChildSelectionScreen();
           },
         ),
@@ -188,9 +194,9 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         GoRoute(
           path: '/child-home',
           builder: (context, state) {
-            print('[ROUTE] Building ChildHome route at ${DateTime.now()}');
-            print('[ROUTE] state.matchedLocation: ${state.matchedLocation}');
-            print('[ROUTE] Current context: $context');
+            logger.debug('Building ChildHome route at ${DateTime.now()}');
+            logger.debug('state.matchedLocation: ${state.matchedLocation}');
+            logger.debug('Current context: $context');
             
             // Return the ChildHome widget directly
             return const ChildHome();
@@ -343,7 +349,7 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
             
             if (gameData == null || gameId.isEmpty) {
               // Return to child home if no game data
-              print('[ROUTE] No game data provided for gameId: $gameId');
+              logger.warning('No game data provided for gameId: $gameId');
               return const ChildHome();
             }
             

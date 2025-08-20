@@ -149,7 +149,7 @@ class _StickerMiniGameState extends State<StickerMiniGame> {
         ),
         const SizedBox(height: 12),
         Text(
-          widget.slot.hint,
+          widget.slot.hint ?? 'Find the matching sticker!',
           style: const TextStyle(
             fontSize: 16,
             color: Colors.grey,
@@ -293,7 +293,7 @@ class _StickerMiniGameState extends State<StickerMiniGame> {
     final emojis = ['🐱', '🐶', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯'];
     emojis.remove(widget.slot.targetSticker.emoji);
     emojis.shuffle();
-    return emojis.first;
+    return emojis.isNotEmpty ? emojis.first : '🎈'; // Fallback emoji
   }
 }
 
@@ -387,7 +387,7 @@ class PageCompletionDialog extends StatelessWidget {
               icon: const Icon(Icons.arrow_forward),
               label: const Text('Continue'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: page.theme.color,
+                backgroundColor: Colors.green, // Safe default since page.theme is String?
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
@@ -425,12 +425,12 @@ class StickerBookProgress extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: book.theme.color.withValues(alpha: 0.1),
+                    color: Colors.blue.withValues(alpha: 0.1), // Safe default
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    book.theme.icon,
-                    color: book.theme.color,
+                  child: const Icon(
+                    Icons.menu_book, // Safe default
+                    color: Colors.blue, // Safe default
                     size: 24,
                   ),
                 ),
@@ -447,7 +447,7 @@ class StickerBookProgress extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        book.description,
+                        book.description ?? '',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
@@ -478,7 +478,7 @@ class StickerBookProgress extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: book.completionPercentage,
                     backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(book.theme.color),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue), // Safe default
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -506,10 +506,10 @@ class StickerBookProgress extends StatelessWidget {
                 children: book.educationalTopics
                     .map((topic) => Chip(
                           label: Text(topic),
-                          backgroundColor: book.theme.color.withValues(alpha: 0.1),
-                          labelStyle: TextStyle(
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1), // Safe default
+                          labelStyle: const TextStyle(
                             fontSize: 10,
-                            color: book.theme.color,
+                            color: Colors.blue, // Safe default
                           ),
                         ))
                     .toList(),
