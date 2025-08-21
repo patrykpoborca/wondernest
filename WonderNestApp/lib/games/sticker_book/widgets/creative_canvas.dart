@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'dart:math' as math;
 import '../models/sticker_models.dart';
 
@@ -104,6 +105,8 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
                 onPanEnd: _handlePanEnd,
                 // Enable better touch handling for drawing
                 behavior: HitTestBehavior.opaque,
+                // Reduce pan distance threshold for more responsive drawing
+                dragStartBehavior: DragStartBehavior.down,
                 child: CustomPaint(
                   painter: CanvasPainter(
                     canvas: widget.canvas,
@@ -676,10 +679,11 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
     if (_currentStroke.isNotEmpty) {
       final lastPoint = _currentStroke.last;
       final distance = (position - lastPoint).distance;
-      // Only add point if it's moved at least 2 pixels to reduce noise
-      if (distance < 2.0) return;
+      // Only add point if it's moved at least 1 pixel to reduce noise but maintain responsiveness
+      if (distance < 1.0) return;
     }
     
+    // Immediately update the stroke and trigger repaint
     setState(() {
       _currentStroke.add(position);
     });
@@ -808,8 +812,8 @@ class CanvasPainter extends CustomPainter {
       }
     }
 
-    // Draw current stroke while drawing
-    if (isDrawing && currentStroke.length > 1) {
+    // Draw current stroke while drawing (including single points)
+    if (isDrawing && currentStroke.isNotEmpty) {
       final paint = Paint()
         ..color = selectedColor
         ..strokeWidth = selectedBrushSize
@@ -817,14 +821,21 @@ class CanvasPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
 
-      final path = Path();
-      path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
-      
-      for (int i = 1; i < currentStroke.length; i++) {
-        path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+      if (currentStroke.length == 1) {
+        // Draw a single point as a small circle
+        paintCanvas.drawCircle(currentStroke.first, selectedBrushSize / 2, paint..style = PaintingStyle.fill);
+      } else {
+        // Draw the path for multiple points
+        final path = Path();
+        path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
+        
+        for (int i = 1; i < currentStroke.length; i++) {
+          path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+        }
+        
+        paint.style = PaintingStyle.stroke;
+        paintCanvas.drawPath(path, paint);
       }
-      
-      paintCanvas.drawPath(path, paint);
     }
   }
 

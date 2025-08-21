@@ -171,6 +171,8 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
                 // Lower the minimum distance for better drawing sensitivity
                 instance.minFlingDistance = 0.0;
                 instance.minFlingVelocity = 0.0;
+                // Reduce the minimum pan distance for more responsive drawing
+                instance.dragStartBehavior = DragStartBehavior.down;
               },
             ),
           },
@@ -363,6 +365,9 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     if (details.pointerCount > 1 || widget.selectedTool != CanvasTool.draw) {
       _clearSelection();
       _isPanningOrZooming = true;
+    } else {
+      // Ensure we're ready for drawing
+      _isPanningOrZooming = false;
     }
   }
 
@@ -371,18 +376,28 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     if (details.scale != 1.0 || details.pointerCount > 1 || widget.selectedTool != CanvasTool.draw) {
       _updateViewportFromTransform();
       _isPanningOrZooming = true;
+    } else if (widget.selectedTool == CanvasTool.draw && !_isPanningOrZooming) {
+      // Keep panning disabled for drawing
+      _isPanningOrZooming = false;
     }
   }
 
   void _handleInteractionEnd(ScaleEndDetails details) {
-    _updateViewportFromTransform();
-    _updateCanvas();
-    // Small delay before allowing drawing gestures again
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        _isPanningOrZooming = false;
-      }
-    });
+    if (_isPanningOrZooming) {
+      _updateViewportFromTransform();
+      _updateCanvas();
+    }
+    // Reset pan/zoom state more quickly for drawing
+    if (widget.selectedTool == CanvasTool.draw) {
+      _isPanningOrZooming = false;
+    } else {
+      // Small delay for other tools to prevent accidental interactions
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) {
+          _isPanningOrZooming = false;
+        }
+      });
+    }
   }
 
   void _handleTapDown(TapDownDetails details) {
@@ -498,8 +513,8 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   
   bool _shouldAcceptDrawingGesture() {
     // Allow drawing gestures when draw or eraser tool is selected
-    // Don't block on _isPanningOrZooming for single-touch drawing
-    return widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser;
+    // Only block if actively panning/zooming with multiple touches
+    return (widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser) && !_isPanningOrZooming;
   }
 
   // Navigation methods
@@ -698,10 +713,11 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     if (_currentStroke.isNotEmpty) {
       final lastPoint = _currentStroke.last;
       final distance = (position - lastPoint).distance;
-      // Only add point if it's moved at least 2 pixels to reduce noise
-      if (distance < 2.0) return;
+      // Only add point if it's moved at least 1 pixel to reduce noise but maintain responsiveness
+      if (distance < 1.0) return;
     }
     
+    // Immediately update the stroke and trigger repaint
     setState(() {
       _currentStroke.add(position);
     });
@@ -970,8 +986,8 @@ class InfiniteCanvasPainter extends CustomPainter {
       }
     }
 
-    // Draw current stroke while drawing
-    if (isDrawing && currentStroke.length > 1) {
+    // Draw current stroke while drawing (including single points)
+    if (isDrawing && currentStroke.isNotEmpty) {
       _drawCurrentStroke(paintCanvas);
     }
 
@@ -1174,14 +1190,21 @@ class InfiniteCanvasPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final path = Path();
-    path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
-    
-    for (int i = 1; i < currentStroke.length; i++) {
-      path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+    if (currentStroke.length == 1) {
+      // Draw a single point as a small circle
+      paintCanvas.drawCircle(currentStroke.first, selectedBrushSize / 2, paint..style = PaintingStyle.fill);
+    } else {
+      // Draw the path for multiple points
+      final path = Path();
+      path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
+      
+      for (int i = 1; i < currentStroke.length; i++) {
+        path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+      }
+      
+      paint.style = PaintingStyle.stroke;
+      paintCanvas.drawPath(path, paint);
     }
-    
-    paintCanvas.drawPath(path, paint);
   }
 
   void _drawZoneCreationPreview(Canvas paintCanvas) {
@@ -1487,7 +1510,7 @@ class _ConditionalPanGestureRecognizer extends PanGestureRecognizer {
   
   @override
   void addAllowedPointer(PointerDownEvent event) {
-    if (shouldAcceptGesture?.call() != false) {
+    if (shouldAcceptGesture?.call() == true) {
       super.addAllowedPointer(event);
     }
   }
@@ -1496,6 +1519,12 @@ class _ConditionalPanGestureRecognizer extends PanGestureRecognizer {
   void didStopTrackingLastPointer(int pointer) {
     // Ensure the gesture completes properly for drawing
     super.didStopTrackingLastPointer(pointer);
+  }
+  
+  @override
+  void rejectGesture(int pointer) {
+    // Override to prevent conflicts with InteractiveViewer
+    super.rejectGesture(pointer);
   }
 }
 
