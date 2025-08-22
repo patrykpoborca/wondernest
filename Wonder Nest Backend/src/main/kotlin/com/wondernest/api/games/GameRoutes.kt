@@ -19,6 +19,9 @@ fun Route.gameRoutes() {
     val sessionService by inject<GameSessionService>()
     val achievementService by inject<AchievementService>()
     
+    // Include sticker game specific routes
+    // stickerGameRoutes() // Commented until StickerGameService is implemented
+    
     route("/api/v1/games") {
         authenticate("auth-jwt") {
             // =============================================================================

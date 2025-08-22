@@ -1,0 +1,548 @@
+package com.wondernest.data.database.repository
+
+import com.wondernest.data.database.table.*
+import com.wondernest.domain.model.games.*
+import com.wondernest.domain.repository.games.*
+import kotlinx.datetime.toKotlinInstant
+import kotlinx.datetime.toJavaInstant
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
+
+// =============================================================================
+// GAME REGISTRY REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class GameRegistryRepositoryImpl : GameRegistryRepository {
+    
+    override suspend fun findById(id: UUID): GameRegistry? = transaction {
+        GameRegistry.select { GameRegistry.id eq id }
+            .singleOrNull()
+            ?.toGameRegistry()
+    }
+    
+    override suspend fun findByKey(gameKey: String): GameRegistry? = transaction {
+        GameRegistry.select { GameRegistry.gameKey eq gameKey }
+            .singleOrNull()
+            ?.toGameRegistry()
+    }
+    
+    override suspend fun findAll(isActive: Boolean?): List<GameRegistry> = transaction {
+        val query = if (isActive != null) {
+            GameRegistry.select { GameRegistry.isActive eq isActive }
+        } else {
+            GameRegistry.selectAll()
+        }
+        query.map { it.toGameRegistry() }
+    }
+    
+    override suspend fun findByAgeRange(ageMonths: Int): List<GameRegistry> = transaction {
+        GameRegistry.select { 
+            (GameRegistry.minAgeMonths lessEq ageMonths) and 
+            (GameRegistry.maxAgeMonths greaterEq ageMonths) and
+            (GameRegistry.isActive eq true)
+        }.map { it.toGameRegistry() }
+    }
+    
+    override suspend fun findByCategory(categoryId: UUID): List<GameRegistry> = transaction {
+        GameRegistry.select { 
+            (GameRegistry.categoryId eq categoryId) and 
+            (GameRegistry.isActive eq true) 
+        }.map { it.toGameRegistry() }
+    }
+    
+    override suspend fun save(game: GameRegistry): GameRegistry = transaction {
+        GameRegistry.insert {
+            it[id] = game.id
+            it[gameKey] = game.gameKey
+            it[displayName] = game.displayName
+            it[description] = game.description
+            it[version] = game.version
+            it[gameTypeId] = game.gameTypeId
+            it[categoryId] = game.categoryId
+            it[minAgeMonths] = game.minAgeMonths
+            it[maxAgeMonths] = game.maxAgeMonths
+            it[configuration] = game.configuration.toMap()
+            it[defaultSettings] = game.defaultSettings.toMap()
+            it[implementationType] = game.implementationType.name.lowercase()
+            it[entryPoint] = game.entryPoint
+            it[resourceBundleUrl] = game.resourceBundleUrl
+            it[contentRating] = game.contentRating
+            it[safetyReviewed] = game.safetyReviewed
+            it[safetyReviewedAt] = game.safetyReviewedAt?.toJavaInstant()
+            it[safetyReviewerId] = game.safetyReviewerId
+            it[isActive] = game.isActive
+            it[isPremium] = game.isPremium
+            it[releaseDate] = game.releaseDate?.toJavaInstant()
+            it[sunsetDate] = game.sunsetDate?.toJavaInstant()
+            it[tags] = game.tags
+            it[keywords] = game.keywords
+            it[educationalObjectives] = game.educationalObjectives
+            it[skillsDeveloped] = game.skillsDeveloped
+            it[createdAt] = game.createdAt.toJavaInstant()
+            it[updatedAt] = game.updatedAt.toJavaInstant()
+        }
+        game
+    }
+    
+    override suspend fun update(game: GameRegistry): GameRegistry = transaction {
+        GameRegistry.update({ GameRegistry.id eq game.id }) {
+            it[displayName] = game.displayName
+            it[description] = game.description
+            it[version] = game.version
+            it[gameTypeId] = game.gameTypeId
+            it[categoryId] = game.categoryId
+            it[minAgeMonths] = game.minAgeMonths
+            it[maxAgeMonths] = game.maxAgeMonths
+            it[configuration] = game.configuration.toMap()
+            it[defaultSettings] = game.defaultSettings.toMap()
+            it[implementationType] = game.implementationType.name.lowercase()
+            it[entryPoint] = game.entryPoint
+            it[resourceBundleUrl] = game.resourceBundleUrl
+            it[contentRating] = game.contentRating
+            it[safetyReviewed] = game.safetyReviewed
+            it[safetyReviewedAt] = game.safetyReviewedAt?.toJavaInstant()
+            it[safetyReviewerId] = game.safetyReviewerId
+            it[isActive] = game.isActive
+            it[isPremium] = game.isPremium
+            it[releaseDate] = game.releaseDate?.toJavaInstant()
+            it[sunsetDate] = game.sunsetDate?.toJavaInstant()
+            it[tags] = game.tags
+            it[keywords] = game.keywords
+            it[educationalObjectives] = game.educationalObjectives
+            it[skillsDeveloped] = game.skillsDeveloped
+            it[updatedAt] = game.updatedAt.toJavaInstant()
+        }
+        game
+    }
+    
+    override suspend fun delete(id: UUID): Boolean = transaction {
+        GameRegistry.deleteWhere { GameRegistry.id eq id } > 0
+    }
+    
+    private fun ResultRow.toGameRegistry() = GameRegistry(
+        id = this[GameRegistry.id].value,
+        gameKey = this[GameRegistry.gameKey],
+        displayName = this[GameRegistry.displayName],
+        description = this[GameRegistry.description],
+        version = this[GameRegistry.version],
+        gameTypeId = this[GameRegistry.gameTypeId].value,
+        categoryId = this[GameRegistry.categoryId]?.value,
+        minAgeMonths = this[GameRegistry.minAgeMonths],
+        maxAgeMonths = this[GameRegistry.maxAgeMonths],
+        configuration = GameConfiguration.fromMap(this[GameRegistry.configuration]),
+        defaultSettings = GameSettings.fromMap(this[GameRegistry.defaultSettings]),
+        implementationType = ImplementationType.valueOf(this[GameRegistry.implementationType].uppercase()),
+        entryPoint = this[GameRegistry.entryPoint],
+        resourceBundleUrl = this[GameRegistry.resourceBundleUrl],
+        contentRating = this[GameRegistry.contentRating],
+        safetyReviewed = this[GameRegistry.safetyReviewed],
+        safetyReviewedAt = this[GameRegistry.safetyReviewedAt]?.toKotlinInstant(),
+        safetyReviewerId = this[GameRegistry.safetyReviewerId]?.value,
+        isActive = this[GameRegistry.isActive],
+        isPremium = this[GameRegistry.isPremium],
+        releaseDate = this[GameRegistry.releaseDate]?.toKotlinInstant(),
+        sunsetDate = this[GameRegistry.sunsetDate]?.toKotlinInstant(),
+        tags = this[GameRegistry.tags],
+        keywords = this[GameRegistry.keywords],
+        educationalObjectives = this[GameRegistry.educationalObjectives],
+        skillsDeveloped = this[GameRegistry.skillsDeveloped],
+        createdAt = this[GameRegistry.createdAt].toKotlinInstant(),
+        updatedAt = this[GameRegistry.updatedAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// CHILD GAME INSTANCE REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
+    
+    override suspend fun findById(id: UUID): ChildGameInstance? = transaction {
+        ChildGameInstances.select { ChildGameInstances.id eq id }
+            .singleOrNull()
+            ?.toChildGameInstance()
+    }
+    
+    override suspend fun findByChildAndGame(childId: UUID, gameId: UUID): ChildGameInstance? = transaction {
+        ChildGameInstances.select { 
+            (ChildGameInstances.childId eq childId) and 
+            (ChildGameInstances.gameId eq gameId)
+        }.singleOrNull()?.toChildGameInstance()
+    }
+    
+    override suspend fun findByChild(childId: UUID): List<ChildGameInstance> = transaction {
+        ChildGameInstances.select { ChildGameInstances.childId eq childId }
+            .map { it.toChildGameInstance() }
+    }
+    
+    override suspend fun findFavorites(childId: UUID): List<ChildGameInstance> = transaction {
+        ChildGameInstances.select { 
+            (ChildGameInstances.childId eq childId) and 
+            (ChildGameInstances.isFavorite eq true)
+        }.map { it.toChildGameInstance() }
+    }
+    
+    override suspend fun create(instance: ChildGameInstance): ChildGameInstance = transaction {
+        ChildGameInstances.insert {
+            it[id] = instance.id
+            it[childId] = instance.childId
+            it[gameId] = instance.gameId
+            it[settings] = instance.settings.toMap()
+            it[preferences] = instance.preferences.toMap()
+            it[isUnlocked] = instance.isUnlocked
+            it[unlockedAt] = instance.unlockedAt?.toJavaInstant()
+            it[firstPlayedAt] = instance.firstPlayedAt?.toJavaInstant()
+            it[lastPlayedAt] = instance.lastPlayedAt?.toJavaInstant()
+            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
+            it[sessionCount] = instance.sessionCount
+            it[isFavorite] = instance.isFavorite
+            it[isCompleted] = instance.isCompleted
+            it[completionPercentage] = instance.completionPercentage.toBigDecimal()
+            it[createdAt] = instance.createdAt.toJavaInstant()
+            it[updatedAt] = instance.updatedAt.toJavaInstant()
+        }
+        instance
+    }
+    
+    override suspend fun update(instance: ChildGameInstance): ChildGameInstance = transaction {
+        ChildGameInstances.update({ ChildGameInstances.id eq instance.id }) {
+            it[settings] = instance.settings.toMap()
+            it[preferences] = instance.preferences.toMap()
+            it[isUnlocked] = instance.isUnlocked
+            it[unlockedAt] = instance.unlockedAt?.toJavaInstant()
+            it[firstPlayedAt] = instance.firstPlayedAt?.toJavaInstant()
+            it[lastPlayedAt] = instance.lastPlayedAt?.toJavaInstant()
+            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
+            it[sessionCount] = instance.sessionCount
+            it[isFavorite] = instance.isFavorite
+            it[isCompleted] = instance.isCompleted
+            it[completionPercentage] = instance.completionPercentage.toBigDecimal()
+            it[updatedAt] = instance.updatedAt.toJavaInstant()
+        }
+        instance
+    }
+    
+    override suspend fun updateProgress(
+        instanceId: UUID, 
+        completionPercentage: Double,
+        playTimeMinutes: Int
+    ): Boolean = transaction {
+        ChildGameInstances.update({ ChildGameInstances.id eq instanceId }) {
+            it[ChildGameInstances.completionPercentage] = completionPercentage.toBigDecimal()
+            it[totalPlayTimeMinutes] = playTimeMinutes
+            it[updatedAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        } > 0
+    }
+    
+    override suspend fun delete(id: UUID): Boolean = transaction {
+        ChildGameInstances.deleteWhere { ChildGameInstances.id eq id } > 0
+    }
+    
+    private fun ResultRow.toChildGameInstance() = ChildGameInstance(
+        id = this[ChildGameInstances.id].value,
+        childId = this[ChildGameInstances.childId].value,
+        gameId = this[ChildGameInstances.gameId].value,
+        settings = GameSettings.fromMap(this[ChildGameInstances.settings]),
+        preferences = GamePreferences.fromMap(this[ChildGameInstances.preferences]),
+        isUnlocked = this[ChildGameInstances.isUnlocked],
+        unlockedAt = this[ChildGameInstances.unlockedAt]?.toKotlinInstant(),
+        firstPlayedAt = this[ChildGameInstances.firstPlayedAt]?.toKotlinInstant(),
+        lastPlayedAt = this[ChildGameInstances.lastPlayedAt]?.toKotlinInstant(),
+        totalPlayTimeMinutes = this[ChildGameInstances.totalPlayTimeMinutes],
+        sessionCount = this[ChildGameInstances.sessionCount],
+        isFavorite = this[ChildGameInstances.isFavorite],
+        isCompleted = this[ChildGameInstances.isCompleted],
+        completionPercentage = this[ChildGameInstances.completionPercentage].toDouble(),
+        createdAt = this[ChildGameInstances.createdAt].toKotlinInstant(),
+        updatedAt = this[ChildGameInstances.updatedAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// GAME DATA REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class GameDataRepositoryImpl : GameDataRepository {
+    
+    override suspend fun get(instanceId: UUID, dataKey: String): ChildGameData? = transaction {
+        ChildGameData.select { 
+            (ChildGameData.childGameInstanceId eq instanceId) and 
+            (ChildGameData.dataKey eq dataKey)
+        }.singleOrNull()?.toChildGameData()
+    }
+    
+    override suspend fun getAll(instanceId: UUID): List<ChildGameData> = transaction {
+        ChildGameData.select { ChildGameData.childGameInstanceId eq instanceId }
+            .map { it.toChildGameData() }
+    }
+    
+    override suspend fun save(data: ChildGameData): ChildGameData = transaction {
+        ChildGameData.insert {
+            it[id] = data.id
+            it[childGameInstanceId] = data.childGameInstanceId
+            it[dataKey] = data.dataKey
+            it[dataVersion] = data.dataVersion
+            it[dataValue] = data.dataValue.toMap()
+            it[createdAt] = data.createdAt.toJavaInstant()
+            it[updatedAt] = data.updatedAt.toJavaInstant()
+        }
+        data
+    }
+    
+    override suspend fun update(instanceId: UUID, dataKey: String, value: GameDataValue): Boolean = transaction {
+        val existing = get(instanceId, dataKey)
+        if (existing != null) {
+            ChildGameData.update({ 
+                (ChildGameData.childGameInstanceId eq instanceId) and 
+                (ChildGameData.dataKey eq dataKey)
+            }) {
+                it[dataValue] = value.toMap()
+                it[dataVersion] = existing.dataVersion + 1
+                it[updatedAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+            } > 0
+        } else {
+            save(ChildGameData(
+                childGameInstanceId = instanceId,
+                dataKey = dataKey,
+                dataValue = value,
+                createdAt = kotlinx.datetime.Clock.System.now(),
+                updatedAt = kotlinx.datetime.Clock.System.now()
+            ))
+            true
+        }
+    }
+    
+    override suspend fun batchUpdate(instanceId: UUID, updates: Map<String, GameDataValue>): Boolean = transaction {
+        var success = true
+        for ((key, value) in updates) {
+            if (!update(instanceId, key, value)) {
+                success = false
+            }
+        }
+        success
+    }
+    
+    override suspend fun delete(instanceId: UUID, dataKey: String): Boolean = transaction {
+        ChildGameData.deleteWhere { 
+            (ChildGameData.childGameInstanceId eq instanceId) and 
+            (ChildGameData.dataKey eq dataKey)
+        } > 0
+    }
+    
+    override suspend fun deleteAll(instanceId: UUID): Boolean = transaction {
+        ChildGameData.deleteWhere { ChildGameData.childGameInstanceId eq instanceId } >= 0
+    }
+    
+    private fun ResultRow.toChildGameData() = ChildGameData(
+        id = this[ChildGameData.id].value,
+        childGameInstanceId = this[ChildGameData.childGameInstanceId].value,
+        dataKey = this[ChildGameData.dataKey],
+        dataVersion = this[ChildGameData.dataVersion],
+        dataValue = GameDataValue.fromMap(this[ChildGameData.dataValue]),
+        createdAt = this[ChildGameData.createdAt].toKotlinInstant(),
+        updatedAt = this[ChildGameData.updatedAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// GAME SESSION REPOSITORY IMPLEMENTATION  
+// =============================================================================
+
+class GameSessionRepositoryImpl : GameSessionRepository {
+    
+    override suspend fun findById(id: UUID): GameSession? = transaction {
+        GameSessions.select { GameSessions.id eq id }
+            .singleOrNull()
+            ?.toGameSession()
+    }
+    
+    override suspend fun findByInstance(instanceId: UUID, limit: Int): List<GameSession> = transaction {
+        GameSessions.select { GameSessions.childGameInstanceId eq instanceId }
+            .orderBy(GameSessions.startedAt, SortOrder.DESC)
+            .limit(limit)
+            .map { it.toGameSession() }
+    }
+    
+    override suspend fun findActive(instanceId: UUID): GameSession? = transaction {
+        GameSessions.select { 
+            (GameSessions.childGameInstanceId eq instanceId) and 
+            GameSessions.endedAt.isNull()
+        }.singleOrNull()?.toGameSession()
+    }
+    
+    override suspend fun create(session: GameSession): GameSession = transaction {
+        GameSessions.insert {
+            it[id] = session.id
+            it[childGameInstanceId] = session.childGameInstanceId
+            it[startedAt] = session.startedAt.toJavaInstant()
+            it[endedAt] = session.endedAt?.toJavaInstant()
+            it[durationMinutes] = session.durationMinutes
+            it[deviceType] = session.deviceType
+            it[appVersion] = session.appVersion
+            it[gameVersion] = session.gameVersion
+            it[sessionData] = session.sessionData.toMap()
+            it[events] = session.events.map { event -> event.toMap() }
+            it[createdAt] = session.createdAt.toJavaInstant()
+        }
+        session
+    }
+    
+    override suspend fun update(session: GameSession): GameSession = transaction {
+        GameSessions.update({ GameSessions.id eq session.id }) {
+            it[endedAt] = session.endedAt?.toJavaInstant()
+            it[durationMinutes] = session.durationMinutes
+            it[sessionData] = session.sessionData.toMap()
+            it[events] = session.events.map { event -> event.toMap() }
+        }
+        session
+    }
+    
+    override suspend fun end(sessionId: UUID, metrics: SessionMetrics): GameSession? = transaction {
+        val endTime = kotlinx.datetime.Clock.System.now()
+        val session = findById(sessionId)
+        if (session != null) {
+            val duration = (endTime - session.startedAt).inWholeMinutes.toInt()
+            GameSessions.update({ GameSessions.id eq sessionId }) {
+                it[endedAt] = endTime.toJavaInstant()
+                it[durationMinutes] = duration
+                it[sessionData] = metrics.toMap()
+            }
+            session.copy(
+                endedAt = endTime,
+                durationMinutes = duration,
+                sessionData = metrics
+            )
+        } else null
+    }
+    
+    override suspend fun addEvent(sessionId: UUID, event: GameEvent): Boolean = transaction {
+        val session = findById(sessionId)
+        if (session != null) {
+            val updatedEvents = session.events + event
+            GameSessions.update({ GameSessions.id eq sessionId }) {
+                it[events] = updatedEvents.map { e -> e.toMap() }
+            } > 0
+        } else false
+    }
+    
+    override suspend fun getSessionStats(childId: UUID, startDate: String, endDate: String): SessionStats {
+        // Implementation would require joining with child game instances
+        // For now, return a default value
+        return SessionStats(0, 0, 0.0, 0, 0)
+    }
+    
+    private fun ResultRow.toGameSession() = GameSession(
+        id = this[GameSessions.id].value,
+        childGameInstanceId = this[GameSessions.childGameInstanceId].value,
+        startedAt = this[GameSessions.startedAt].toKotlinInstant(),
+        endedAt = this[GameSessions.endedAt]?.toKotlinInstant(),
+        durationMinutes = this[GameSessions.durationMinutes],
+        deviceType = this[GameSessions.deviceType],
+        appVersion = this[GameSessions.appVersion],
+        gameVersion = this[GameSessions.gameVersion],
+        sessionData = SessionMetrics.fromMap(this[GameSessions.sessionData]),
+        events = this[GameSessions.events].map { GameEvent.fromMap(it) },
+        createdAt = this[GameSessions.createdAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// EXTENSION FUNCTIONS FOR SERIALIZATION
+// =============================================================================
+
+private fun GameConfiguration.toMap(): Map<String, Any> = mapOf(
+    "features" to features,
+    "limits" to limits,
+    "customSettings" to customSettings
+)
+
+private fun GameConfiguration.Companion.fromMap(map: Map<String, Any>): GameConfiguration = GameConfiguration(
+    features = (map["features"] as? Map<String, String>) ?: emptyMap(),
+    limits = (map["limits"] as? Map<String, Int>) ?: emptyMap(),
+    customSettings = (map["customSettings"] as? Map<String, String>) ?: emptyMap()
+)
+
+private fun GameSettings.toMap(): Map<String, Any> = mapOf(
+    "soundEnabled" to soundEnabled,
+    "animationsEnabled" to animationsEnabled,
+    "autoSave" to autoSave,
+    "tutorialCompleted" to tutorialCompleted,
+    "difficulty" to difficulty,
+    "customSettings" to customSettings
+)
+
+private fun GameSettings.Companion.fromMap(map: Map<String, Any>): GameSettings = GameSettings(
+    soundEnabled = map["soundEnabled"] as? Boolean ?: true,
+    animationsEnabled = map["animationsEnabled"] as? Boolean ?: true,
+    autoSave = map["autoSave"] as? Boolean ?: true,
+    tutorialCompleted = map["tutorialCompleted"] as? Boolean ?: false,
+    difficulty = map["difficulty"] as? String ?: "normal",
+    customSettings = (map["customSettings"] as? Map<String, String>) ?: emptyMap()
+)
+
+private fun GamePreferences.toMap(): Map<String, Any> = mapOf(
+    "theme" to theme,
+    "sortOrder" to sortOrder,
+    "displayMode" to displayMode,
+    "customPreferences" to customPreferences
+)
+
+private fun GamePreferences.Companion.fromMap(map: Map<String, Any>): GamePreferences = GamePreferences(
+    theme = map["theme"] as? String ?: "default",
+    sortOrder = map["sortOrder"] as? String ?: "newest_first",
+    displayMode = map["displayMode"] as? String ?: "grid",
+    customPreferences = (map["customPreferences"] as? Map<String, String>) ?: emptyMap()
+)
+
+private fun GameDataValue.toMap(): Map<String, Any> = when (this) {
+    is GameDataValue.StringValue -> mapOf("type" to "string", "value" to value)
+    is GameDataValue.IntValue -> mapOf("type" to "int", "value" to value)
+    is GameDataValue.BooleanValue -> mapOf("type" to "boolean", "value" to value)
+    is GameDataValue.ListValue -> mapOf("type" to "list", "value" to value)
+    is GameDataValue.MapValue -> mapOf("type" to "map", "value" to value)
+    is GameDataValue.JsonValue -> mapOf("type" to "json", "value" to value)
+}
+
+private fun GameDataValue.Companion.fromMap(map: Map<String, Any>): GameDataValue {
+    return when (map["type"] as String) {
+        "string" -> GameDataValue.StringValue(map["value"] as String)
+        "int" -> GameDataValue.IntValue(map["value"] as Int)
+        "boolean" -> GameDataValue.BooleanValue(map["value"] as Boolean)
+        "list" -> GameDataValue.ListValue(map["value"] as List<String>)
+        "map" -> GameDataValue.MapValue(map["value"] as Map<String, String>)
+        "json" -> GameDataValue.JsonValue(map["value"] as String)
+        else -> GameDataValue.StringValue("")
+    }
+}
+
+private fun SessionMetrics.toMap(): Map<String, Any> = mapOf(
+    "clickCount" to clickCount,
+    "errorCount" to errorCount,
+    "hintCount" to hintCount,
+    "scoreEarned" to scoreEarned,
+    "itemsCollected" to itemsCollected,
+    "customMetrics" to customMetrics
+)
+
+private fun SessionMetrics.Companion.fromMap(map: Map<String, Any>): SessionMetrics = SessionMetrics(
+    clickCount = map["clickCount"] as? Int ?: 0,
+    errorCount = map["errorCount"] as? Int ?: 0,
+    hintCount = map["hintCount"] as? Int ?: 0,
+    scoreEarned = map["scoreEarned"] as? Int ?: 0,
+    itemsCollected = map["itemsCollected"] as? Int ?: 0,
+    customMetrics = (map["customMetrics"] as? Map<String, Int>) ?: emptyMap()
+)
+
+private fun GameEvent.toMap(): Map<String, Any> = mapOf(
+    "type" to type,
+    "timestamp" to timestamp.toString(),
+    "data" to data
+)
+
+private fun GameEvent.Companion.fromMap(map: Map<String, Any>): GameEvent = GameEvent(
+    type = map["type"] as String,
+    timestamp = kotlinx.datetime.Instant.parse(map["timestamp"] as String),
+    data = (map["data"] as? Map<String, String>) ?: emptyMap()
+)

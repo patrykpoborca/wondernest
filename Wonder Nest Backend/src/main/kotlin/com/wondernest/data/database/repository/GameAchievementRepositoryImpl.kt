@@ -1,0 +1,383 @@
+package com.wondernest.data.database.repository
+
+import com.wondernest.data.database.table.*
+import com.wondernest.domain.model.games.*
+import com.wondernest.domain.repository.games.*
+import kotlinx.datetime.toKotlinInstant
+import kotlinx.datetime.toJavaInstant
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
+
+// =============================================================================
+// ACHIEVEMENT REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class AchievementRepositoryImpl : AchievementRepository {
+    
+    override suspend fun findById(id: UUID): Achievement? = transaction {
+        Achievements.select { Achievements.id eq id }
+            .singleOrNull()
+            ?.toAchievement()
+    }
+    
+    override suspend fun findByGame(gameId: UUID): List<Achievement> = transaction {
+        Achievements.select { 
+            (Achievements.gameId eq gameId) and 
+            (Achievements.isActive eq true)
+        }.map { it.toAchievement() }
+    }
+    
+    override suspend fun findByKey(gameId: UUID, achievementKey: String): Achievement? = transaction {
+        Achievements.select { 
+            (Achievements.gameId eq gameId) and 
+            (Achievements.achievementKey eq achievementKey)
+        }.singleOrNull()?.toAchievement()
+    }
+    
+    override suspend fun create(achievement: Achievement): Achievement = transaction {
+        Achievements.insert {
+            it[id] = achievement.id
+            it[gameId] = achievement.gameId
+            it[achievementKey] = achievement.achievementKey
+            it[name] = achievement.name
+            it[description] = achievement.description
+            it[iconUrl] = achievement.iconUrl
+            it[criteria] = achievement.criteria.toMap()
+            it[points] = achievement.points
+            it[category] = achievement.category
+            it[rarity] = achievement.rarity.name.lowercase()
+            it[sortOrder] = achievement.sortOrder
+            it[isSecret] = achievement.isSecret
+            it[isActive] = achievement.isActive
+            it[createdAt] = achievement.createdAt.toJavaInstant()
+        }
+        achievement
+    }
+    
+    override suspend fun update(achievement: Achievement): Achievement = transaction {
+        Achievements.update({ Achievements.id eq achievement.id }) {
+            it[name] = achievement.name
+            it[description] = achievement.description
+            it[iconUrl] = achievement.iconUrl
+            it[criteria] = achievement.criteria.toMap()
+            it[points] = achievement.points
+            it[category] = achievement.category
+            it[rarity] = achievement.rarity.name.lowercase()
+            it[sortOrder] = achievement.sortOrder
+            it[isSecret] = achievement.isSecret
+            it[isActive] = achievement.isActive
+        }
+        achievement
+    }
+    
+    override suspend fun delete(id: UUID): Boolean = transaction {
+        Achievements.deleteWhere { Achievements.id eq id } > 0
+    }
+    
+    // Child achievements
+    override suspend fun getUnlocked(instanceId: UUID): List<ChildAchievement> = transaction {
+        ChildAchievements.select { ChildAchievements.childGameInstanceId eq instanceId }
+            .map { it.toChildAchievement() }
+    }
+    
+    override suspend fun unlock(instanceId: UUID, achievementId: UUID, sessionId: UUID?): ChildAchievement = transaction {
+        val childAchievement = ChildAchievement(
+            childGameInstanceId = instanceId,
+            achievementId = achievementId,
+            unlockedAt = kotlinx.datetime.Clock.System.now(),
+            gameSessionId = sessionId,
+            createdAt = kotlinx.datetime.Clock.System.now()
+        )
+        
+        ChildAchievements.insert {
+            it[id] = childAchievement.id
+            it[childGameInstanceId] = childAchievement.childGameInstanceId
+            it[ChildAchievements.achievementId] = childAchievement.achievementId
+            it[unlockedAt] = childAchievement.unlockedAt.toJavaInstant()
+            it[gameSessionId] = childAchievement.gameSessionId
+            it[createdAt] = childAchievement.createdAt.toJavaInstant()
+        }
+        
+        childAchievement
+    }
+    
+    override suspend fun isUnlocked(instanceId: UUID, achievementId: UUID): Boolean = transaction {
+        ChildAchievements.select {
+            (ChildAchievements.childGameInstanceId eq instanceId) and
+            (ChildAchievements.achievementId eq achievementId)
+        }.count() > 0
+    }
+    
+    override suspend fun getProgress(instanceId: UUID): Map<UUID, AchievementProgress> = transaction {
+        // This would need game-specific logic to calculate progress
+        // For now, return empty map
+        emptyMap()
+    }
+    
+    private fun ResultRow.toAchievement() = Achievement(
+        id = this[Achievements.id].value,
+        gameId = this[Achievements.gameId].value,
+        achievementKey = this[Achievements.achievementKey],
+        name = this[Achievements.name],
+        description = this[Achievements.description],
+        iconUrl = this[Achievements.iconUrl],
+        criteria = AchievementCriteria.fromMap(this[Achievements.criteria]),
+        points = this[Achievements.points],
+        category = this[Achievements.category],
+        rarity = AchievementRarity.valueOf(this[Achievements.rarity].uppercase()),
+        sortOrder = this[Achievements.sortOrder],
+        isSecret = this[Achievements.isSecret],
+        isActive = this[Achievements.isActive],
+        createdAt = this[Achievements.createdAt].toKotlinInstant()
+    )
+    
+    private fun ResultRow.toChildAchievement() = ChildAchievement(
+        id = this[ChildAchievements.id].value,
+        childGameInstanceId = this[ChildAchievements.childGameInstanceId].value,
+        achievementId = this[ChildAchievements.achievementId].value,
+        unlockedAt = this[ChildAchievements.unlockedAt].toKotlinInstant(),
+        gameSessionId = this[ChildAchievements.gameSessionId]?.value,
+        createdAt = this[ChildAchievements.createdAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// VIRTUAL CURRENCY REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class VirtualCurrencyRepositoryImpl : VirtualCurrencyRepository {
+    
+    override suspend fun getBalance(childId: UUID): VirtualCurrency? = transaction {
+        VirtualCurrency.select { VirtualCurrency.childId eq childId }
+            .singleOrNull()
+            ?.toVirtualCurrency()
+    }
+    
+    override suspend fun createAccount(childId: UUID): VirtualCurrency = transaction {
+        val account = VirtualCurrency(
+            childId = childId,
+            balance = 0,
+            totalEarned = 0,
+            totalSpent = 0,
+            lastUpdated = kotlinx.datetime.Clock.System.now()
+        )
+        
+        VirtualCurrency.insert {
+            it[id] = account.id
+            it[VirtualCurrency.childId] = account.childId
+            it[balance] = account.balance
+            it[totalEarned] = account.totalEarned
+            it[totalSpent] = account.totalSpent
+            it[lastUpdated] = account.lastUpdated.toJavaInstant()
+        }
+        
+        account
+    }
+    
+    override suspend fun addCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean = transaction {
+        val account = getBalance(childId) ?: createAccount(childId)
+        
+        // Update balance
+        VirtualCurrency.update({ VirtualCurrency.childId eq childId }) {
+            it[balance] = account.balance + amount
+            it[totalEarned] = account.totalEarned + amount
+            it[lastUpdated] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        }
+        
+        // Record transaction
+        CurrencyTransactions.insert {
+            it[id] = UUID.randomUUID()
+            it[CurrencyTransactions.childId] = childId
+            it[CurrencyTransactions.amount] = amount
+            it[transactionType] = TransactionType.EARNED.name.lowercase()
+            it[CurrencyTransactions.source] = source
+            it[CurrencyTransactions.description] = description
+            it[createdAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        }
+        
+        true
+    }
+    
+    override suspend fun spendCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean = transaction {
+        val account = getBalance(childId) ?: return@transaction false
+        
+        if (account.balance < amount) {
+            return@transaction false
+        }
+        
+        // Update balance
+        VirtualCurrency.update({ VirtualCurrency.childId eq childId }) {
+            it[balance] = account.balance - amount
+            it[totalSpent] = account.totalSpent + amount
+            it[lastUpdated] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        }
+        
+        // Record transaction
+        CurrencyTransactions.insert {
+            it[id] = UUID.randomUUID()
+            it[CurrencyTransactions.childId] = childId
+            it[CurrencyTransactions.amount] = -amount
+            it[transactionType] = TransactionType.SPENT.name.lowercase()
+            it[CurrencyTransactions.source] = source
+            it[CurrencyTransactions.description] = description
+            it[createdAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        }
+        
+        true
+    }
+    
+    override suspend fun getTransactionHistory(childId: UUID, limit: Int): List<CurrencyTransaction> = transaction {
+        CurrencyTransactions.select { CurrencyTransactions.childId eq childId }
+            .orderBy(CurrencyTransactions.createdAt, SortOrder.DESC)
+            .limit(limit)
+            .map { it.toCurrencyTransaction() }
+    }
+    
+    override suspend fun refund(transactionId: UUID): Boolean = transaction {
+        // Implementation would need to reverse a specific transaction
+        // For now, return false (not implemented)
+        false
+    }
+    
+    private fun ResultRow.toVirtualCurrency() = VirtualCurrency(
+        id = this[VirtualCurrency.id].value,
+        childId = this[VirtualCurrency.childId].value,
+        balance = this[VirtualCurrency.balance],
+        totalEarned = this[VirtualCurrency.totalEarned],
+        totalSpent = this[VirtualCurrency.totalSpent],
+        lastUpdated = this[VirtualCurrency.lastUpdated].toKotlinInstant()
+    )
+    
+    private fun ResultRow.toCurrencyTransaction() = CurrencyTransaction(
+        id = this[CurrencyTransactions.id].value,
+        childId = this[CurrencyTransactions.childId].value,
+        amount = this[CurrencyTransactions.amount],
+        transactionType = TransactionType.valueOf(this[CurrencyTransactions.transactionType].uppercase()),
+        source = this[CurrencyTransactions.source],
+        description = this[CurrencyTransactions.description],
+        createdAt = this[CurrencyTransactions.createdAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// GAME ANALYTICS REPOSITORY IMPLEMENTATION
+// =============================================================================
+
+class GameAnalyticsRepositoryImpl : GameAnalyticsRepository {
+    
+    override suspend fun recordMetrics(metrics: DailyGameMetrics): Boolean = transaction {
+        try {
+            DailyGameMetrics.insert {
+                it[id] = metrics.id
+                it[childId] = metrics.childId
+                it[gameId] = metrics.gameId
+                it[date] = kotlinx.datetime.LocalDate.parse(metrics.date)
+                it[playTimeMinutes] = metrics.playTimeMinutes
+                it[sessionsCount] = metrics.sessionsCount
+                it[achievementsUnlocked] = metrics.achievementsUnlocked
+                it[DailyGameMetrics.metrics] = metrics.metrics
+                it[createdAt] = metrics.createdAt.toJavaInstant()
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    override suspend fun getMetrics(
+        childId: UUID, 
+        gameId: UUID?, 
+        startDate: String, 
+        endDate: String
+    ): List<DailyGameMetrics> = transaction {
+        val startLocalDate = kotlinx.datetime.LocalDate.parse(startDate)
+        val endLocalDate = kotlinx.datetime.LocalDate.parse(endDate)
+        
+        val query = if (gameId != null) {
+            DailyGameMetrics.select { 
+                (DailyGameMetrics.childId eq childId) and
+                (DailyGameMetrics.gameId eq gameId) and
+                (DailyGameMetrics.date greaterEq startLocalDate) and
+                (DailyGameMetrics.date lessEq endLocalDate)
+            }
+        } else {
+            DailyGameMetrics.select { 
+                (DailyGameMetrics.childId eq childId) and
+                (DailyGameMetrics.date greaterEq startLocalDate) and
+                (DailyGameMetrics.date lessEq endLocalDate)
+            }
+        }
+        
+        query.map { it.toDailyGameMetrics() }
+    }
+    
+    override suspend fun getAggregatedMetrics(childId: UUID, period: String): AggregatedMetrics = transaction {
+        // Implementation would aggregate metrics for the specified period
+        // For now, return default values
+        AggregatedMetrics(
+            period = period,
+            totalPlayTimeMinutes = 0,
+            sessionsCount = 0,
+            uniqueGamesCount = 0,
+            achievementsCount = 0,
+            favoriteGame = null,
+            skillProgress = emptyMap()
+        )
+    }
+    
+    override suspend fun getGameInsights(childId: UUID, gameId: UUID): GameInsights = transaction {
+        // Implementation would analyze game play patterns
+        // For now, return default values
+        GameInsights(
+            gameId = gameId,
+            engagementScore = 0.0,
+            progressionRate = 0.0,
+            strengthAreas = emptyList(),
+            improvementAreas = emptyList(),
+            recommendations = emptyList()
+        )
+    }
+    
+    override suspend fun getCrossGameInsights(childId: UUID): CrossGameInsights = transaction {
+        // Implementation would analyze patterns across all games
+        // For now, return default values
+        CrossGameInsights(
+            learningStyle = "unknown",
+            preferredGameTypes = emptyList(),
+            skillDevelopment = emptyMap(),
+            socialEngagement = 0.0,
+            creativityScore = 0.0,
+            problemSolvingScore = 0.0
+        )
+    }
+    
+    private fun ResultRow.toDailyGameMetrics() = DailyGameMetrics(
+        id = this[DailyGameMetrics.id].value,
+        childId = this[DailyGameMetrics.childId].value,
+        gameId = this[DailyGameMetrics.gameId]?.value ?: UUID.randomUUID(),
+        date = this[DailyGameMetrics.date].toString(),
+        playTimeMinutes = this[DailyGameMetrics.playTimeMinutes],
+        sessionsCount = this[DailyGameMetrics.sessionsCount],
+        achievementsUnlocked = this[DailyGameMetrics.achievementsUnlocked],
+        metrics = this[DailyGameMetrics.metrics],
+        createdAt = this[DailyGameMetrics.createdAt].toKotlinInstant()
+    )
+}
+
+// =============================================================================
+// EXTENSION FUNCTIONS FOR ACHIEVEMENT CRITERIA
+// =============================================================================
+
+private fun AchievementCriteria.toMap(): Map<String, Any> = mapOf(
+    "type" to type,
+    "threshold" to threshold,
+    "conditions" to conditions
+)
+
+private fun AchievementCriteria.Companion.fromMap(map: Map<String, Any>): AchievementCriteria = AchievementCriteria(
+    type = map["type"] as String,
+    threshold = map["threshold"] as Int,
+    conditions = (map["conditions"] as? Map<String, String>) ?: emptyMap()
+)

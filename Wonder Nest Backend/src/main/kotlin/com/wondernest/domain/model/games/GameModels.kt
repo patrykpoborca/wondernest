@@ -120,7 +120,9 @@ data class GameEvent(
     val type: String,
     val timestamp: Instant,
     val data: Map<String, String> = emptyMap()
-)
+) {
+    companion object
+}
 
 // =============================================================================
 // ACHIEVEMENTS
@@ -268,6 +270,8 @@ sealed class GameDataValue {
     
     @Serializable
     data class JsonValue(val value: String) : GameDataValue() // Raw JSON string
+    
+    companion object
 }
 
 // =============================================================================
@@ -279,7 +283,9 @@ data class GameConfiguration(
     val features: Map<String, String> = emptyMap(),
     val limits: Map<String, Int> = emptyMap(),
     val customSettings: Map<String, String> = emptyMap()
-)
+) {
+    companion object
+}
 
 @Serializable
 data class GameSettings(
@@ -289,7 +295,9 @@ data class GameSettings(
     val tutorialCompleted: Boolean = false,
     val difficulty: String = "normal",
     val customSettings: Map<String, String> = emptyMap()
-)
+) {
+    companion object
+}
 
 @Serializable
 data class GamePreferences(
@@ -297,7 +305,9 @@ data class GamePreferences(
     val sortOrder: String = "newest_first",
     val displayMode: String = "grid",
     val customPreferences: Map<String, String> = emptyMap()
-)
+) {
+    companion object
+}
 
 @Serializable
 data class GameDataSchema(
@@ -314,14 +324,18 @@ data class SessionMetrics(
     val scoreEarned: Int = 0,
     val itemsCollected: Int = 0,
     val customMetrics: Map<String, Int> = emptyMap()
-)
+) {
+    companion object
+}
 
 @Serializable
 data class AchievementCriteria(
     val type: String, // 'score_threshold', 'items_collected', 'time_played', etc.
     val threshold: Int,
     val conditions: Map<String, String> = emptyMap()
-)
+) {
+    companion object
+}
 
 // =============================================================================
 // ENUMS
