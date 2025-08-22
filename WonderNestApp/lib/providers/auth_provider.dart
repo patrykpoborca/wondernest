@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/services/api_service.dart';
+import '../core/services/timber_wrapper.dart';
 
 // Export ApiService for convenience
 export '../core/services/api_service.dart' show ApiService;
@@ -58,13 +59,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> login(String email, String password) async {
+    Timber.i('[AuthProvider] Starting login process for email: $email');
     state = state.copyWith(isLoading: true, error: null);
 
     try {
+      Timber.i('[AuthProvider] Calling API service login');
       final response = await _apiService.login(email, password);
+      Timber.i('[AuthProvider] Login response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final responseData = response.data;
+        Timber.i('[AuthProvider] Login response data: $responseData');
         
         // Handle the nested data structure from API
         if (responseData['success'] == true && responseData['data'] != null) {
@@ -83,18 +88,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
             'children': data['children'] ?? [],
           };
           
+          Timber.i('[AuthProvider] Login successful, user data saved');
           state = state.copyWith(
             user: userData,
             isLoggedIn: true,
             isLoading: false,
           );
           return true;
+        } else {
+          Timber.w('[AuthProvider] Login response missing success/data: $responseData');
         }
+      } else {
+        Timber.w('[AuthProvider] Login failed with status code: ${response.statusCode}');
       }
     } catch (e) {
+      Timber.e('[AuthProvider] Login error: ${e.toString()}');
       String errorMessage = 'Invalid email or password';
 
       if (e is DioException) {
+        Timber.e('[AuthProvider] DioException type: ${e.type}');
+        Timber.e('[AuthProvider] DioException message: ${e.message}');
+        if (e.response != null) {
+          Timber.e('[AuthProvider] Response status: ${e.response?.statusCode}');
+          Timber.e('[AuthProvider] Response data: ${e.response?.data}');
+        }
         if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
           final responseData = e.response?.data;
           if (responseData is Map<String, dynamic>) {

@@ -1,11 +1,28 @@
 import 'package:dio/dio.dart';
+import 'dart:io' show Platform;
 import '../../core/services/timber_wrapper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'mock_api_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8080/api/v1';
+  // Use 10.0.2.2 for Android emulator, localhost for iOS simulator/physical devices
+  static String get baseUrl {
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8080/api/v1';
+    } else {
+      return 'http://localhost:8080/api/v1';
+    }
+  }
+  
+  static String get healthUrl {
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8080';
+    } else {
+      return 'http://localhost:8080';
+    }
+  }
+  
   static const String tokenKey = 'auth_token';
   static const String refreshTokenKey = 'refresh_token';
   
@@ -21,6 +38,11 @@ class ApiService {
   final MockApiService _mockService = MockApiService();
   
   ApiService._internal() {
+    Timber.i('[API] Initializing ApiService');
+    Timber.i('[API] Platform: ${Platform.operatingSystem}');
+    Timber.i('[API] Base URL: $baseUrl');
+    Timber.i('[API] Health URL: $healthUrl');
+    
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -120,21 +142,24 @@ class ApiService {
     return token != null;
   }
   
+  // Helper method to check if we're using mock service
+  bool get isUsingMockService => _useMockService;
+  
   Future<void> _checkBackendAvailability() async {
     try {
       // Check the actual health endpoint (without /api/v1 prefix)
       final healthDio = Dio(BaseOptions(
-        baseUrl: 'http://localhost:8080',
+        baseUrl: healthUrl,
         connectTimeout: const Duration(seconds: 2),
         receiveTimeout: const Duration(seconds: 2),
       ));
       await healthDio.get('/health');
       _useMockService = false;
-      Timber.i('[API] Connected to real backend at http://localhost:8080');
+      Timber.i('[API] Connected to real backend at $healthUrl');
     } catch (e) {
       // Backend not available, using mock service
       _useMockService = true;
-      Timber.w('[API] Backend not available, using mock service');
+      Timber.w('[API] Backend not available at $healthUrl, using mock service. Error: ${e.toString()}');
     }
   }
   
@@ -145,7 +170,7 @@ class ApiService {
     }
     // Health endpoint is at root level, not under /api/v1
     final healthDio = Dio(BaseOptions(
-      baseUrl: 'http://localhost:8080',
+      baseUrl: healthUrl,
       connectTimeout: const Duration(seconds: 2),
       receiveTimeout: const Duration(seconds: 2),
     ));
@@ -155,8 +180,14 @@ class ApiService {
   // Auth endpoints
   Future<Response> login(String email, String password) {
     if (_useMockService) {
+      Timber.i('[API] Using mock service for login');
       return _mockService.login(email, password);
     }
+    
+    Timber.i('[API] Making login request to ${baseUrl}/auth/parent/login');
+    Timber.i('[API] Platform: ${Platform.operatingSystem}');
+    Timber.i('[API] Base URL: $baseUrl');
+    
     return _dio.post('/auth/parent/login', data: {
       'email': email,
       'password': password,
