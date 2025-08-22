@@ -40,7 +40,7 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
   CanvasText? _selectedText;
   
   // Drawing state
-  List<Offset> _currentStroke = [];
+  final ValueNotifier<List<Offset>> _currentStrokeNotifier = ValueNotifier([]);
   bool _isDrawing = false;
   
   // Text editing
@@ -70,6 +70,7 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
     _pulseController.dispose();
     _bounceController.dispose();
     _textController?.dispose();
+    _currentStrokeNotifier.dispose();
     super.dispose();
   }
 
@@ -107,17 +108,24 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
                 behavior: HitTestBehavior.opaque,
                 // Reduce pan distance threshold for more responsive drawing
                 dragStartBehavior: DragStartBehavior.down,
-                child: CustomPaint(
-                  painter: CanvasPainter(
-                    canvas: widget.canvas,
-                    selectedSticker: _selectedSticker,
-                    selectedText: _selectedText,
-                    currentStroke: _currentStroke,
-                    selectedColor: widget.selectedColor,
-                    selectedBrushSize: widget.selectedBrushSize,
-                    isDrawing: _isDrawing,
+                child: RepaintBoundary(
+                  child: ValueListenableBuilder<List<Offset>>(
+                    valueListenable: _currentStrokeNotifier,
+                    builder: (context, currentStroke, child) {
+                      return CustomPaint(
+                        painter: CanvasPainter(
+                          canvas: widget.canvas,
+                          selectedSticker: _selectedSticker,
+                          selectedText: _selectedText,
+                          currentStroke: currentStroke,
+                          selectedColor: widget.selectedColor,
+                          selectedBrushSize: widget.selectedBrushSize,
+                          isDrawing: _isDrawing,
+                        ),
+                        child: Container(),
+                      );
+                    },
                   ),
-                  child: Container(),
                 ),
               ),
             ),
@@ -666,35 +674,35 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
 
   // Drawing operations
   void _startDrawing(Offset position) {
-    setState(() {
-      _isDrawing = true;
-      _currentStroke = [position];
-    });
+    _isDrawing = true;
+    _currentStrokeNotifier.value = [position];
   }
 
   void _continueDrawing(Offset position) {
     if (!_isDrawing) return;
     
+    final currentStroke = _currentStrokeNotifier.value;
+    
     // Add some basic stroke smoothing by avoiding duplicate points that are too close
-    if (_currentStroke.isNotEmpty) {
-      final lastPoint = _currentStroke.last;
+    if (currentStroke.isNotEmpty) {
+      final lastPoint = currentStroke.last;
       final distance = (position - lastPoint).distance;
       // Only add point if it's moved at least 1 pixel to reduce noise but maintain responsiveness
       if (distance < 1.0) return;
     }
     
-    // Immediately update the stroke and trigger repaint
-    setState(() {
-      _currentStroke.add(position);
-    });
+    // Immediately update the stroke and trigger repaint - this is much more efficient
+    // than setState as it only rebuilds the CustomPaint widget
+    _currentStrokeNotifier.value = [...currentStroke, position];
   }
 
   void _finishDrawing() {
-    if (!_isDrawing || _currentStroke.isEmpty) return;
+    final currentStroke = _currentStrokeNotifier.value;
+    if (!_isDrawing || currentStroke.isEmpty) return;
 
     final stroke = DrawingStroke(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      points: List.from(_currentStroke),
+      points: List.from(currentStroke),
       color: widget.selectedColor,
       strokeWidth: widget.selectedBrushSize,
       paintStyle: Paint()
@@ -713,10 +721,8 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
 
     widget.onCanvasChanged(updatedCanvas);
 
-    setState(() {
-      _isDrawing = false;
-      _currentStroke.clear();
-    });
+    _isDrawing = false;
+    _currentStrokeNotifier.value = [];
     
     _playHapticFeedback();
   }
@@ -824,13 +830,27 @@ class CanvasPainter extends CustomPainter {
       if (currentStroke.length == 1) {
         // Draw a single point as a small circle
         paintCanvas.drawCircle(currentStroke.first, selectedBrushSize / 2, paint..style = PaintingStyle.fill);
+      } else if (currentStroke.length == 2) {
+        // Draw a line for two points
+        paintCanvas.drawLine(currentStroke[0], currentStroke[1], paint);
       } else {
-        // Draw the path for multiple points
+        // Draw smoothed path for multiple points using quadratic curves for better performance
         final path = Path();
         path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
         
-        for (int i = 1; i < currentStroke.length; i++) {
-          path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+        for (int i = 1; i < currentStroke.length - 1; i++) {
+          final current = currentStroke[i];
+          final next = currentStroke[i + 1];
+          final controlPoint = Offset(
+            (current.dx + next.dx) / 2,
+            (current.dy + next.dy) / 2,
+          );
+          path.quadraticBezierTo(current.dx, current.dy, controlPoint.dx, controlPoint.dy);
+        }
+        
+        // Connect to the last point
+        if (currentStroke.length > 2) {
+          path.lineTo(currentStroke.last.dx, currentStroke.last.dy);
         }
         
         paint.style = PaintingStyle.stroke;
@@ -841,10 +861,17 @@ class CanvasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CanvasPainter oldDelegate) {
+    // Optimize shouldRepaint to avoid unnecessary repaints
+    // Most sensitive to stroke changes during drawing for smooth performance
+    if (isDrawing || oldDelegate.isDrawing) {
+      return currentStroke != oldDelegate.currentStroke ||
+             isDrawing != oldDelegate.isDrawing ||
+             selectedColor != oldDelegate.selectedColor ||
+             selectedBrushSize != oldDelegate.selectedBrushSize;
+    }
+    
     return canvas != oldDelegate.canvas ||
            selectedSticker != oldDelegate.selectedSticker ||
-           selectedText != oldDelegate.selectedText ||
-           currentStroke != oldDelegate.currentStroke ||
-           isDrawing != oldDelegate.isDrawing;
+           selectedText != oldDelegate.selectedText;
   }
 }

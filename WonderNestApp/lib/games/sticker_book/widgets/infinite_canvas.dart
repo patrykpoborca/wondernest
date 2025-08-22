@@ -42,7 +42,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   StickerZone? _selectedZone;
   
   // Drawing state
-  List<Offset> _currentStroke = [];
+  final ValueNotifier<List<Offset>> _currentStrokeNotifier = ValueNotifier([]);
   bool _isDrawing = false;
   bool _isPanningOrZooming = false;
   
@@ -96,6 +96,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     _bounceController.dispose();
     _textController?.dispose();
     _transformController.dispose();
+    _currentStrokeNotifier.dispose();
     super.dispose();
   }
 
@@ -136,52 +137,59 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
       onInteractionStart: _handleInteractionStart,
       onInteractionUpdate: _handleInteractionUpdate,
       onInteractionEnd: _handleInteractionEnd,
-      child: CustomPaint(
-        painter: InfiniteCanvasPainter(
-          canvas: widget.canvas,
-          viewport: _viewport,
-          selectedSticker: _selectedSticker,
-          selectedText: _selectedText,
-          selectedZone: _selectedZone,
-          currentStroke: _currentStroke,
-          selectedColor: widget.selectedColor,
-          selectedBrushSize: widget.selectedBrushSize,
-          isDrawing: _isDrawing,
-          isCreatingZone: _isCreatingZone,
-          zoneStartPoint: _zoneStartPoint,
-          showGrid: true,
-        ),
-        child: RawGestureDetector(
-          gestures: <Type, GestureRecognizerFactory>{
-            // Enable tap gestures for all tools
-            _ConditionalTapGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalTapGestureRecognizer>(
-              () => _ConditionalTapGestureRecognizer(),
-              (_ConditionalTapGestureRecognizer instance) {
-                instance.onTapDown = _handleTapDown;
-              },
-            ),
-            // Enable pan gestures for drawing and erasing
-            _ConditionalPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalPanGestureRecognizer>(
-              () => _ConditionalPanGestureRecognizer(),
-              (_ConditionalPanGestureRecognizer instance) {
-                instance.onStart = _handlePanStart;
-                instance.onUpdate = _handlePanUpdate;
-                instance.onEnd = _handlePanEnd;
-                instance.shouldAcceptGesture = _shouldAcceptDrawingGesture;
-                // Lower the minimum distance for better drawing sensitivity
-                instance.minFlingDistance = 0.0;
-                instance.minFlingVelocity = 0.0;
-                // Reduce the minimum pan distance for more responsive drawing
-                instance.dragStartBehavior = DragStartBehavior.down;
-              },
-            ),
+      child: RepaintBoundary(
+        child: ValueListenableBuilder<List<Offset>>(
+          valueListenable: _currentStrokeNotifier,
+          builder: (context, currentStroke, child) {
+            return CustomPaint(
+              painter: InfiniteCanvasPainter(
+                canvas: widget.canvas,
+                viewport: _viewport,
+                selectedSticker: _selectedSticker,
+                selectedText: _selectedText,
+                selectedZone: _selectedZone,
+                currentStroke: currentStroke,
+                selectedColor: widget.selectedColor,
+                selectedBrushSize: widget.selectedBrushSize,
+                isDrawing: _isDrawing,
+                isCreatingZone: _isCreatingZone,
+                zoneStartPoint: _zoneStartPoint,
+                showGrid: true,
+              ),
+              child: RawGestureDetector(
+                gestures: <Type, GestureRecognizerFactory>{
+                  // Enable tap gestures for all tools
+                  _ConditionalTapGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalTapGestureRecognizer>(
+                    () => _ConditionalTapGestureRecognizer(),
+                    (_ConditionalTapGestureRecognizer instance) {
+                      instance.onTapDown = _handleTapDown;
+                    },
+                  ),
+                  // Enable pan gestures for drawing and erasing
+                  _ConditionalPanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_ConditionalPanGestureRecognizer>(
+                    () => _ConditionalPanGestureRecognizer(),
+                    (_ConditionalPanGestureRecognizer instance) {
+                      instance.onStart = _handlePanStart;
+                      instance.onUpdate = _handlePanUpdate;
+                      instance.onEnd = _handlePanEnd;
+                      instance.shouldAcceptGesture = _shouldAcceptDrawingGesture;
+                      // Lower the minimum distance for better drawing sensitivity
+                      instance.minFlingDistance = 0.0;
+                      instance.minFlingVelocity = 0.0;
+                      // Reduce the minimum pan distance for more responsive drawing
+                      instance.dragStartBehavior = DragStartBehavior.down;
+                    },
+                  ),
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.transparent,
+                ),
+              ),
+            );
           },
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.transparent,
-          ),
         ),
       ),
     );
@@ -366,7 +374,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
       _clearSelection();
       _isPanningOrZooming = true;
     } else {
-      // Ensure we're ready for drawing
+      // Ensure we're ready for drawing - immediately clear the flag for better responsiveness
       _isPanningOrZooming = false;
     }
   }
@@ -387,12 +395,12 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
       _updateViewportFromTransform();
       _updateCanvas();
     }
-    // Reset pan/zoom state more quickly for drawing
+    // Reset pan/zoom state immediately for drawing tool for maximum responsiveness
     if (widget.selectedTool == CanvasTool.draw) {
       _isPanningOrZooming = false;
     } else {
-      // Small delay for other tools to prevent accidental interactions
-      Future.delayed(const Duration(milliseconds: 50), () {
+      // Very small delay for other tools to prevent accidental interactions
+      Future.delayed(const Duration(milliseconds: 16), () {
         if (mounted) {
           _isPanningOrZooming = false;
         }
@@ -513,7 +521,7 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   
   bool _shouldAcceptDrawingGesture() {
     // Allow drawing gestures when draw or eraser tool is selected
-    // Only block if actively panning/zooming with multiple touches
+    // Prioritize drawing gestures - only block if actively panning/zooming
     return (widget.selectedTool == CanvasTool.draw || widget.selectedTool == CanvasTool.eraser) && !_isPanningOrZooming;
   }
 
@@ -700,35 +708,35 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
   }
 
   void _startDrawing(Offset position) {
-    setState(() {
-      _isDrawing = true;
-      _currentStroke = [position];
-    });
+    _isDrawing = true;
+    _currentStrokeNotifier.value = [position];
   }
 
   void _continueDrawing(Offset position) {
     if (!_isDrawing) return;
     
+    final currentStroke = _currentStrokeNotifier.value;
+    
     // Add some basic stroke smoothing by avoiding duplicate points that are too close
-    if (_currentStroke.isNotEmpty) {
-      final lastPoint = _currentStroke.last;
+    if (currentStroke.isNotEmpty) {
+      final lastPoint = currentStroke.last;
       final distance = (position - lastPoint).distance;
       // Only add point if it's moved at least 1 pixel to reduce noise but maintain responsiveness
       if (distance < 1.0) return;
     }
     
-    // Immediately update the stroke and trigger repaint
-    setState(() {
-      _currentStroke.add(position);
-    });
+    // Immediately update the stroke and trigger repaint - this is much more efficient
+    // than setState as it only rebuilds the CustomPaint widget
+    _currentStrokeNotifier.value = [...currentStroke, position];
   }
 
   void _finishDrawing() {
-    if (!_isDrawing || _currentStroke.isEmpty) return;
+    final currentStroke = _currentStrokeNotifier.value;
+    if (!_isDrawing || currentStroke.isEmpty) return;
 
     final stroke = DrawingStroke(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      points: List.from(_currentStroke),
+      points: List.from(currentStroke),
       color: widget.selectedColor,
       strokeWidth: widget.selectedBrushSize,
       paintStyle: Paint()
@@ -748,10 +756,8 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
 
     widget.onCanvasChanged(updatedCanvas);
 
-    setState(() {
-      _isDrawing = false;
-      _currentStroke.clear();
-    });
+    _isDrawing = false;
+    _currentStrokeNotifier.value = [];
     
     _playHapticFeedback();
   }
@@ -1193,13 +1199,27 @@ class InfiniteCanvasPainter extends CustomPainter {
     if (currentStroke.length == 1) {
       // Draw a single point as a small circle
       paintCanvas.drawCircle(currentStroke.first, selectedBrushSize / 2, paint..style = PaintingStyle.fill);
+    } else if (currentStroke.length == 2) {
+      // Draw a line for two points
+      paintCanvas.drawLine(currentStroke[0], currentStroke[1], paint);
     } else {
-      // Draw the path for multiple points
+      // Draw smoothed path for multiple points using quadratic curves for better performance
       final path = Path();
       path.moveTo(currentStroke.first.dx, currentStroke.first.dy);
       
-      for (int i = 1; i < currentStroke.length; i++) {
-        path.lineTo(currentStroke[i].dx, currentStroke[i].dy);
+      for (int i = 1; i < currentStroke.length - 1; i++) {
+        final current = currentStroke[i];
+        final next = currentStroke[i + 1];
+        final controlPoint = Offset(
+          (current.dx + next.dx) / 2,
+          (current.dy + next.dy) / 2,
+        );
+        path.quadraticBezierTo(current.dx, current.dy, controlPoint.dx, controlPoint.dy);
+      }
+      
+      // Connect to the last point
+      if (currentStroke.length > 2) {
+        path.lineTo(currentStroke.last.dx, currentStroke.last.dy);
       }
       
       paint.style = PaintingStyle.stroke;
@@ -1237,13 +1257,20 @@ class InfiniteCanvasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(InfiniteCanvasPainter oldDelegate) {
+    // Optimize shouldRepaint to avoid unnecessary repaints
+    // Most sensitive to stroke changes during drawing for smooth performance
+    if (isDrawing || oldDelegate.isDrawing) {
+      return currentStroke != oldDelegate.currentStroke ||
+             isDrawing != oldDelegate.isDrawing ||
+             selectedColor != oldDelegate.selectedColor ||
+             selectedBrushSize != oldDelegate.selectedBrushSize;
+    }
+    
     return canvas != oldDelegate.canvas ||
            viewport != oldDelegate.viewport ||
            selectedSticker != oldDelegate.selectedSticker ||
            selectedText != oldDelegate.selectedText ||
            selectedZone != oldDelegate.selectedZone ||
-           currentStroke != oldDelegate.currentStroke ||
-           isDrawing != oldDelegate.isDrawing ||
            isCreatingZone != oldDelegate.isCreatingZone ||
            zoneStartPoint != oldDelegate.zoneStartPoint;
   }
@@ -1512,6 +1539,10 @@ class _ConditionalPanGestureRecognizer extends PanGestureRecognizer {
   void addAllowedPointer(PointerDownEvent event) {
     if (shouldAcceptGesture?.call() == true) {
       super.addAllowedPointer(event);
+      // Enable more aggressive gesture tracking for drawing
+      gestureSettings = DeviceGestureSettings(
+        touchSlop: gestureSettings?.touchSlop ?? kTouchSlop,
+      );
     }
   }
   
