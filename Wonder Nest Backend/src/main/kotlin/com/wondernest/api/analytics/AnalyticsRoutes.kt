@@ -9,6 +9,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.Json
 
 @Serializable
 data class MessageResponse(val message: String)
@@ -156,18 +157,70 @@ fun Route.analyticsRoutes() {
             }
             
             post("/events") {
+                call.application.environment.log.info("=== ANALYTICS EVENT POST REQUEST START ===")
+                
                 try {
-                    val event = call.receive<AnalyticsEvent>()
+                    call.application.environment.log.info("Receiving analytics event...")
+                    
+                    // Log raw request body for debugging
+                    val rawBody = call.receiveText()
+                    call.application.environment.log.info("Raw request body: $rawBody")
+                    call.application.environment.log.info("Raw body length: ${rawBody.length} characters")
+                    
+                    // Parse the JSON manually to get better error information
+                    val event = try {
+                        kotlinx.serialization.json.Json.decodeFromString<AnalyticsEvent>(rawBody)
+                    } catch (jsonException: Exception) {
+                        call.application.environment.log.error("JSON deserialization failed: ${jsonException.message}", jsonException)
+                        call.application.environment.log.error("Failed to parse JSON: $rawBody")
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest, 
+                            MessageResponse("Invalid JSON format: ${jsonException.message}")
+                        )
+                    }
+                    
+                    call.application.environment.log.info("Successfully parsed AnalyticsEvent:")
+                    call.application.environment.log.info("  eventType: '${event.eventType}' (${event.eventType.javaClass.simpleName})")
+                    call.application.environment.log.info("  childId: '${event.childId}' (${event.childId.javaClass.simpleName})")
+                    call.application.environment.log.info("  contentId: '${event.contentId}' (${event.contentId?.javaClass?.simpleName})")
+                    call.application.environment.log.info("  duration: ${event.duration} (${event.duration?.javaClass?.simpleName})")
+                    call.application.environment.log.info("  sessionId: '${event.sessionId}' (${event.sessionId?.javaClass?.simpleName})")
+                    call.application.environment.log.info("  eventData keys: ${event.eventData.keys}")
+                    call.application.environment.log.info("  eventData size: ${event.eventData.size}")
+                    
+                    // Log each eventData field with type information
+                    event.eventData.forEach { (key, value) ->
+                        call.application.environment.log.info("    eventData['$key']: $value (${value.javaClass.simpleName})")
+                    }
                     
                     // Basic validation
-                    if (event.eventType.isBlank() || event.childId.isBlank()) {
-                        return@post call.respond(HttpStatusCode.BadRequest, MessageResponse("Event type and child ID are required"))
+                    if (event.eventType.isBlank()) {
+                        call.application.environment.log.warn("Event type is blank")
+                        return@post call.respond(HttpStatusCode.BadRequest, MessageResponse("Event type is required"))
+                    }
+                    
+                    if (event.childId.isBlank()) {
+                        call.application.environment.log.warn("Child ID is blank")
+                        return@post call.respond(HttpStatusCode.BadRequest, MessageResponse("Child ID is required"))
                     }
 
+                    call.application.environment.log.info("Validating JWT token...")
                     val principal = call.principal<JWTPrincipal>()
-                    val familyId = principal?.payload?.getClaim("familyId")?.asString()
-                        ?: return@post call.respond(HttpStatusCode.BadRequest, MessageResponse("No family context in token"))
+                    if (principal == null) {
+                        call.application.environment.log.warn("No JWT principal found")
+                        return@post call.respond(HttpStatusCode.Unauthorized, MessageResponse("No authentication token"))
+                    }
+                    
+                    val familyId = principal.payload?.getClaim("familyId")?.asString()
+                    call.application.environment.log.info("Family ID from token: '$familyId'")
+                    
+                    if (familyId == null) {
+                        call.application.environment.log.warn("No family context in JWT token")
+                        return@post call.respond(HttpStatusCode.BadRequest, MessageResponse("No family context in token"))
+                    }
 
+                    call.application.environment.log.info("All validation passed, processing event...")
+                    
                     // TODO: PRODUCTION - Store event in analytics database
                     // This would include events like:
                     // - content_started, content_completed, content_paused
@@ -175,16 +228,33 @@ fun Route.analyticsRoutes() {
                     // - milestone_achieved, struggle_detected
                     // - parent_intervention_needed
                     
-                    call.respond(HttpStatusCode.Created, mapOf(
-                        "message" to "Analytics event tracked successfully",
-                        "eventId" to "event_${System.currentTimeMillis()}",
-                        "timestamp" to System.currentTimeMillis()
-                    ))
+                    val eventId = "event_${System.currentTimeMillis()}"
+                    val timestamp = System.currentTimeMillis().toString()
                     
-                    call.application.environment.log.info("Tracked analytics event: ${event.eventType} for child: ${event.childId}")
+                    val response = mapOf(
+                        "message" to "Analytics event tracked successfully",
+                        "eventId" to eventId,
+                        "timestamp" to timestamp
+                    )
+                    
+                    call.application.environment.log.info("Sending success response: $response")
+                    call.respond(HttpStatusCode.Created, response)
+                    
+                    call.application.environment.log.info("Successfully tracked analytics event: ${event.eventType} for child: ${event.childId}")
+                    call.application.environment.log.info("=== ANALYTICS EVENT POST REQUEST SUCCESS ===")
+                    
                 } catch (e: Exception) {
-                    call.application.environment.log.error("Error tracking analytics event", e)
-                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Failed to track event"))
+                    call.application.environment.log.error("=== ANALYTICS EVENT POST REQUEST ERROR ===")
+                    call.application.environment.log.error("Exception type: ${e.javaClass.simpleName}")
+                    call.application.environment.log.error("Exception message: ${e.message}")
+                    call.application.environment.log.error("Full exception:", e)
+                    
+                    // Print stack trace for debugging
+                    val stackTrace = e.stackTrace.joinToString("\n") { "  at $it" }
+                    call.application.environment.log.error("Stack trace:\n$stackTrace")
+                    
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Failed to track event: ${e.message}"))
+                    call.application.environment.log.error("=== ANALYTICS EVENT POST REQUEST ERROR END ===")
                 }
             }
         }
