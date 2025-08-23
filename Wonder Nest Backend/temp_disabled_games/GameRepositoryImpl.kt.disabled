@@ -1,10 +1,9 @@
 package com.wondernest.data.database.repository
 
 import com.wondernest.data.database.table.*
+import com.wondernest.data.database.table.ChildGameData as ChildGameDataTable
 import com.wondernest.domain.model.games.*
 import com.wondernest.domain.repository.games.*
-import kotlinx.datetime.toKotlinInstant
-import kotlinx.datetime.toJavaInstant
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -70,19 +69,14 @@ class GameRegistryRepositoryImpl : GameRegistryRepository {
             it[resourceBundleUrl] = game.resourceBundleUrl
             it[contentRating] = game.contentRating
             it[safetyReviewed] = game.safetyReviewed
-            it[safetyReviewedAt] = game.safetyReviewedAt?.toJavaInstant()
-            it[safetyReviewerId] = game.safetyReviewerId
+            it[safetyReviewedAt] = game.safetyReviewedAt?            it[safetyReviewerId] = game.safetyReviewerId
             it[isActive] = game.isActive
             it[isPremium] = game.isPremium
-            it[releaseDate] = game.releaseDate?.toJavaInstant()
-            it[sunsetDate] = game.sunsetDate?.toJavaInstant()
-            it[tags] = game.tags
+            it[releaseDate] = game.releaseDate?            it[sunsetDate] = game.sunsetDate?            it[tags] = game.tags
             it[keywords] = game.keywords
             it[educationalObjectives] = game.educationalObjectives
             it[skillsDeveloped] = game.skillsDeveloped
-            it[createdAt] = game.createdAt.toJavaInstant()
-            it[updatedAt] = game.updatedAt.toJavaInstant()
-        }
+            it[createdAt] = game.createdAt            it[updatedAt] = game.updatedAt        }
         game
     }
     
@@ -102,18 +96,14 @@ class GameRegistryRepositoryImpl : GameRegistryRepository {
             it[resourceBundleUrl] = game.resourceBundleUrl
             it[contentRating] = game.contentRating
             it[safetyReviewed] = game.safetyReviewed
-            it[safetyReviewedAt] = game.safetyReviewedAt?.toJavaInstant()
-            it[safetyReviewerId] = game.safetyReviewerId
+            it[safetyReviewedAt] = game.safetyReviewedAt?            it[safetyReviewerId] = game.safetyReviewerId
             it[isActive] = game.isActive
             it[isPremium] = game.isPremium
-            it[releaseDate] = game.releaseDate?.toJavaInstant()
-            it[sunsetDate] = game.sunsetDate?.toJavaInstant()
-            it[tags] = game.tags
+            it[releaseDate] = game.releaseDate?            it[sunsetDate] = game.sunsetDate?            it[tags] = game.tags
             it[keywords] = game.keywords
             it[educationalObjectives] = game.educationalObjectives
             it[skillsDeveloped] = game.skillsDeveloped
-            it[updatedAt] = game.updatedAt.toJavaInstant()
-        }
+            it[updatedAt] = game.updatedAt        }
         game
     }
     
@@ -138,19 +128,18 @@ class GameRegistryRepositoryImpl : GameRegistryRepository {
         resourceBundleUrl = this[GameRegistry.resourceBundleUrl],
         contentRating = this[GameRegistry.contentRating],
         safetyReviewed = this[GameRegistry.safetyReviewed],
-        safetyReviewedAt = this[GameRegistry.safetyReviewedAt]?.toKotlinInstant(),
+        safetyReviewedAt = this[GameRegistry.safetyReviewedAt],
         safetyReviewerId = this[GameRegistry.safetyReviewerId]?.value,
         isActive = this[GameRegistry.isActive],
         isPremium = this[GameRegistry.isPremium],
-        releaseDate = this[GameRegistry.releaseDate]?.toKotlinInstant(),
-        sunsetDate = this[GameRegistry.sunsetDate]?.toKotlinInstant(),
+        releaseDate = this[GameRegistry.releaseDate],
+        sunsetDate = this[GameRegistry.sunsetDate],
         tags = this[GameRegistry.tags],
         keywords = this[GameRegistry.keywords],
         educationalObjectives = this[GameRegistry.educationalObjectives],
         skillsDeveloped = this[GameRegistry.skillsDeveloped],
-        createdAt = this[GameRegistry.createdAt].toKotlinInstant(),
-        updatedAt = this[GameRegistry.updatedAt].toKotlinInstant()
-    )
+        createdAt = this[GameRegistry.createdAt],
+        updatedAt = this[GameRegistry.updatedAt]    )
 }
 
 // =============================================================================
@@ -192,17 +181,12 @@ class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
             it[settings] = instance.settings.toMap()
             it[preferences] = instance.preferences.toMap()
             it[isUnlocked] = instance.isUnlocked
-            it[unlockedAt] = instance.unlockedAt?.toJavaInstant()
-            it[firstPlayedAt] = instance.firstPlayedAt?.toJavaInstant()
-            it[lastPlayedAt] = instance.lastPlayedAt?.toJavaInstant()
-            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
+            it[unlockedAt] = instance.unlockedAt?            it[firstPlayedAt] = instance.firstPlayedAt?            it[lastPlayedAt] = instance.lastPlayedAt?            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
             it[sessionCount] = instance.sessionCount
             it[isFavorite] = instance.isFavorite
             it[isCompleted] = instance.isCompleted
             it[completionPercentage] = instance.completionPercentage.toBigDecimal()
-            it[createdAt] = instance.createdAt.toJavaInstant()
-            it[updatedAt] = instance.updatedAt.toJavaInstant()
-        }
+            it[createdAt] = instance.createdAt            it[updatedAt] = instance.updatedAt        }
         instance
     }
     
@@ -211,16 +195,12 @@ class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
             it[settings] = instance.settings.toMap()
             it[preferences] = instance.preferences.toMap()
             it[isUnlocked] = instance.isUnlocked
-            it[unlockedAt] = instance.unlockedAt?.toJavaInstant()
-            it[firstPlayedAt] = instance.firstPlayedAt?.toJavaInstant()
-            it[lastPlayedAt] = instance.lastPlayedAt?.toJavaInstant()
-            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
+            it[unlockedAt] = instance.unlockedAt?            it[firstPlayedAt] = instance.firstPlayedAt?            it[lastPlayedAt] = instance.lastPlayedAt?            it[totalPlayTimeMinutes] = instance.totalPlayTimeMinutes
             it[sessionCount] = instance.sessionCount
             it[isFavorite] = instance.isFavorite
             it[isCompleted] = instance.isCompleted
             it[completionPercentage] = instance.completionPercentage.toBigDecimal()
-            it[updatedAt] = instance.updatedAt.toJavaInstant()
-        }
+            it[updatedAt] = instance.updatedAt        }
         instance
     }
     
@@ -232,8 +212,7 @@ class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
         ChildGameInstances.update({ ChildGameInstances.id eq instanceId }) {
             it[ChildGameInstances.completionPercentage] = completionPercentage.toBigDecimal()
             it[totalPlayTimeMinutes] = playTimeMinutes
-            it[updatedAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
-        } > 0
+            it[updatedAt] = kotlinx.datetime.Clock.System.now()        } > 0
     }
     
     override suspend fun delete(id: UUID): Boolean = transaction {
@@ -247,17 +226,16 @@ class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
         settings = GameSettings.fromMap(this[ChildGameInstances.settings]),
         preferences = GamePreferences.fromMap(this[ChildGameInstances.preferences]),
         isUnlocked = this[ChildGameInstances.isUnlocked],
-        unlockedAt = this[ChildGameInstances.unlockedAt]?.toKotlinInstant(),
-        firstPlayedAt = this[ChildGameInstances.firstPlayedAt]?.toKotlinInstant(),
-        lastPlayedAt = this[ChildGameInstances.lastPlayedAt]?.toKotlinInstant(),
+        unlockedAt = this[ChildGameInstances.unlockedAt],
+        firstPlayedAt = this[ChildGameInstances.firstPlayedAt],
+        lastPlayedAt = this[ChildGameInstances.lastPlayedAt],
         totalPlayTimeMinutes = this[ChildGameInstances.totalPlayTimeMinutes],
         sessionCount = this[ChildGameInstances.sessionCount],
         isFavorite = this[ChildGameInstances.isFavorite],
         isCompleted = this[ChildGameInstances.isCompleted],
         completionPercentage = this[ChildGameInstances.completionPercentage].toDouble(),
-        createdAt = this[ChildGameInstances.createdAt].toKotlinInstant(),
-        updatedAt = this[ChildGameInstances.updatedAt].toKotlinInstant()
-    )
+        createdAt = this[ChildGameInstances.createdAt],
+        updatedAt = this[ChildGameInstances.updatedAt]    )
 }
 
 // =============================================================================
@@ -267,41 +245,38 @@ class ChildGameInstanceRepositoryImpl : ChildGameInstanceRepository {
 class GameDataRepositoryImpl : GameDataRepository {
     
     override suspend fun get(instanceId: UUID, dataKey: String): ChildGameData? = transaction {
-        ChildGameData.select { 
+        ChildGameDataTable.select { 
             (ChildGameData.childGameInstanceId eq instanceId) and 
             (ChildGameData.dataKey eq dataKey)
         }.singleOrNull()?.toChildGameData()
     }
     
     override suspend fun getAll(instanceId: UUID): List<ChildGameData> = transaction {
-        ChildGameData.select { ChildGameData.childGameInstanceId eq instanceId }
+        ChildGameDataTable.select { ChildGameDataTable.childGameInstanceId eq instanceId }
             .map { it.toChildGameData() }
     }
     
     override suspend fun save(data: ChildGameData): ChildGameData = transaction {
-        ChildGameData.insert {
+        ChildGameDataTable.insert {
             it[id] = data.id
             it[childGameInstanceId] = data.childGameInstanceId
             it[dataKey] = data.dataKey
             it[dataVersion] = data.dataVersion
             it[dataValue] = data.dataValue.toMap()
-            it[createdAt] = data.createdAt.toJavaInstant()
-            it[updatedAt] = data.updatedAt.toJavaInstant()
-        }
+            it[createdAt] = data.createdAt            it[updatedAt] = data.updatedAt        }
         data
     }
     
     override suspend fun update(instanceId: UUID, dataKey: String, value: GameDataValue): Boolean = transaction {
         val existing = get(instanceId, dataKey)
         if (existing != null) {
-            ChildGameData.update({ 
+            ChildGameDataTable.update({ 
                 (ChildGameData.childGameInstanceId eq instanceId) and 
                 (ChildGameData.dataKey eq dataKey)
             }) {
                 it[dataValue] = value.toMap()
                 it[dataVersion] = existing.dataVersion + 1
-                it[updatedAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
-            } > 0
+                it[updatedAt] = kotlinx.datetime.Clock.System.now()            } > 0
         } else {
             save(ChildGameData(
                 childGameInstanceId = instanceId,
@@ -332,18 +307,17 @@ class GameDataRepositoryImpl : GameDataRepository {
     }
     
     override suspend fun deleteAll(instanceId: UUID): Boolean = transaction {
-        ChildGameData.deleteWhere { ChildGameData.childGameInstanceId eq instanceId } >= 0
+        ChildGameData.deleteWhere { ChildGameDataTable.childGameInstanceId eq instanceId } >= 0
     }
     
     private fun ResultRow.toChildGameData() = ChildGameData(
-        id = this[ChildGameData.id].value,
-        childGameInstanceId = this[ChildGameData.childGameInstanceId].value,
-        dataKey = this[ChildGameData.dataKey],
-        dataVersion = this[ChildGameData.dataVersion],
-        dataValue = GameDataValue.fromMap(this[ChildGameData.dataValue]),
-        createdAt = this[ChildGameData.createdAt].toKotlinInstant(),
-        updatedAt = this[ChildGameData.updatedAt].toKotlinInstant()
-    )
+        id = this[ChildGameDataTable.id].value,
+        childGameInstanceId = this[ChildGameDataTable.childGameInstanceId].value,
+        dataKey = this[ChildGameDataTable.dataKey],
+        dataVersion = this[ChildGameDataTable.dataVersion],
+        dataValue = GameDataValue.fromMap(this[ChildGameDataTable.dataValue]),
+        createdAt = this[ChildGameDataTable.createdAt],
+        updatedAt = this[ChildGameDataTable.updatedAt]    )
 }
 
 // =============================================================================
@@ -376,55 +350,58 @@ class GameSessionRepositoryImpl : GameSessionRepository {
         GameSessions.insert {
             it[id] = session.id
             it[childGameInstanceId] = session.childGameInstanceId
-            it[startedAt] = session.startedAt.toJavaInstant()
-            it[endedAt] = session.endedAt?.toJavaInstant()
+            it[startedAt] = session.startedAt
+            it[endedAt] = session.endedAt
             it[durationMinutes] = session.durationMinutes
             it[deviceType] = session.deviceType
             it[appVersion] = session.appVersion
             it[gameVersion] = session.gameVersion
             it[sessionData] = session.sessionData.toMap()
             it[events] = session.events.map { event -> event.toMap() }
-            it[createdAt] = session.createdAt.toJavaInstant()
+            it[createdAt] = session.createdAt
         }
         session
     }
     
     override suspend fun update(session: GameSession): GameSession = transaction {
         GameSessions.update({ GameSessions.id eq session.id }) {
-            it[endedAt] = session.endedAt?.toJavaInstant()
-            it[durationMinutes] = session.durationMinutes
+            it[endedAt] = session.endedAt?            it[durationMinutes] = session.durationMinutes
             it[sessionData] = session.sessionData.toMap()
             it[events] = session.events.map { event -> event.toMap() }
         }
         session
     }
     
-    override suspend fun end(sessionId: UUID, metrics: SessionMetrics): GameSession? = transaction {
+    override suspend fun end(sessionId: UUID, metrics: SessionMetrics): GameSession? {
         val endTime = kotlinx.datetime.Clock.System.now()
         val session = findById(sessionId)
-        if (session != null) {
-            val duration = (endTime - session.startedAt).inWholeMinutes.toInt()
-            GameSessions.update({ GameSessions.id eq sessionId }) {
-                it[endedAt] = endTime.toJavaInstant()
-                it[durationMinutes] = duration
-                it[sessionData] = metrics.toMap()
-            }
-            session.copy(
-                endedAt = endTime,
-                durationMinutes = duration,
-                sessionData = metrics
-            )
-        } else null
+        return transaction {
+            if (session != null) {
+                val duration = (endTime - session.startedAt).inWholeMinutes.toInt()
+                GameSessions.update({ GameSessions.id eq sessionId }) {
+                    it[endedAt] = endTime
+                    it[durationMinutes] = duration
+                    it[sessionData] = metrics.toMap()
+                }
+                session.copy(
+                    endedAt = endTime,
+                    durationMinutes = duration,
+                    sessionData = metrics
+                )
+            } else null
+        }
     }
     
-    override suspend fun addEvent(sessionId: UUID, event: GameEvent): Boolean = transaction {
+    override suspend fun addEvent(sessionId: UUID, event: GameEvent): Boolean {
         val session = findById(sessionId)
-        if (session != null) {
-            val updatedEvents = session.events + event
-            GameSessions.update({ GameSessions.id eq sessionId }) {
-                it[events] = updatedEvents.map { e -> e.toMap() }
-            } > 0
-        } else false
+        return transaction {
+            if (session != null) {
+                val updatedEvents = session.events + event
+                GameSessions.update({ GameSessions.id eq sessionId }) {
+                    it[events] = updatedEvents.map { e -> e.toMap() }
+                } > 0
+            } else false
+        }
     }
     
     override suspend fun getSessionStats(childId: UUID, startDate: String, endDate: String): SessionStats {
@@ -436,16 +413,15 @@ class GameSessionRepositoryImpl : GameSessionRepository {
     private fun ResultRow.toGameSession() = GameSession(
         id = this[GameSessions.id].value,
         childGameInstanceId = this[GameSessions.childGameInstanceId].value,
-        startedAt = this[GameSessions.startedAt].toKotlinInstant(),
-        endedAt = this[GameSessions.endedAt]?.toKotlinInstant(),
+        startedAt = this[GameSessions.startedAt],
+        endedAt = this[GameSessions.endedAt],
         durationMinutes = this[GameSessions.durationMinutes],
         deviceType = this[GameSessions.deviceType],
         appVersion = this[GameSessions.appVersion],
         gameVersion = this[GameSessions.gameVersion],
         sessionData = SessionMetrics.fromMap(this[GameSessions.sessionData]),
         events = this[GameSessions.events].map { GameEvent.fromMap(it) },
-        createdAt = this[GameSessions.createdAt].toKotlinInstant()
-    )
+        createdAt = this[GameSessions.createdAt]    )
 }
 
 // =============================================================================

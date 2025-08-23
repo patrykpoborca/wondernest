@@ -4,14 +4,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:math' as math;
 import '../../core/games/game_plugin.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/api_service.dart';
 import '../../models/child_profile.dart';
 import 'sticker_book_plugin.dart';
 import 'models/sticker_models.dart';
 import 'widgets/creative_canvas.dart';
 import 'widgets/infinite_canvas.dart';
+import 'widgets/save_project_dialog.dart';
+import 'widgets/projects_gallery_screen.dart';
 import 'data/sticker_library.dart';
 import 'services/mode_manager.dart';
 import 'services/voice_guidance.dart';
+import 'services/saved_projects_service.dart';
 
 /// Enhanced Sticker Book Creator Game
 class StickerBookGame extends ConsumerStatefulWidget {
@@ -36,6 +40,10 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   late AnimationController _toolbarController;
   late AnimationController _sidebarController;
   late StickerBookModeManager _modeManager;
+  late SavedProjectsService _savedProjectsService;
+  
+  // Canvas key for thumbnail capture
+  final GlobalKey _canvasKey = GlobalKey();
   
   // UI State
   final bool _showToolbar = true;
@@ -50,6 +58,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
     _initializeGame();
     _setupAnimations();
     _initializeVoiceGuidance();
+    _initializeSavedProjectsService();
   }
 
   void _initializeModeManager() {
@@ -64,6 +73,21 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       // Welcome the child
       await Future.delayed(const Duration(milliseconds: 500));
       await voiceGuidanceService.speakWelcome(widget.child.name);
+    }
+  }
+
+  void _initializeSavedProjectsService() async {
+    _savedProjectsService = SavedProjectsService();
+    try {
+      // Initialize with child ID if available for backend sync
+      final childId = widget.child.id; // Assuming child has an ID
+      await _savedProjectsService.initialize(
+        childId: childId,
+        apiService: ApiService(),
+      );
+    } catch (e) {
+      // Handle initialization error silently for better UX
+      debugPrint('[StickerBookGame] Failed to initialize saved projects service: $e');
     }
   }
 
@@ -98,6 +122,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       projects: [defaultProject],
       stickerPacks: stickerPacks,
       currentProjectId: defaultProject.id,
+      currentlyEditingProjectId: null, // Start with no editing project
       ageMode: _modeManager.ageMode,
       childAge: widget.child.age,
     );
@@ -185,7 +210,10 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
                 ),
               ],
             ),
-            child: _buildCanvasWidget(canvas),
+            child: RepaintBoundary(
+              key: _canvasKey,
+              child: _buildCanvasWidget(canvas),
+            ),
           ),
         ),
       ),
@@ -193,6 +221,9 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   }
   
   Widget _buildCanvasWidget(CreativeCanvas canvas) {
+    // DEBUG: Log canvas widget building
+    debugPrint('[StickerBookGame] Building canvas widget for canvas ${canvas.id} with ${canvas.drawings.length} drawings');
+    
     // For little kids, always use simple fixed canvas
     if (_modeManager.isLittleKidMode) {
       return _buildSimpleCanvas(canvas);
@@ -201,6 +232,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
     // For big kids, use the appropriate canvas type
     return canvas.isInfinite && _modeManager.allowPanZoom
         ? InfiniteCanvasWidget(
+            key: ValueKey('infinite_${canvas.id}_${canvas.lastModified.millisecondsSinceEpoch}'), // Force rebuild with key
             canvas: canvas,
             availableStickers: gameState.availableStickers,
             selectedTool: gameState.selectedTool,
@@ -211,6 +243,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
             onToolRequest: _handleToolRequest,
           )
         : CreativeCanvasWidget(
+            key: ValueKey('canvas_${canvas.id}_${canvas.lastModified.millisecondsSinceEpoch}'), // Force rebuild with key
             canvas: canvas,
             availableStickers: gameState.availableStickers,
             selectedTool: gameState.selectedTool,
@@ -239,6 +272,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(17),
         child: CreativeCanvasWidget(
+          key: ValueKey('simple_canvas_${canvas.id}_${canvas.lastModified.millisecondsSinceEpoch}'), // Force rebuild
           canvas: canvas,
           availableStickers: gameState.availableStickers,
           selectedTool: gameState.selectedTool,
@@ -338,6 +372,13 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
                   tooltip: _isInfiniteCanvasMode() ? 'Switch to Standard Canvas' : 'Switch to Infinite Canvas',
                 ),
               
+              // Load/Gallery button
+              IconButton(
+                onPressed: _showProjectsGallery,
+                icon: const Icon(Icons.photo_library, color: Colors.white),
+                tooltip: _modeManager.isLittleKidMode ? 'My Art Gallery' : 'My Creations',
+              ),
+
               // Save button
               IconButton(
                 onPressed: _saveProject,
@@ -351,6 +392,9 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
                 icon: const Icon(Icons.share, color: Colors.white),
                 tooltip: 'Share Creation',
               ),
+              
+              // Sync status indicator
+              _buildSyncStatusIndicator(),
             ],
           ),
         ),
@@ -1092,6 +1136,13 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   }
 
   void _onCanvasChanged(CreativeCanvas canvas) {
+    // DEBUG: Log canvas changes
+    debugPrint('[StickerBookGame] Canvas changed - drawings: ${canvas.drawings.length}');
+    for (int i = 0; i < canvas.drawings.length; i++) {
+      final drawing = canvas.drawings[i];
+      debugPrint('[StickerBookGame] Canvas drawing $i: ${drawing.points.length} points, color: ${drawing.color}');
+    }
+    
     final project = gameState.currentProject;
     if (project == null) return;
 
@@ -1335,23 +1386,220 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   }
 
   void _saveProject() {
-    // TODO: Implement project saving to local storage
+    final project = gameState.currentProject;
+    if (project == null) return;
+    
+    // For little kids, save immediately with auto-generated name
+    if (_modeManager.isLittleKidMode) {
+      _saveProjectWithName(null);
+      return;
+    }
+    
+    // For big kids, show save dialog
+    showDialog(
+      context: context,
+      builder: (context) => SaveProjectDialog(
+        ageMode: gameState.ageMode,
+        suggestedName: project.name,
+        onCancel: () => Navigator.of(context).pop(),
+        onSave: (projectName) {
+          Navigator.of(context).pop();
+          _saveProjectWithName(projectName);
+        },
+      ),
+    );
+  }
+
+  void _saveProjectWithName(String? customName) async {
+    final project = gameState.currentProject;
+    if (project == null) return;
+    
+    try {
+      // Capture thumbnail
+      final thumbnail = await SavedProjectsService.captureWidgetAsImage(_canvasKey);
+      
+      // Save the project (now includes backend sync)
+      final savedProject = await _savedProjectsService.saveProject(
+        project: project,
+        ageMode: gameState.ageMode,
+        customName: customName,
+        thumbnail: thumbnail,
+        editingProjectId: gameState.currentlyEditingProjectId,
+      );
+      
+      // Show success message
+      final isUpdate = gameState.currentlyEditingProjectId != null;
+      final message = _modeManager.isLittleKidMode 
+          ? 'Your amazing "${savedProject.name}" is ${isUpdate ? 'updated' : 'saved'}!' 
+          : 'Project "${savedProject.name}" ${isUpdate ? 'updated' : 'saved'} successfully!';
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: _modeManager.isLittleKidMode ? 4 : 3),
+            action: SnackBarAction(
+              label: _modeManager.isLittleKidMode ? 'Yay!' : 'View Gallery',
+              textColor: Colors.white,
+              onPressed: _modeManager.isLittleKidMode ? () {} : _showProjectsGallery,
+            ),
+          ),
+        );
+      }
+      
+      // Voice feedback for little kids
+      if (_modeManager.shouldUseVoiceGuidance) {
+        voiceGuidanceService.speakSaveConfirmation();
+      }
+      
+      // If save failed to sync, show additional info
+      if ((_savedProjectsService?.pendingSyncCount ?? 0) > 0) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Project saved locally. Will sync when online.'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 2),
+                action: SnackBarAction(
+                  label: 'Sync Now',
+                  textColor: Colors.white,
+                  onPressed: _forceSyncNow,
+                ),
+              ),
+            );
+          }
+        });
+      }
+      
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _modeManager.isLittleKidMode 
+                  ? 'Oops! Something went wrong saving your art.' 
+                  : 'Failed to save project. Please try again.',
+            ),
+            backgroundColor: Colors.red[600],
+            duration: Duration(seconds: _modeManager.isLittleKidMode ? 4 : 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showProjectsGallery() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProjectsGalleryScreen(
+          ageMode: gameState.ageMode,
+          onLoadProject: _loadProject,
+          onCreateNew: () {
+            Navigator.of(context).pop();
+            _createNewProject();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _loadProject(SavedProject savedProject) {
+    Navigator.of(context).pop(); // Close gallery
+    
+    // DEBUG: Log project loading details
+    debugPrint('[StickerBookGame] Loading project: ${savedProject.name}');
+    if (savedProject.originalProject.infiniteCanvas != null) {
+      final drawingsCount = savedProject.originalProject.infiniteCanvas!.drawings.length;
+      debugPrint('[StickerBookGame] Project has $drawingsCount drawings');
+      
+      for (int i = 0; i < savedProject.originalProject.infiniteCanvas!.drawings.length; i++) {
+        final drawing = savedProject.originalProject.infiniteCanvas!.drawings[i];
+        debugPrint('[StickerBookGame] Drawing $i: ${drawing.points.length} points, color: ${drawing.color}');
+      }
+    }
+    
+    // Load the project into current state
+    final loadedProject = savedProject.originalProject;
+    
+    final updatedProjects = [...gameState.projects];
+    
+    // Replace current project or add as new one
+    final existingIndex = updatedProjects.indexWhere((p) => p.id == loadedProject.id);
+    if (existingIndex != -1) {
+      updatedProjects[existingIndex] = loadedProject;
+    } else {
+      updatedProjects.add(loadedProject);
+    }
+    
+    setState(() {
+      gameState = gameState.copyWith(
+        projects: updatedProjects,
+        currentProjectId: loadedProject.id,
+        currentlyEditingProjectId: savedProject.id, // Track that we're editing this saved project
+        lastPlayDate: DateTime.now(),
+      );
+    });
+    
+    // Show success message
     final message = _modeManager.isLittleKidMode 
-        ? 'Your amazing creation is saved!' 
-        : 'Project saved successfully!';
+        ? 'Welcome back to "${savedProject.name}"!' 
+        : 'Project "${savedProject.name}" loaded successfully!';
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.blue[600],
         duration: Duration(seconds: _modeManager.isLittleKidMode ? 3 : 2),
       ),
     );
     
     // Voice feedback for little kids
     if (_modeManager.shouldUseVoiceGuidance) {
-      voiceGuidanceService.speakSaveConfirmation();
+      Future.delayed(const Duration(milliseconds: 500), () {
+        voiceGuidanceService.speakWelcome(widget.child.name);
+      });
     }
+  }
+
+  void _createNewProject() {
+    // Create a new default project similar to initialization
+    final backgrounds = StickerLibrary.getAllBackgrounds();
+    
+    final newCanvas = CreativeCanvas.infinite(
+      id: 'new_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'New Creation',
+      background: backgrounds.first,
+      viewport: CanvasViewport(
+        screenSize: const Size(800, 600),
+        center: Offset.zero,
+        zoom: 1.0,
+      ),
+      createdAt: DateTime.now(),
+      lastModified: DateTime.now(),
+    );
+    
+    final newProject = StickerBookProject(
+      id: newCanvas.id,
+      name: 'New Creation',
+      mode: CreationMode.infiniteCanvas,
+      infiniteCanvas: newCanvas,
+      createdAt: DateTime.now(),
+      lastModified: DateTime.now(),
+    );
+
+    final updatedProjects = [...gameState.projects, newProject];
+
+    setState(() {
+      gameState = gameState.copyWith(
+        projects: updatedProjects,
+        currentProjectId: newProject.id,
+        currentlyEditingProjectId: null, // Clear editing state for new project
+        lastPlayDate: DateTime.now(),
+      );
+    });
   }
 
   void _shareProject() {
@@ -1362,5 +1610,203 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
         backgroundColor: Colors.blue,
       ),
     );
+  }
+  
+  /// Build sync status indicator
+  Widget _buildSyncStatusIndicator() {
+    final isSyncing = _savedProjectsService?.isSyncing ?? false;
+    final pendingCount = _savedProjectsService?.pendingSyncCount ?? 0;
+    
+    if (!isSyncing && pendingCount == 0) {
+      // All synced - show subtle check icon
+      return Container(
+        margin: const EdgeInsets.only(right: 8),
+        child: Icon(
+          Icons.cloud_done,
+          color: Colors.white.withValues(alpha: 0.7),
+          size: 20,
+        ),
+      );
+    }
+    
+    if (isSyncing) {
+      // Syncing in progress
+      return Container(
+        margin: const EdgeInsets.only(right: 8),
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Colors.white.withValues(alpha: 0.8),
+          ),
+        ),
+      );
+    }
+    
+    if (pendingCount > 0) {
+      // Has pending items to sync
+      return GestureDetector(
+        onTap: () => _showSyncStatus(),
+        child: Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: Stack(
+            children: [
+              Icon(
+                Icons.cloud_queue,
+                color: Colors.orange[200],
+                size: 20,
+              ),
+              if (pendingCount <= 9) // Only show badge for single digits
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[300],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 12,
+                      minHeight: 12,
+                    ),
+                    child: Text(
+                      '$pendingCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return const SizedBox.shrink();
+  }
+  
+  /// Show sync status dialog
+  void _showSyncStatus() {
+    if (_savedProjectsService == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Status'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_savedProjectsService!.isSyncing)
+              const Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Syncing with cloud...'),
+                ],
+              ),
+            if (_savedProjectsService!.pendingSyncCount > 0) ...[
+              Text('${_savedProjectsService!.pendingSyncCount} items waiting to sync'),
+              const SizedBox(height: 8),
+              const Text(
+                'Your creations will sync automatically when connected to the internet.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+            if (_savedProjectsService!.pendingSyncCount == 0 && !_savedProjectsService!.isSyncing)
+              const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  SizedBox(width: 8),
+                  Text('All projects synced'),
+                ],
+              ),
+            const SizedBox(height: 16),
+            FutureBuilder<DateTime?>(
+              future: _savedProjectsService!.getLastSyncTime(),
+              builder: (context, snapshot) {
+                final lastSync = snapshot.data;
+                if (lastSync == null) {
+                  return const Text(
+                    'Never synced',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  );
+                }
+                
+                final now = DateTime.now();
+                final diff = now.difference(lastSync);
+                String timeAgo;
+                
+                if (diff.inMinutes < 1) {
+                  timeAgo = 'Just now';
+                } else if (diff.inHours < 1) {
+                  timeAgo = '${diff.inMinutes} minutes ago';
+                } else if (diff.inDays < 1) {
+                  timeAgo = '${diff.inHours} hours ago';
+                } else {
+                  timeAgo = '${diff.inDays} days ago';
+                }
+                
+                return Text(
+                  'Last synced: $timeAgo',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          if (_savedProjectsService!.pendingSyncCount > 0)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _forceSyncNow();
+              },
+              child: const Text('Sync Now'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Force sync now
+  void _forceSyncNow() async {
+    if (_savedProjectsService == null) return;
+    
+    try {
+      await _savedProjectsService!.syncWithBackend();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sync completed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sync failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

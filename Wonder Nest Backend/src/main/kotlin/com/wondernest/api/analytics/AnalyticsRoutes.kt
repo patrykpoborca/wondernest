@@ -8,6 +8,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class MessageResponse(val message: String)
@@ -41,7 +42,8 @@ data class AnalyticsEvent(
     val childId: String,
     val contentId: String? = null,
     val duration: Int? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val eventData: Map<String, kotlinx.serialization.json.JsonElement> = emptyMap(),
+    val sessionId: String? = null
 )
 
 @Serializable

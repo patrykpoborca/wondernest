@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/sticker_game_api_service.dart';
+import '../core/services/api_service.dart';
 import '../games/sticker_book/models/sticker_models.dart';
+import '../games/sticker_book/services/saved_projects_service.dart';
 import '../core/services/timber_wrapper.dart';
 
 // =============================================================================
@@ -12,8 +15,21 @@ final stickerGameApiServiceProvider = Provider<StickerGameApiService>((ref) {
   return StickerGameApiService();
 });
 
+/// Provider for the Saved Projects Service with child context
+final savedProjectsServiceProvider = Provider.family<SavedProjectsService, String?>((ref, childId) {
+  final service = SavedProjectsService();
+  final apiService = ApiService();
+  
+  // Initialize with child context when available
+  if (childId != null) {
+    service.initialize(childId: childId, apiService: apiService);
+  }
+  
+  return service;
+});
+
 /// Provider for sticker game state management
-final stickerGameStateProvider = StateNotifierProvider.family<StickerGameStateNotifier, StickerGameState, String>(
+final stickerGameStateProvider = StateNotifierProvider.family<StickerGameStateNotifier, StickerBookGameState, String>(
   (ref, childId) {
     final apiService = ref.watch(stickerGameApiServiceProvider);
     return StickerGameStateNotifier(childId, apiService);
@@ -44,19 +60,65 @@ final stickerGameProgressProvider = FutureProvider.family<StickerGameProgress, S
   return await apiService.getChildProgress(childId);
 });
 
+/// Provider for saved projects with child context and age mode filtering
+final savedProjectsProvider = FutureProvider.family<List<SavedProject>, ({String? childId, AgeMode ageMode})>((ref, params) async {
+  final savedProjectsService = ref.watch(savedProjectsServiceProvider(params.childId));
+  
+  // Ensure service is initialized
+  if (params.childId != null) {
+    final apiService = ApiService();
+    await savedProjectsService.initialize(childId: params.childId, apiService: apiService);
+  } else {
+    await savedProjectsService.initialize();
+  }
+  
+  final allProjects = await savedProjectsService.getSavedProjects();
+  
+  // Filter by age mode
+  return allProjects.where((project) => project.ageMode == params.ageMode).toList();
+});
+
+/// Provider for saved project count with child context
+final savedProjectCountProvider = FutureProvider.family<int, String?>((ref, childId) async {
+  final savedProjectsService = ref.watch(savedProjectsServiceProvider(childId));
+  
+  // Ensure service is initialized
+  if (childId != null) {
+    final apiService = ApiService();
+    await savedProjectsService.initialize(childId: childId, apiService: apiService);
+  } else {
+    await savedProjectsService.initialize();
+  }
+  
+  return await savedProjectsService.getSavedProjectCount();
+});
+
 // =============================================================================
 // STATE NOTIFIER
 // =============================================================================
 
-class StickerGameStateNotifier extends StateNotifier<StickerGameState> {
+class StickerGameStateNotifier extends StateNotifier<StickerBookGameState> {
   final String childId;
   final StickerGameApiService _apiService;
   
   GameSession? _currentSession;
   bool _isInitialized = false;
   
-  StickerGameStateNotifier(this.childId, this._apiService) : super(const StickerGameState()) {
+  StickerGameStateNotifier(this.childId, this._apiService) : super(const StickerBookGameState()) {
     _initializeGame();
+  }
+  
+  /// Set up SavedProjectsService with child context
+  SavedProjectsService? _savedProjectsService;
+  
+  void _initializeSavedProjects() {
+    _savedProjectsService = SavedProjectsService();
+    _savedProjectsService!.initialize(
+      childId: childId, 
+      apiService: ApiService(),
+    ).catchError((error) {
+      Timber.w('[StickerGameProvider] Failed to initialize SavedProjectsService: $error');
+    });
   }
   
   // =============================================================================
@@ -69,8 +131,11 @@ class StickerGameStateNotifier extends StateNotifier<StickerGameState> {
     try {
       Timber.i('[StickerGameProvider] Initializing sticker game for child: $childId');
       
+      // Initialize SavedProjectsService first
+      _initializeSavedProjects();
+      
       // Initialize the game with the backend
-      final initResponse = await _apiService.initializeStickerGame(childId);
+      await _apiService.initializeStickerGame(childId);
       
       // Load child's projects and collections
       final projects = await _apiService.getChildProjects(childId);
@@ -138,6 +203,9 @@ class StickerGameStateNotifier extends StateNotifier<StickerGameState> {
   
   Future<void> _createOfflineState() async {
     Timber.w('[StickerGameProvider] Creating offline state');
+    
+    // Initialize SavedProjectsService even in offline mode
+    _initializeSavedProjects();
     
     // Create a basic offline state with mock data
     final defaultCanvas = CreativeCanvas.infinite(

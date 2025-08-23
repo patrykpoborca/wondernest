@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../../../core/services/timber_wrapper.dart';
 
 /// Represents a sticker pack category
 enum StickerCategory {
@@ -188,30 +189,52 @@ class DrawingStroke {
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    // DEBUG: Log DrawingStroke serialization
+    Timber.d('[DrawingStroke.toJson] Serializing stroke $id with ${points.length} points');
+    final result = {
       'id': id,
       'points': points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
       'color': (color.a.round() << 24) | (color.r.round() << 16) | (color.g.round() << 8) | color.b.round(),
       'strokeWidth': strokeWidth,
       'createdAt': createdAt.toIso8601String(),
     };
+    Timber.d('[DrawingStroke.toJson] Serialized to: $result');
+    return result;
   }
 
   factory DrawingStroke.fromJson(Map<String, dynamic> json) {
+    // DEBUG: Log DrawingStroke deserialization
+    Timber.d('[DrawingStroke.fromJson] Deserializing stroke: $json');
+    
     final pointsData = json['points'] as List;
-    return DrawingStroke(
+    final color = Color(json['color']);
+    final strokeWidth = (json['strokeWidth'] as num).toDouble();
+    
+    final points = pointsData.map((p) => Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble())).toList();
+    
+    Timber.d('[DrawingStroke.fromJson] Deserialized ${points.length} points, color: $color, width: $strokeWidth');
+    
+    // Create Paint object with exact same properties used during creation
+    final paintStyle = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
+    
+    final stroke = DrawingStroke(
       id: json['id'],
-      points: pointsData.map((p) => Offset(p['x'], p['y'])).toList(),
-      color: Color(json['color']),
-      strokeWidth: json['strokeWidth'],
-      paintStyle: Paint()
-        ..color = Color(json['color'])
-        ..strokeWidth = json['strokeWidth']
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+      points: points,
+      color: color,
+      strokeWidth: strokeWidth,
+      paintStyle: paintStyle,
       createdAt: DateTime.parse(json['createdAt']),
     );
+    
+    Timber.d('[DrawingStroke.fromJson] Created DrawingStroke with paint color: ${paintStyle.color}, width: ${paintStyle.strokeWidth}');
+    
+    return stroke;
   }
 }
 
@@ -555,7 +578,9 @@ class CreativeCanvas {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    // DEBUG: Log CreativeCanvas serialization
+    Timber.d('[CreativeCanvas.toJson] Serializing canvas $id with ${drawings.length} drawings');
+    final result = {
       'id': id,
       'name': name,
       'background': background.toJson(),
@@ -569,23 +594,31 @@ class CreativeCanvas {
       'viewport': viewport.toJson(),
       'isInfinite': isInfinite,
     };
+    Timber.d('[CreativeCanvas.toJson] Serialized drawings array length: ${(result['drawings'] as List?)?.length}');
+    return result;
   }
 
   factory CreativeCanvas.fromJson(Map<String, dynamic> json) {
+    // DEBUG: Log CreativeCanvas deserialization
+    Timber.d('[CreativeCanvas.fromJson] Deserializing canvas: ${json["id"]}');
+    final drawingsJson = json['drawings'] as List? ?? [];
+    Timber.d('[CreativeCanvas.fromJson] Found ${drawingsJson.length} drawings in JSON');
+    
     final canvasSizeData = json['canvasSize'] as Map<String, dynamic>;
     final isInfinite = json['isInfinite'] ?? false;
+    
+    final drawings = drawingsJson.map((d) => DrawingStroke.fromJson(d)).toList();
+    Timber.d('[CreativeCanvas.fromJson] Deserialized ${drawings.length} drawings');
     
     return CreativeCanvas(
       id: json['id'],
       name: json['name'],
       background: CanvasBackground.fromJson(json['background']),
-      stickers: (json['stickers'] as List)
+      stickers: (json['stickers'] as List? ?? [])
           .map((s) => PlacedSticker.fromJson(s))
           .toList(),
-      drawings: (json['drawings'] as List)
-          .map((d) => DrawingStroke.fromJson(d))
-          .toList(),
-      texts: (json['texts'] as List)
+      drawings: drawings,
+      texts: (json['texts'] as List? ?? [])
           .map((t) => CanvasText.fromJson(t))
           .toList(),
       zones: (json['zones'] as List? ?? [])
@@ -902,6 +935,7 @@ class StickerBookGameState {
   final List<StickerPack> stickerPacks;
   final Set<String> unlockedStickers;
   final String? currentProjectId;
+  final String? currentlyEditingProjectId; // Track when editing an existing saved project
   final CreationMode defaultMode;
   final CanvasTool selectedTool;
   final Color selectedColor;
@@ -918,6 +952,7 @@ class StickerBookGameState {
     this.stickerPacks = const [],
     this.unlockedStickers = const {},
     this.currentProjectId,
+    this.currentlyEditingProjectId,
     this.defaultMode = CreationMode.infiniteCanvas,
     this.selectedTool = CanvasTool.sticker,
     this.selectedColor = Colors.black,
@@ -1003,6 +1038,7 @@ class StickerBookGameState {
       'stickerPacks': stickerPacks.map((p) => p.toJson()).toList(),
       'unlockedStickers': unlockedStickers.toList(),
       'currentProjectId': currentProjectId,
+      'currentlyEditingProjectId': currentlyEditingProjectId,
       'defaultMode': defaultMode.name,
       'selectedTool': selectedTool.name,
       'selectedColor': (selectedColor.a.round() << 24) | (selectedColor.r.round() << 16) | (selectedColor.g.round() << 8) | selectedColor.b.round(),
@@ -1026,6 +1062,7 @@ class StickerBookGameState {
           .toList(),
       unlockedStickers: Set<String>.from(json['unlockedStickers'] ?? []),
       currentProjectId: json['currentProjectId'],
+      currentlyEditingProjectId: json['currentlyEditingProjectId'],
       defaultMode: CreationMode.values.firstWhere(
         (e) => e.name == json['defaultMode'],
         orElse: () => CreationMode.infiniteCanvas,
@@ -1058,6 +1095,7 @@ class StickerBookGameState {
     List<StickerPack>? stickerPacks,
     Set<String>? unlockedStickers,
     String? currentProjectId,
+    String? currentlyEditingProjectId,
     CreationMode? defaultMode,
     CanvasTool? selectedTool,
     Color? selectedColor,
@@ -1074,6 +1112,7 @@ class StickerBookGameState {
       stickerPacks: stickerPacks ?? this.stickerPacks,
       unlockedStickers: unlockedStickers ?? this.unlockedStickers,
       currentProjectId: currentProjectId ?? this.currentProjectId,
+      currentlyEditingProjectId: currentlyEditingProjectId ?? this.currentlyEditingProjectId,
       defaultMode: defaultMode ?? this.defaultMode,
       selectedTool: selectedTool ?? this.selectedTool,
       selectedColor: selectedColor ?? this.selectedColor,

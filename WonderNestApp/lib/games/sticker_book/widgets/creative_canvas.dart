@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:math' as math;
+import '../../../core/services/timber_wrapper.dart';
 import '../models/sticker_models.dart';
 
 /// Interactive creative canvas for sticker placement, drawing, and text
@@ -54,6 +55,10 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
   @override
   void initState() {
     super.initState();
+    
+    // DEBUG: Log canvas widget initialization
+    debugPrint('[CreativeCanvasWidget] initState - canvas has ${widget.canvas.drawings.length} drawings');
+    
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -75,7 +80,28 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
   }
 
   @override
+  void didUpdateWidget(CreativeCanvasWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // DEBUG: Log widget updates
+    if (oldWidget.canvas.id != widget.canvas.id) {
+      debugPrint('[CreativeCanvasWidget] Canvas changed from ${oldWidget.canvas.id} to ${widget.canvas.id}');
+      debugPrint('[CreativeCanvasWidget] New canvas has ${widget.canvas.drawings.length} drawings');
+    }
+    if (oldWidget.canvas.drawings.length != widget.canvas.drawings.length) {
+      debugPrint('[CreativeCanvasWidget] Drawings count changed from ${oldWidget.canvas.drawings.length} to ${widget.canvas.drawings.length}');
+      // Log details about each drawing
+      for (int i = 0; i < widget.canvas.drawings.length; i++) {
+        final drawing = widget.canvas.drawings[i];
+        debugPrint('[CreativeCanvasWidget] Drawing $i: ${drawing.points.length} points, color: ${drawing.color}, paint color: ${drawing.paintStyle.color}');
+      }
+    }
+  }
+  
+  @override
   Widget build(BuildContext context) {
+    // DEBUG: Log build method
+    debugPrint('[CreativeCanvasWidget] build - canvas ${widget.canvas.id} has ${widget.canvas.drawings.length} drawings');
     return Container(
       key: _canvasKey,
       width: widget.canvas.canvasSize.width,
@@ -113,6 +139,7 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
                     valueListenable: _currentStrokeNotifier,
                     builder: (context, currentStroke, child) {
                       return CustomPaint(
+                        key: ValueKey('canvas_${widget.canvas.id}_${widget.canvas.drawings.length}'),
                         painter: CanvasPainter(
                           canvas: widget.canvas,
                           selectedSticker: _selectedSticker,
@@ -713,11 +740,17 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
         ..strokeJoin = StrokeJoin.round,
       createdAt: DateTime.now(),
     );
+    
+    // DEBUG: Log stroke creation
+    debugPrint('[CreativeCanvas] Created stroke with ${stroke.points.length} points, color: ${stroke.color}, width: ${stroke.strokeWidth}');
 
     final updatedCanvas = widget.canvas.copyWith(
       drawings: [...widget.canvas.drawings, stroke],
       lastModified: DateTime.now(),
     );
+    
+    // DEBUG: Log updated canvas
+    debugPrint('[CreativeCanvas] Updated canvas now has ${updatedCanvas.drawings.length} drawings');
 
     widget.onCanvasChanged(updatedCanvas);
 
@@ -804,9 +837,44 @@ class CanvasPainter extends CustomPainter {
 
   @override
   void paint(Canvas paintCanvas, Size size) {
+    // DEBUG: Log drawing data in painter
+    if (canvas.drawings.isNotEmpty) {
+      Timber.d('[CanvasPainter] Painting ${canvas.drawings.length} drawings');
+      for (int i = 0; i < canvas.drawings.length; i++) {
+        final drawing = canvas.drawings[i];
+        Timber.d('[CanvasPainter] Drawing $i: ${drawing.points.length} points, color: ${drawing.color}, width: ${drawing.strokeWidth}');
+      }
+    }
+    
     // Draw existing strokes
     for (final drawing in canvas.drawings) {
-      if (drawing.points.length > 1) {
+      if (drawing.points.isEmpty) continue;
+      
+      // Create a fresh Paint object with the exact properties we need
+      final paint = Paint()
+        ..color = drawing.color
+        ..strokeWidth = drawing.strokeWidth
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..isAntiAlias = true;
+      
+      Timber.d('[CanvasPainter] Drawing stroke with ${drawing.points.length} points, color: ${drawing.color}, width: ${drawing.strokeWidth}');
+      
+      if (drawing.points.length == 1) {
+        // Draw single point as a circle
+        paintCanvas.drawCircle(
+          drawing.points.first, 
+          drawing.strokeWidth / 2, 
+          Paint()
+            ..color = drawing.color
+            ..style = PaintingStyle.fill
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..isAntiAlias = true
+        );
+      } else {
+        // Draw path for multiple points
         final path = Path();
         path.moveTo(drawing.points.first.dx, drawing.points.first.dy);
         
@@ -814,7 +882,7 @@ class CanvasPainter extends CustomPainter {
           path.lineTo(drawing.points[i].dx, drawing.points[i].dy);
         }
         
-        paintCanvas.drawPath(path, drawing.paintStyle);
+        paintCanvas.drawPath(path, paint);
       }
     }
 
@@ -870,7 +938,17 @@ class CanvasPainter extends CustomPainter {
              selectedBrushSize != oldDelegate.selectedBrushSize;
     }
     
-    return canvas != oldDelegate.canvas ||
+    // Check for canvas content changes more thoroughly
+    final hasCanvasChanged = canvas.id != oldDelegate.canvas.id ||
+                            canvas.drawings.length != oldDelegate.canvas.drawings.length ||
+                            canvas.stickers.length != oldDelegate.canvas.stickers.length ||
+                            canvas.texts.length != oldDelegate.canvas.texts.length;
+    
+    if (hasCanvasChanged) {
+      Timber.d('[CanvasPainter] shouldRepaint: Canvas changed - id: ${canvas.id} vs ${oldDelegate.canvas.id}, drawings: ${canvas.drawings.length} vs ${oldDelegate.canvas.drawings.length}');
+    }
+    
+    return hasCanvasChanged ||
            selectedSticker != oldDelegate.selectedSticker ||
            selectedText != oldDelegate.selectedText;
   }

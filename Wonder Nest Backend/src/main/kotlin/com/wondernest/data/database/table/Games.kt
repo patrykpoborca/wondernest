@@ -259,7 +259,7 @@ object GameAssets : UUIDTable("game_assets", "games") {
     val createdAt = timestamp("created_at")
 }
 
-object GameAssetRegistry : Table("game_asset_registry", "games") {
+object GameAssetRegistry : Table("games.game_asset_registry") {
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.CASCADE)
     val assetId = reference("asset_id", GameAssets, onDelete = ReferenceOption.CASCADE)
     val usageContext = jsonb<Map<String, Any>>("usage_context",
@@ -319,7 +319,7 @@ object CurrencyTransactions : UUIDTable("currency_transactions", "games") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE)
     val amount = integer("amount")
     val transactionType = varchar("transaction_type", 50) // 'earned', 'spent', 'bonus', 'refund'
-    val source = varchar("source", 100).nullable() // game_id, achievement_id, purchase_id
+    val sourceReference = varchar("source", 100).nullable() // game_id, achievement_id, purchase_id
     val description = text("description").nullable()
     val createdAt = timestamp("created_at")
 }

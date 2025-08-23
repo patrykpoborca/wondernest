@@ -1,10 +1,10 @@
 package com.wondernest.data.database.repository
 
 import com.wondernest.data.database.table.*
+import com.wondernest.data.database.table.VirtualCurrency as VirtualCurrencyTable
+import com.wondernest.data.database.table.DailyGameMetrics as DailyGameMetricsTable
 import com.wondernest.domain.model.games.*
 import com.wondernest.domain.repository.games.*
-import kotlinx.datetime.toKotlinInstant
-import kotlinx.datetime.toJavaInstant
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -51,7 +51,7 @@ class AchievementRepositoryImpl : AchievementRepository {
             it[sortOrder] = achievement.sortOrder
             it[isSecret] = achievement.isSecret
             it[isActive] = achievement.isActive
-            it[createdAt] = achievement.createdAt.toJavaInstant()
+            it[createdAt] = achievement.createdAt
         }
         achievement
     }
@@ -95,9 +95,9 @@ class AchievementRepositoryImpl : AchievementRepository {
             it[id] = childAchievement.id
             it[childGameInstanceId] = childAchievement.childGameInstanceId
             it[ChildAchievements.achievementId] = childAchievement.achievementId
-            it[unlockedAt] = childAchievement.unlockedAt.toJavaInstant()
+            it[unlockedAt] = childAchievement.unlockedAt
             it[gameSessionId] = childAchievement.gameSessionId
-            it[createdAt] = childAchievement.createdAt.toJavaInstant()
+            it[createdAt] = childAchievement.createdAt
         }
         
         childAchievement
@@ -130,16 +130,16 @@ class AchievementRepositoryImpl : AchievementRepository {
         sortOrder = this[Achievements.sortOrder],
         isSecret = this[Achievements.isSecret],
         isActive = this[Achievements.isActive],
-        createdAt = this[Achievements.createdAt].toKotlinInstant()
+        createdAt = this[Achievements.createdAt]
     )
     
     private fun ResultRow.toChildAchievement() = ChildAchievement(
         id = this[ChildAchievements.id].value,
         childGameInstanceId = this[ChildAchievements.childGameInstanceId].value,
         achievementId = this[ChildAchievements.achievementId].value,
-        unlockedAt = this[ChildAchievements.unlockedAt].toKotlinInstant(),
+        unlockedAt = this[ChildAchievements.unlockedAt],
         gameSessionId = this[ChildAchievements.gameSessionId]?.value,
-        createdAt = this[ChildAchievements.createdAt].toKotlinInstant()
+        createdAt = this[ChildAchievements.createdAt]
     )
 }
 
@@ -150,7 +150,7 @@ class AchievementRepositoryImpl : AchievementRepository {
 class VirtualCurrencyRepositoryImpl : VirtualCurrencyRepository {
     
     override suspend fun getBalance(childId: UUID): VirtualCurrency? = transaction {
-        VirtualCurrency.select { VirtualCurrency.childId eq childId }
+        VirtualCurrencyTable.select { VirtualCurrencyTable.childId eq childId }
             .singleOrNull()
             ?.toVirtualCurrency()
     }
@@ -164,68 +164,70 @@ class VirtualCurrencyRepositoryImpl : VirtualCurrencyRepository {
             lastUpdated = kotlinx.datetime.Clock.System.now()
         )
         
-        VirtualCurrency.insert {
+        VirtualCurrencyTable.insert {
             it[id] = account.id
-            it[VirtualCurrency.childId] = account.childId
+            it[VirtualCurrencyTable.childId] = account.childId
             it[balance] = account.balance
             it[totalEarned] = account.totalEarned
             it[totalSpent] = account.totalSpent
-            it[lastUpdated] = account.lastUpdated.toJavaInstant()
+            it[lastUpdated] = account.lastUpdated
         }
         
         account
     }
     
-    override suspend fun addCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean = transaction {
+    override suspend fun addCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean {
         val account = getBalance(childId) ?: createAccount(childId)
-        
-        // Update balance
-        VirtualCurrency.update({ VirtualCurrency.childId eq childId }) {
-            it[balance] = account.balance + amount
-            it[totalEarned] = account.totalEarned + amount
-            it[lastUpdated] = kotlinx.datetime.Clock.System.now().toJavaInstant()
+        return transaction {
+            // Update balance
+            VirtualCurrencyTable.update({ VirtualCurrencyTable.childId eq childId }) {
+                it[balance] = account.balance + amount
+                it[totalEarned] = account.totalEarned + amount
+                it[lastUpdated] = kotlinx.datetime.Clock.System.now()
+            }
+            
+            // Record transaction
+            CurrencyTransactions.insert {
+                it[id] = UUID.randomUUID()
+                it[CurrencyTransactions.childId] = childId
+                it[CurrencyTransactions.amount] = amount
+                it[transactionType] = TransactionType.EARNED.name.lowercase()
+                it[CurrencyTransactions.sourceReference] = source
+                it[CurrencyTransactions.description] = description
+                it[createdAt] = kotlinx.datetime.Clock.System.now()
+            }
+            
+            true
         }
-        
-        // Record transaction
-        CurrencyTransactions.insert {
-            it[id] = UUID.randomUUID()
-            it[CurrencyTransactions.childId] = childId
-            it[CurrencyTransactions.amount] = amount
-            it[transactionType] = TransactionType.EARNED.name.lowercase()
-            it[CurrencyTransactions.source] = source
-            it[CurrencyTransactions.description] = description
-            it[createdAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
-        }
-        
-        true
     }
     
-    override suspend fun spendCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean = transaction {
-        val account = getBalance(childId) ?: return@transaction false
-        
-        if (account.balance < amount) {
-            return@transaction false
+    override suspend fun spendCurrency(childId: UUID, amount: Int, source: String, description: String): Boolean {
+        val account = getBalance(childId) ?: return false
+        return transaction {
+            if (account.balance < amount) {
+                return@transaction false
+            }
+            
+            // Update balance
+            VirtualCurrencyTable.update({ VirtualCurrencyTable.childId eq childId }) {
+                it[balance] = account.balance - amount
+                it[totalSpent] = account.totalSpent + amount
+                it[lastUpdated] = kotlinx.datetime.Clock.System.now()
+            }
+            
+            // Record transaction
+            CurrencyTransactions.insert {
+                it[id] = UUID.randomUUID()
+                it[CurrencyTransactions.childId] = childId
+                it[CurrencyTransactions.amount] = -amount
+                it[transactionType] = TransactionType.SPENT.name.lowercase()
+                it[CurrencyTransactions.sourceReference] = source
+                it[CurrencyTransactions.description] = description
+                it[createdAt] = kotlinx.datetime.Clock.System.now()
+            }
+            
+            true
         }
-        
-        // Update balance
-        VirtualCurrency.update({ VirtualCurrency.childId eq childId }) {
-            it[balance] = account.balance - amount
-            it[totalSpent] = account.totalSpent + amount
-            it[lastUpdated] = kotlinx.datetime.Clock.System.now().toJavaInstant()
-        }
-        
-        // Record transaction
-        CurrencyTransactions.insert {
-            it[id] = UUID.randomUUID()
-            it[CurrencyTransactions.childId] = childId
-            it[CurrencyTransactions.amount] = -amount
-            it[transactionType] = TransactionType.SPENT.name.lowercase()
-            it[CurrencyTransactions.source] = source
-            it[CurrencyTransactions.description] = description
-            it[createdAt] = kotlinx.datetime.Clock.System.now().toJavaInstant()
-        }
-        
-        true
     }
     
     override suspend fun getTransactionHistory(childId: UUID, limit: Int): List<CurrencyTransaction> = transaction {
@@ -242,12 +244,12 @@ class VirtualCurrencyRepositoryImpl : VirtualCurrencyRepository {
     }
     
     private fun ResultRow.toVirtualCurrency() = VirtualCurrency(
-        id = this[VirtualCurrency.id].value,
-        childId = this[VirtualCurrency.childId].value,
-        balance = this[VirtualCurrency.balance],
-        totalEarned = this[VirtualCurrency.totalEarned],
-        totalSpent = this[VirtualCurrency.totalSpent],
-        lastUpdated = this[VirtualCurrency.lastUpdated].toKotlinInstant()
+        id = this[VirtualCurrencyTable.id].value,
+        childId = this[VirtualCurrencyTable.childId].value,
+        balance = this[VirtualCurrencyTable.balance],
+        totalEarned = this[VirtualCurrencyTable.totalEarned],
+        totalSpent = this[VirtualCurrencyTable.totalSpent],
+        lastUpdated = this[VirtualCurrencyTable.lastUpdated]
     )
     
     private fun ResultRow.toCurrencyTransaction() = CurrencyTransaction(
@@ -255,9 +257,9 @@ class VirtualCurrencyRepositoryImpl : VirtualCurrencyRepository {
         childId = this[CurrencyTransactions.childId].value,
         amount = this[CurrencyTransactions.amount],
         transactionType = TransactionType.valueOf(this[CurrencyTransactions.transactionType].uppercase()),
-        source = this[CurrencyTransactions.source],
+        source = this[CurrencyTransactions.sourceReference],
         description = this[CurrencyTransactions.description],
-        createdAt = this[CurrencyTransactions.createdAt].toKotlinInstant()
+        createdAt = this[CurrencyTransactions.createdAt]
     )
 }
 
@@ -269,7 +271,7 @@ class GameAnalyticsRepositoryImpl : GameAnalyticsRepository {
     
     override suspend fun recordMetrics(metrics: DailyGameMetrics): Boolean = transaction {
         try {
-            DailyGameMetrics.insert {
+            DailyGameMetricsTable.insert {
                 it[id] = metrics.id
                 it[childId] = metrics.childId
                 it[gameId] = metrics.gameId
@@ -277,8 +279,8 @@ class GameAnalyticsRepositoryImpl : GameAnalyticsRepository {
                 it[playTimeMinutes] = metrics.playTimeMinutes
                 it[sessionsCount] = metrics.sessionsCount
                 it[achievementsUnlocked] = metrics.achievementsUnlocked
-                it[DailyGameMetrics.metrics] = metrics.metrics
-                it[createdAt] = metrics.createdAt.toJavaInstant()
+                it[DailyGameMetricsTable.metrics] = metrics.metrics
+                it[createdAt] = metrics.createdAt
             }
             true
         } catch (e: Exception) {

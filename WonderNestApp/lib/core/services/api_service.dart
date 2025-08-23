@@ -184,7 +184,7 @@ class ApiService {
       return _mockService.login(email, password);
     }
     
-    Timber.i('[API] Making login request to ${baseUrl}/auth/parent/login');
+    Timber.i('[API] Making login request to $baseUrl/auth/parent/login');
     Timber.i('[API] Platform: ${Platform.operatingSystem}');
     Timber.i('[API] Base URL: $baseUrl');
     
@@ -359,7 +359,7 @@ class ApiService {
     });
   }
   
-  // Game endpoints
+  // Game endpoints - redirected to analytics endpoints since game routes are disabled
   Future<Response> saveGameProgress({
     required String gameId,
     required String childId,
@@ -376,27 +376,95 @@ class ApiService {
         playTimeMinutes: playTimeMinutes,
       );
     }
-    return _dio.post('/games/progress', data: {
-      'gameId': gameId,
+    
+    // Game routes are disabled, redirect to analytics endpoint
+    final analyticsEvent = {
+      'eventType': 'game_progress',
       'childId': childId,
-      'score': score,
-      'level': level,
-      'playTimeMinutes': playTimeMinutes,
-    });
+      'contentId': gameId,
+      'duration': playTimeMinutes,
+      'eventData': {
+        'gameId': gameId,
+        'score': score,
+        'level': level,
+        'playTimeMinutes': playTimeMinutes,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    };
+    
+    return _dio.post('/analytics/events', data: analyticsEvent);
   }
 
   Future<Response> saveGameEvent(Map<String, dynamic> eventData) {
     if (_useMockService) {
       return _mockService.saveGameEvent(eventData);
     }
-    return _dio.post('/games/events', data: eventData);
+    
+    // Game routes are disabled, redirect to analytics endpoint
+    // Convert game event data to analytics event format
+    final analyticsEvent = {
+      'eventType': eventData['eventType'] ?? 'game_event',
+      'childId': eventData['childId'] ?? '',
+      'contentId': eventData['gameId'] ?? eventData['contentId'] ?? eventData['gameType'] ?? 'unknown',
+      'duration': (eventData['duration'] ?? eventData['playTimeMinutes'] ?? 0),
+      'eventData': _prepareEventData(eventData),
+      'sessionId': eventData['sessionId'],
+    };
+    
+    return _dio.post('/analytics/events', data: analyticsEvent);
+  }
+
+  /// Helper method to prepare event data preserving proper data types
+  Map<String, dynamic> _prepareEventData(Map<String, dynamic> eventData) {
+    final cleanedEventData = <String, dynamic>{};
+    
+    for (final entry in eventData.entries) {
+      // Skip fields that are already handled at the top level
+      if (['eventType', 'childId', 'gameId', 'contentId', 'duration', 'playTimeMinutes', 'sessionId'].contains(entry.key)) {
+        continue;
+      }
+      
+      final value = entry.value;
+      if (value == null) {
+        // Skip null values to keep the JSON clean
+        continue;
+      } else if (value is DateTime) {
+        // Convert DateTime to milliseconds since epoch for proper timestamp handling
+        cleanedEventData[entry.key] = value.millisecondsSinceEpoch;
+      } else if (value is bool || value is num || value is String) {
+        // Keep primitive types as-is
+        cleanedEventData[entry.key] = value;
+      } else if (value is List || value is Map) {
+        // Keep structured data as-is for JSONB storage
+        cleanedEventData[entry.key] = value;
+      } else {
+        // Convert other objects to string representation
+        cleanedEventData[entry.key] = value.toString();
+      }
+    }
+    
+    return cleanedEventData;
   }
 
   Future<Response> getChildGameData(String childId) {
     if (_useMockService) {
       return _mockService.getChildGameData(childId);
     }
-    return _dio.get('/games/child/$childId');
+    
+    // Game routes are disabled, return a mock response structure for now
+    // In production, this would query analytics data to reconstruct game state
+    return Future.value(Response(
+      requestOptions: RequestOptions(path: '/games/child/$childId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': {
+          'gameProgress': [],
+          'achievements': [],
+          'virtualCurrency': {'balance': 0, 'transactions': []},
+        },
+      },
+    ));
   }
 
   Future<Response> unlockAchievement({
@@ -411,11 +479,21 @@ class ApiService {
         achievementId: achievementId,
       );
     }
-    return _dio.post('/games/achievements/unlock', data: {
-      'gameId': gameId,
+    
+    // Game routes are disabled, redirect to analytics endpoint
+    final analyticsEvent = {
+      'eventType': 'achievement_unlocked',
       'childId': childId,
-      'achievementId': achievementId,
-    });
+      'contentId': gameId,
+      'duration': 0,
+      'eventData': {
+        'gameId': gameId,
+        'achievementId': achievementId,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    };
+    
+    return _dio.post('/analytics/events', data: analyticsEvent);
   }
 
   Future<Response> updateVirtualCurrency({
@@ -430,11 +508,22 @@ class ApiService {
         transactions: transactions,
       );
     }
-    return _dio.post('/games/currency/update', data: {
+    
+    // Game routes are disabled, redirect to analytics endpoint
+    final analyticsEvent = {
+      'eventType': 'virtual_currency_updated',
       'childId': childId,
-      'balance': balance,
-      'transactions': transactions,
-    });
+      'contentId': 'virtual_currency',
+      'duration': 0,
+      'eventData': {
+        'balance': balance,
+        'transactionCount': transactions.length,
+        'transactions': transactions,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    };
+    
+    return _dio.post('/analytics/events', data: analyticsEvent);
   }
   
   // COPPA endpoints

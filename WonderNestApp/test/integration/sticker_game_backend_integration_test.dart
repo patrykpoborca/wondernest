@@ -1,10 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 
-import '../../lib/core/services/sticker_game_api_service.dart';
-import '../../lib/providers/sticker_game_provider.dart';
-import '../../lib/games/sticker_book/models/sticker_models.dart';
+import 'package:wonder_nest/core/services/sticker_game_api_service.dart';
+import 'package:wonder_nest/games/sticker_book/models/sticker_models.dart';
 
 // This annotation generates mock classes
 @GenerateMocks([StickerGameApiService])
@@ -419,7 +419,7 @@ void main() {
         projectId: project.id,
         sessionId: session.id,
         interactionType: 'sticker_placed',
-        interactionData: anyNamed('interactionData'),
+        interactionData: any,
       )).thenAnswer((_) async => true);
       
       final interactionRecorded = await apiService.recordInteraction(
@@ -438,7 +438,7 @@ void main() {
       when(apiService.updateProject(
         childId: childId,
         projectId: project.id,
-        projectData: anyNamed('projectData'),
+        projectData: any,
       )).thenAnswer((_) async => updatedProject);
       
       final updated = await apiService.updateProject(
@@ -449,7 +449,7 @@ void main() {
       expect(updated, isNotNull);
       
       // 7. End session
-      when(apiService.endGameSession(session.id, anyNamed('finalMetrics')))
+      when(apiService.endGameSession(session.id, any))
           .thenAnswer((_) async => true);
       
       final sessionEnded = await apiService.endGameSession(
@@ -472,14 +472,14 @@ void main() {
         projectId: project.id,
         sessionId: session.id,
         interactionType: 'sticker_placed',
-        interactionData: anyNamed('interactionData'),
+        interactionData: any,
       )).called(1);
       verify(apiService.updateProject(
         childId: childId,
         projectId: project.id,
-        projectData: anyNamed('projectData'),
+        projectData: any,
       )).called(1);
-      verify(apiService.endGameSession(session.id, anyNamed('finalMetrics'))).called(1);
+      verify(apiService.endGameSession(session.id, any)).called(1);
     });
   });
 }

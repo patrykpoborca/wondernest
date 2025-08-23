@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import '../../games/sticker_book/models/sticker_models.dart';
@@ -17,10 +16,12 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Initializing sticker game for child: $childId');
       
-      final response = await _apiService._dio.post(
-        '/games/sticker/children/$childId/initialize',
-        data: ageMonths != null ? {'ageMonths': ageMonths} : null,
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'initialize',
+        'childId': childId,
+        if (ageMonths != null) 'ageMonths': ageMonths.toString(),
+      });
       
       return StickerGameInitResponse.fromJson(response.data['data'] ?? response.data);
     } catch (e) {
@@ -42,10 +43,7 @@ class StickerGameApiService {
       final queryParams = <String, dynamic>{};
       if (theme != null) queryParams['theme'] = theme;
       
-      final response = await _apiService._dio.get(
-        '/games/sticker/children/$childId/sticker-sets',
-        queryParameters: queryParams,
-      );
+      final response = await _apiService.getChildGameData(childId);
       
       final data = response.data['data'] ?? response.data;
       final stickerSets = (data['stickerSets'] as List)
@@ -65,9 +63,7 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Getting sticker collections for child: $childId');
       
-      final response = await _apiService._dio.get(
-        '/games/sticker/children/$childId/collections',
-      );
+      final response = await _apiService.getChildGameData(childId);
       
       final data = response.data['data'] ?? response.data;
       final collections = (data['collections'] as List)
@@ -87,9 +83,12 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Unlocking sticker set $stickerSetId for child: $childId');
       
-      final response = await _apiService._dio.post(
-        '/games/sticker/children/$childId/collections/$stickerSetId/unlock',
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'unlock_sticker_set',
+        'childId': childId,
+        'stickerSetId': stickerSetId,
+      });
       
       return response.statusCode == 200;
     } catch (e) {
@@ -107,9 +106,7 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Getting projects for child: $childId');
       
-      final response = await _apiService._dio.get(
-        '/games/sticker/children/$childId/projects',
-      );
+      final response = await _apiService.getChildGameData(childId);
       
       final data = response.data['data'] ?? response.data;
       final projects = (data['projects'] as List)
@@ -135,15 +132,17 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Creating project "$name" for child: $childId');
       
-      final response = await _apiService._dio.post(
-        '/games/sticker/children/$childId/projects',
-        data: {
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'create_project',
+        'childId': childId,
+        'projectData': {
           'name': name,
           'mode': mode.name,
           if (templateId != null) 'templateId': templateId,
           if (description != null) 'description': description,
         },
-      );
+      });
       
       final data = response.data['data'] ?? response.data;
       return _convertToStickerBookProject(data);
@@ -159,9 +158,7 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Getting project $projectId for child: $childId');
       
-      final response = await _apiService._dio.get(
-        '/games/sticker/children/$childId/projects/$projectId',
-      );
+      final response = await _apiService.getChildGameData(childId);
       
       final data = response.data['data'] ?? response.data;
       return _convertToStickerBookProject(data);
@@ -181,13 +178,14 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Updating project $projectId for child: $childId');
       
-      final response = await _apiService._dio.put(
-        '/games/sticker/children/$childId/projects/$projectId',
-        data: {
-          'projectData': projectData,
-          if (sessionId != null) 'sessionId': sessionId,
-        },
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'update_project',
+        'childId': childId,
+        'projectId': projectId,
+        'projectData': projectData,
+        if (sessionId != null) 'sessionId': sessionId,
+      });
       
       final data = response.data['data'] ?? response.data;
       return _convertToStickerBookProject(data);
@@ -202,9 +200,12 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Deleting project $projectId for child: $childId');
       
-      final response = await _apiService._dio.delete(
-        '/games/sticker/children/$childId/projects/$projectId',
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'delete_project',
+        'childId': childId,
+        'projectId': projectId,
+      });
       
       return response.statusCode == 200;
     } catch (e) {
@@ -226,15 +227,15 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Starting game session for child: $childId');
       
-      final response = await _apiService._dio.post(
-        '/games/children/$childId/instances/sticker_book/sessions/start',
-        data: {
-          'deviceInfo': {
-            if (deviceType != null) 'deviceType': deviceType,
-            if (appVersion != null) 'appVersion': appVersion,
-          }
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'start_session',
+        'childId': childId,
+        'deviceInfo': {
+          if (deviceType != null) 'deviceType': deviceType,
+          if (appVersion != null) 'appVersion': appVersion,
         },
-      );
+      });
       
       final data = response.data['data'] ?? response.data;
       return GameSession.fromJson(data);
@@ -249,10 +250,12 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Ending game session: $sessionId');
       
-      final response = await _apiService._dio.post(
-        '/games/sessions/$sessionId/end',
-        data: {'finalMetrics': finalMetrics},
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'end_session',
+        'sessionId': sessionId,
+        'finalMetrics': finalMetrics,
+      });
       
       return response.statusCode == 200;
     } catch (e) {
@@ -276,15 +279,15 @@ class StickerGameApiService {
     try {
       Timber.d('[StickerGameAPI] Recording interaction: $interactionType');
       
-      final response = await _apiService._dio.post(
-        '/games/sticker/children/$childId/interactions',
-        data: {
-          'projectId': projectId,
-          'sessionId': sessionId,
-          'interactionType': interactionType,
-          'interactionData': interactionData,
-        },
-      );
+      final response = await _apiService.saveGameEvent({
+        'gameType': 'sticker_book',
+        'eventType': 'interaction',
+        'childId': childId,
+        'projectId': projectId,
+        'sessionId': sessionId,
+        'interactionType': interactionType,
+        'interactionData': interactionData,
+      });
       
       return response.statusCode == 200;
     } catch (e) {
@@ -298,9 +301,7 @@ class StickerGameApiService {
     try {
       Timber.i('[StickerGameAPI] Getting progress for child: $childId');
       
-      final response = await _apiService._dio.get(
-        '/games/sticker/children/$childId/progress',
-      );
+      final response = await _apiService.getChildGameData(childId);
       
       final data = response.data['data'] ?? response.data;
       return StickerGameProgress.fromJson(data);

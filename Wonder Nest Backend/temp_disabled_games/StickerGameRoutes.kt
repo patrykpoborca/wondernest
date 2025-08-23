@@ -307,7 +307,7 @@ data class StickerBookProject(
     val projectName: String,
     val description: String? = null,
     val creationMode: String, // 'infinite_canvas' or 'flip_book'
-    val projectData: Map<String, Any>,
+    val projectData: @Contextual Map<String, Any>,
     val thumbnailUrl: String? = null,
     val isCompleted: Boolean = false,
     val isShared: Boolean = false,
@@ -330,7 +330,7 @@ data class CreateProjectRequest(
 
 @Serializable
 data class UpdateProjectRequest(
-    val projectData: Map<String, Any>,
+    val projectData: @Contextual Map<String, Any>,
     @Contextual val sessionId: UUID? = null
 )
 
@@ -344,7 +344,7 @@ data class GameTemplate(
     val targetAgeMin: Int,
     val targetAgeMax: Int,
     val difficultyLevel: Int,
-    val templateData: Map<String, Any>
+    val templateData: @Contextual Map<String, Any>
 )
 
 @Serializable
@@ -357,7 +357,7 @@ data class RecordInteractionRequest(
     @Contextual val projectId: UUID,
     @Contextual val sessionId: UUID,
     val interactionType: String,
-    val interactionData: Map<String, Any>
+    val interactionData: @Contextual Map<String, Any>
 )
 
 @Serializable
@@ -375,7 +375,7 @@ data class StickerGameProgress(
 @Serializable
 data class ExportProjectRequest(
     val format: String, // 'png', 'pdf', 'json'
-    val options: Map<String, Any> = emptyMap()
+    val options: @Contextual Map<String, Any> = emptyMap()
 )
 
 @Serializable

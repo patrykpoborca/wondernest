@@ -4,13 +4,13 @@ import com.wondernest.data.cache.RedisCache
 import com.wondernest.data.database.DatabaseFactory
 import com.wondernest.data.database.repository.*
 import com.wondernest.domain.repository.*
-import com.wondernest.domain.repository.games.*
+// import com.wondernest.domain.repository.games.*
 import com.wondernest.domain.usecase.*
 import com.wondernest.services.auth.AuthService
 import com.wondernest.services.auth.JwtService
 import com.wondernest.services.email.EmailService
 import com.wondernest.services.family.FamilyService
-import com.wondernest.services.games.*
+// import com.wondernest.services.games.*
 import com.wondernest.services.notification.NotificationService
 import com.wondernest.services.storage.StorageService
 import io.ktor.server.application.*
@@ -39,14 +39,14 @@ val repositoryModule = module {
     single<UserRepository> { UserRepositoryImpl() }
     single<FamilyRepository> { FamilyRepositoryImpl() }
     
-    // Game repositories
-    single<GameRegistryRepository> { GameRegistryRepositoryImpl() }
-    single<ChildGameInstanceRepository> { ChildGameInstanceRepositoryImpl() }
-    single<GameDataRepository> { GameDataRepositoryImpl() }
-    single<GameSessionRepository> { GameSessionRepositoryImpl() }
-    single<AchievementRepository> { AchievementRepositoryImpl() }
-    single<VirtualCurrencyRepository> { VirtualCurrencyRepositoryImpl() }
-    single<GameAnalyticsRepository> { GameAnalyticsRepositoryImpl() }
+    // Game repositories - temporarily disabled
+    // single<GameRegistryRepository> { GameRegistryRepositoryImpl() }
+    // single<ChildGameInstanceRepository> { ChildGameInstanceRepositoryImpl() }
+    // single<GameDataRepository> { GameDataRepositoryImpl() }
+    // single<GameSessionRepository> { GameSessionRepositoryImpl() }
+    // single<AchievementRepository> { AchievementRepositoryImpl() }
+    // single<VirtualCurrencyRepository> { VirtualCurrencyRepositoryImpl() }
+    // single<GameAnalyticsRepository> { GameAnalyticsRepositoryImpl() }
     
     // TODO: Remove references to non-existent repositories when implementing
     // single<ChildRepository> { ChildRepositoryImpl() }
@@ -75,10 +75,10 @@ val serviceModule = module {
     single { NotificationService() }
     single { StorageService() }
     
-    // Game services
-    single<GameService> { GameServiceImpl(get(), get(), get(), get()) } // gameRegistryRepo, instanceRepo, dataRepo, sessionRepo
-    single<GameSessionService> { GameSessionServiceImpl(get(), get(), get()) } // sessionRepo, instanceRepo, analyticsRepo
-    single<AchievementService> { AchievementServiceImpl(get(), get(), get()) } // achievementRepo, instanceRepo, currencyRepo
+    // Game services - temporarily disabled
+    // single<GameService> { GameServiceImpl(get(), get(), get(), get()) } // gameRegistryRepo, instanceRepo, dataRepo, sessionRepo
+    // single<GameSessionService> { GameSessionServiceImpl(get(), get(), get()) } // sessionRepo, instanceRepo, analyticsRepo
+    // single<AchievementService> { AchievementServiceImpl(get(), get(), get()) } // achievementRepo, instanceRepo, currencyRepo
     
     // Sticker game service (temporarily commented until repositories are implemented)
     // single<StickerGameService> { StickerGameServiceImpl(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
