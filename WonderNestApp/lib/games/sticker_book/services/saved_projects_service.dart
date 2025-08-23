@@ -148,15 +148,43 @@ class SavedProjectsService {
     try {
       if (_prefs == null) await initialize();
       
-      // DEBUG: Log project data being saved
-      Timber.d('[SavedProjectsService] Saving project: ${project.name}');
-      if (project.infiniteCanvas != null) {
-        Timber.d('[SavedProjectsService] Canvas has ${project.infiniteCanvas!.drawings.length} drawings');
-        for (int i = 0; i < project.infiniteCanvas!.drawings.length; i++) {
-          final drawing = project.infiniteCanvas!.drawings[i];
-          Timber.d('[SavedProjectsService] Drawing $i: ${drawing.points.length} points, color: ${drawing.color}, width: ${drawing.strokeWidth}');
+      // DEBUG: Log detailed project data being saved
+      Timber.d('[SavedProjectsService] === SAVING PROJECT START ===');
+      Timber.d('[SavedProjectsService] Project name: ${project.name}');
+      Timber.d('[SavedProjectsService] Age mode: $ageMode');
+      Timber.d('[SavedProjectsService] Custom name provided: ${customName?.isNotEmpty == true ? customName : "none"}');
+      Timber.d('[SavedProjectsService] Editing existing project ID: ${editingProjectId ?? "none - creating new"}');
+      
+      // Log detailed project structure
+      Timber.d('[SavedProjectsService] Project structure:');
+      Timber.d('[SavedProjectsService]   - Has flipBook: ${project.flipBook != null}');
+      Timber.d('[SavedProjectsService]   - Has infiniteCanvas: ${project.infiniteCanvas != null}');
+      
+      if (project.flipBook != null) {
+        Timber.d('[SavedProjectsService]   - FlipBook pages: ${project.flipBook!.pages.length}');
+        for (int i = 0; i < project.flipBook!.pages.length; i++) {
+          final page = project.flipBook!.pages[i];
+          Timber.d('[SavedProjectsService]     Page $i: ${page.stickers.length} stickers, ${page.drawings.length} drawings');
         }
       }
+      
+      if (project.infiniteCanvas != null) {
+        final canvas = project.infiniteCanvas!;
+        Timber.d('[SavedProjectsService]   - Canvas stickers: ${canvas.stickers.length}');
+        Timber.d('[SavedProjectsService]   - Canvas drawings: ${canvas.drawings.length}');
+        
+        for (int i = 0; i < canvas.drawings.length; i++) {
+          final drawing = canvas.drawings[i];
+          Timber.d('[SavedProjectsService]     Drawing $i: ${drawing.points.length} points, color: ${drawing.color}, width: ${drawing.strokeWidth}');
+        }
+        
+        for (int i = 0; i < canvas.stickers.length; i++) {
+          final sticker = canvas.stickers[i];
+          Timber.d('[SavedProjectsService]     Sticker $i: ${sticker.sticker.emoji}, position: (${sticker.position.dx}, ${sticker.position.dy})');
+        }
+      }
+      
+      Timber.d('[SavedProjectsService] === PROJECT DATA LOG END ===');
       
       // Get existing saved projects
       final savedProjects = await _getSavedProjectsLocal();
@@ -239,7 +267,13 @@ class SavedProjectsService {
       // Try to save to backend
       await _saveProjectToBackend(savedProjectResult);
       
-      Timber.i('[SavedProjectsService] Project saved: ${savedProjectResult.name}');
+      Timber.i('[SavedProjectsService] === PROJECT SAVE COMPLETE ===');
+      Timber.i('[SavedProjectsService] Saved project: ${savedProjectResult.name}');
+      Timber.i('[SavedProjectsService] Project ID: ${savedProjectResult.id}');
+      Timber.i('[SavedProjectsService] Saved at: ${savedProjectResult.savedAt}');
+      Timber.i('[SavedProjectsService] Thumbnail path: ${savedProjectResult.thumbnailPath ?? "none"}');
+      Timber.i('[SavedProjectsService] === END SAVE COMPLETE ===');
+      
       return savedProjectResult;
       
     } catch (e) {
@@ -501,19 +535,24 @@ class SavedProjectsService {
   /// Save project to backend
   Future<void> _saveProjectToBackend(SavedProject project) async {
     if (_apiService == null || _currentChildId == null) {
+      Timber.w('[SavedProjectsService] Cannot save to backend: apiService=${_apiService != null}, childId=${_currentChildId}');
       // Add to sync queue for later
       await _addToSyncQueue(project.id, 'save');
       return;
     }
     
     try {
-      Timber.d('[SavedProjectsService] Saving project to backend: ${project.name}');
+      Timber.d('[SavedProjectsService] Starting backend save for project: ${project.name}');
+      Timber.d('[SavedProjectsService] Project ID: ${project.id}');
+      Timber.d('[SavedProjectsService] Child ID: $_currentChildId');
+      Timber.d('[SavedProjectsService] Age Mode: ${project.ageMode}');
       
       // Create a summary of the project instead of full data to avoid 500 errors
       final projectSummary = _createProjectSummary(project);
+      Timber.d('[SavedProjectsService] Project summary created: $projectSummary');
       
-      // Use saveGameEvent to store project summary
-      await _apiService!.saveGameEvent({
+      // Prepare the event data structure
+      final eventData = {
         'gameType': 'sticker_book',
         'eventType': 'save_project',
         'childId': _currentChildId!,
@@ -525,12 +564,32 @@ class SavedProjectsService {
         'pageCount': projectSummary['pageCount'].toString(),
         'lastModified': project.originalProject.lastModified.toIso8601String(),
         'duration': '0', // Required by analytics endpoint
-      });
+      };
       
-      Timber.i('[SavedProjectsService] Project saved to backend: ${project.name}');
+      Timber.d('[SavedProjectsService] Event data prepared for backend:');
+      eventData.forEach((key, value) => Timber.d('[SavedProjectsService]   $key: $value (${value.runtimeType})'));
       
-    } catch (e) {
-      Timber.w('[SavedProjectsService] Failed to save project to backend, adding to sync queue: $e');
+      // Use saveGameEvent to store project summary
+      Timber.d('[SavedProjectsService] Calling ApiService.saveGameEvent...');
+      final response = await _apiService!.saveGameEvent(eventData);
+      
+      Timber.i('[SavedProjectsService] Project saved to backend successfully: ${project.name}');
+      Timber.d('[SavedProjectsService] Backend response status: ${response.statusCode}');
+      
+    } catch (e, stackTrace) {
+      Timber.e('[SavedProjectsService] Failed to save project to backend: $e');
+      Timber.e('[SavedProjectsService] Stack trace: $stackTrace');
+      
+      if (e.toString().contains('500')) {
+        Timber.e('[SavedProjectsService] 500 Internal Server Error detected - logging detailed context');
+        Timber.e('[SavedProjectsService] Project details - ID: ${project.id}, Name: ${project.name}');
+        Timber.e('[SavedProjectsService] Original project last modified: ${project.originalProject.lastModified}');
+        if (project.originalProject.infiniteCanvas != null) {
+          Timber.e('[SavedProjectsService] Canvas has ${project.originalProject.infiniteCanvas!.drawings.length} drawings');
+          Timber.e('[SavedProjectsService] Canvas has ${project.originalProject.infiniteCanvas!.stickers.length} stickers');
+        }
+      }
+      
       await _addToSyncQueue(project.id, 'save');
     }
   }
@@ -830,30 +889,51 @@ class SavedProjectsService {
     int pageCount = 0;
     
     try {
+      Timber.d('[SavedProjectsService] Creating summary for project: ${project.name}');
       final originalProject = project.originalProject;
+      Timber.d('[SavedProjectsService] Original project has flipBook: ${originalProject.flipBook != null}');
+      Timber.d('[SavedProjectsService] Original project has infiniteCanvas: ${originalProject.infiniteCanvas != null}');
       
       if (originalProject.flipBook != null) {
         pageCount = originalProject.flipBook!.pages.length;
-        for (final page in originalProject.flipBook!.pages) {
-          stickerCount += page.stickers.length;
-          drawingStrokeCount += page.drawings.length;
+        Timber.d('[SavedProjectsService] FlipBook has $pageCount pages');
+        
+        for (int i = 0; i < originalProject.flipBook!.pages.length; i++) {
+          final page = originalProject.flipBook!.pages[i];
+          final pageStickers = page.stickers.length;
+          final pageDrawings = page.drawings.length;
+          
+          Timber.d('[SavedProjectsService] Page $i: $pageStickers stickers, $pageDrawings drawings');
+          stickerCount += pageStickers;
+          drawingStrokeCount += pageDrawings;
         }
       }
       
       if (originalProject.infiniteCanvas != null) {
         pageCount = 1; // Infinite canvas counts as one page
-        stickerCount += originalProject.infiniteCanvas!.stickers.length;
-        drawingStrokeCount += originalProject.infiniteCanvas!.drawings.length;
+        final canvasStickers = originalProject.infiniteCanvas!.stickers.length;
+        final canvasDrawings = originalProject.infiniteCanvas!.drawings.length;
+        
+        Timber.d('[SavedProjectsService] InfiniteCanvas: $canvasStickers stickers, $canvasDrawings drawings');
+        stickerCount += canvasStickers;
+        drawingStrokeCount += canvasDrawings;
       }
-    } catch (e) {
-      Timber.w('[SavedProjectsService] Error creating project summary: $e');
+      
+      Timber.d('[SavedProjectsService] Summary totals: stickers=$stickerCount, drawings=$drawingStrokeCount, pages=$pageCount');
+      
+    } catch (e, stackTrace) {
+      Timber.e('[SavedProjectsService] Error creating project summary: $e');
+      Timber.e('[SavedProjectsService] Summary creation stack trace: $stackTrace');
     }
     
-    return {
+    final summary = {
       'stickerCount': stickerCount,
       'drawingStrokeCount': drawingStrokeCount,
       'pageCount': pageCount,
     };
+    
+    Timber.d('[SavedProjectsService] Final summary: $summary');
+    return summary;
   }
 }
 

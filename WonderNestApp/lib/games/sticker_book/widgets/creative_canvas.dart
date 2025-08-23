@@ -727,22 +727,36 @@ class _CreativeCanvasState extends State<CreativeCanvasWidget>
     final currentStroke = _currentStrokeNotifier.value;
     if (!_isDrawing || currentStroke.isEmpty) return;
 
+    // DEBUG: Log selected color details before creating stroke
+    debugPrint('[CreativeCanvas] Selected color for drawing: ${widget.selectedColor}');
+    debugPrint('[CreativeCanvas] Selected color alpha: ${widget.selectedColor.a}');
+    debugPrint('[CreativeCanvas] Selected color ARGB: ${widget.selectedColor.a},${widget.selectedColor.r},${widget.selectedColor.g},${widget.selectedColor.b}');
+    
+    // Ensure we have a proper opaque color - if alpha is 0, make it fully opaque
+    final drawingColor = widget.selectedColor.a == 0.0 
+        ? widget.selectedColor.withValues(alpha: 1.0)
+        : widget.selectedColor;
+    
+    debugPrint('[CreativeCanvas] Drawing color (after alpha fix): $drawingColor');
+    debugPrint('[CreativeCanvas] Drawing color alpha: ${drawingColor.a}');
+
     final stroke = DrawingStroke(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       points: List.from(currentStroke),
-      color: widget.selectedColor,
+      color: drawingColor,
       strokeWidth: widget.selectedBrushSize,
       paintStyle: Paint()
-        ..color = widget.selectedColor
+        ..color = drawingColor
         ..strokeWidth = widget.selectedBrushSize
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+        ..strokeJoin = StrokeJoin.round
+        ..isAntiAlias = true,
       createdAt: DateTime.now(),
     );
     
-    // DEBUG: Log stroke creation
-    debugPrint('[CreativeCanvas] Created stroke with ${stroke.points.length} points, color: ${stroke.color}, width: ${stroke.strokeWidth}');
+    // DEBUG: Log stroke creation with final color
+    debugPrint('[CreativeCanvas] Created stroke with ${stroke.points.length} points, color: ${stroke.color} (alpha: ${stroke.color.alpha}), width: ${stroke.strokeWidth}');
 
     final updatedCanvas = widget.canvas.copyWith(
       drawings: [...widget.canvas.drawings, stroke],
@@ -888,8 +902,11 @@ class CanvasPainter extends CustomPainter {
 
     // Draw current stroke while drawing (including single points)
     if (isDrawing && currentStroke.isNotEmpty) {
+      // Ensure we have a visible color for live drawing
+      final drawColor = selectedColor.a == 0.0 ? selectedColor.withValues(alpha: 1.0) : selectedColor;
+      
       final paint = Paint()
-        ..color = selectedColor
+        ..color = drawColor
         ..strokeWidth = selectedBrushSize
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round

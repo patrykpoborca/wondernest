@@ -191,10 +191,30 @@ class DrawingStroke {
   Map<String, dynamic> toJson() {
     // DEBUG: Log DrawingStroke serialization
     Timber.d('[DrawingStroke.toJson] Serializing stroke $id with ${points.length} points');
+    Timber.d('[DrawingStroke.toJson] Original color: $color');
+    Timber.d('[DrawingStroke.toJson] Color alpha: ${color.a}, red: ${color.r}, green: ${color.g}, blue: ${color.b}');
+    Timber.d('[DrawingStroke.toJson] Paint color: ${paintStyle.color}, alpha: ${paintStyle.color.a}');
+    
+    // Use the actual color from the Paint object if it's different, or the stored color
+    final actualColor = paintStyle.color != color ? paintStyle.color : color;
+    Timber.d('[DrawingStroke.toJson] Using actual color: $actualColor');
+    
+    // Convert double values (0.0-1.0) to integers (0-255)
+    // Ensure we have proper alpha - if it's 0 (fully transparent), make it opaque
+    final alpha = actualColor.a == 0.0 ? 255 : (actualColor.a * 255).round();
+    final red = (actualColor.r * 255).round();
+    final green = (actualColor.g * 255).round();
+    final blue = (actualColor.b * 255).round();
+    
+    // Encode as 32-bit integer: (alpha << 24) | (red << 16) | (green << 8) | blue
+    final colorInt = (alpha << 24) | (red << 16) | (green << 8) | blue;
+    
+    Timber.d('[DrawingStroke.toJson] Final ARGB: $alpha,$red,$green,$blue, encoded as: $colorInt (hex: 0x${colorInt.toRadixString(16).padLeft(8, '0')})');
+    
     final result = {
       'id': id,
       'points': points.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
-      'color': (color.a.round() << 24) | (color.r.round() << 16) | (color.g.round() << 8) | color.b.round(),
+      'color': colorInt,
       'strokeWidth': strokeWidth,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -207,12 +227,35 @@ class DrawingStroke {
     Timber.d('[DrawingStroke.fromJson] Deserializing stroke: $json');
     
     final pointsData = json['points'] as List;
-    final color = Color(json['color']);
+    final colorInt = json['color'] as int? ?? 0; // Handle null color
     final strokeWidth = (json['strokeWidth'] as num).toDouble();
+    
+    Timber.d('[DrawingStroke.fromJson] Raw color int from JSON: $colorInt (hex: 0x${colorInt.toRadixString(16).padLeft(8, '0')})');
+    
+    // Handle the case where colorInt is 0 (completely transparent/black) - default to opaque black
+    final safeColorInt = colorInt == 0 ? 0xFF000000 : colorInt; // Opaque black as fallback
+    
+    // Explicitly reconstruct the Color with proper alpha channel handling
+    // The color was stored as (a << 24) | (r << 16) | (g << 8) | b
+    var alpha = (safeColorInt >> 24) & 0xFF;
+    final red = (safeColorInt >> 16) & 0xFF;
+    final green = (safeColorInt >> 8) & 0xFF;
+    final blue = safeColorInt & 0xFF;
+    
+    Timber.d('[DrawingStroke.fromJson] Extracted ARGB: $alpha,$red,$green,$blue');
+    
+    // CRITICAL FIX: If alpha is 0 (which makes the color invisible), set it to 255 (fully opaque)
+    if (alpha == 0) {
+      alpha = 255;
+      Timber.w('[DrawingStroke.fromJson] Alpha was 0 (invisible), corrected to 255 (opaque)');
+    }
+    
+    // Create color with explicit ARGB values to ensure proper alpha
+    final color = Color.fromARGB(alpha, red, green, blue);
     
     final points = pointsData.map((p) => Offset((p['x'] as num).toDouble(), (p['y'] as num).toDouble())).toList();
     
-    Timber.d('[DrawingStroke.fromJson] Deserialized ${points.length} points, color: $color, width: $strokeWidth');
+    Timber.d('[DrawingStroke.fromJson] Deserialized ${points.length} points, final color: $color (alpha: ${color.a}), width: $strokeWidth');
     
     // Create Paint object with exact same properties used during creation
     final paintStyle = Paint()
@@ -232,7 +275,7 @@ class DrawingStroke {
       createdAt: DateTime.parse(json['createdAt']),
     );
     
-    Timber.d('[DrawingStroke.fromJson] Created DrawingStroke with paint color: ${paintStyle.color}, width: ${paintStyle.strokeWidth}');
+    Timber.d('[DrawingStroke.fromJson] Created DrawingStroke with final paint color: ${paintStyle.color} (alpha: ${paintStyle.color.a}), width: ${paintStyle.strokeWidth}');
     
     return stroke;
   }

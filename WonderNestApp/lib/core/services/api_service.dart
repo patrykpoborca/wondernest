@@ -70,9 +70,56 @@ class ApiService {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        
+        // Log detailed request info for debugging
+        if (options.path.contains('/analytics/events')) {
+          Timber.d('[API] === HTTP REQUEST DEBUG ===');
+          Timber.d('[API] Method: ${options.method}');
+          Timber.d('[API] Path: ${options.path}');
+          Timber.d('[API] Full URL: ${options.baseUrl}${options.path}');
+          Timber.d('[API] Headers:');
+          options.headers.forEach((key, value) => 
+            Timber.d('[API]   $key: ${key.toLowerCase().contains('auth') ? '[REDACTED]' : value}'));
+          Timber.d('[API] Request data type: ${options.data?.runtimeType}');
+          if (options.data != null) {
+            Timber.d('[API] Request data: ${options.data}');
+          }
+          Timber.d('[API] === END HTTP REQUEST DEBUG ===');
+        }
+        
         handler.next(options);
       },
+      onResponse: (response, handler) async {
+        if (response.requestOptions.path.contains('/analytics/events')) {
+          Timber.d('[API] === HTTP RESPONSE DEBUG ===');
+          Timber.d('[API] Status Code: ${response.statusCode}');
+          Timber.d('[API] Status Message: ${response.statusMessage}');
+          Timber.d('[API] Response Headers:');
+          response.headers.forEach((key, values) => 
+            Timber.d('[API]   $key: $values'));
+          Timber.d('[API] Response Data: ${response.data}');
+          Timber.d('[API] === END HTTP RESPONSE DEBUG ===');
+        }
+        handler.next(response);
+      },
       onError: (error, handler) async {
+        // Log detailed error info for debugging
+        if (error.requestOptions.path.contains('/analytics/events')) {
+          Timber.e('[API] === HTTP ERROR DEBUG ===');
+          Timber.e('[API] Error Type: ${error.type}');
+          Timber.e('[API] Error Message: ${error.message}');
+          Timber.e('[API] Request Path: ${error.requestOptions.path}');
+          if (error.response != null) {
+            Timber.e('[API] Response Status: ${error.response!.statusCode}');
+            Timber.e('[API] Response Status Message: ${error.response!.statusMessage}');
+            Timber.e('[API] Response Data: ${error.response!.data}');
+            Timber.e('[API] Response Headers:');
+            error.response!.headers.forEach((key, values) => 
+              Timber.e('[API]   $key: $values'));
+          }
+          Timber.e('[API] === END HTTP ERROR DEBUG ===');
+        }
+        
         if (error.response?.statusCode == 401) {
           // Token expired, try to refresh
           final refreshToken = await _storage.read(key: refreshTokenKey);
@@ -396,54 +443,129 @@ class ApiService {
   }
 
   Future<Response> saveGameEvent(Map<String, dynamic> eventData) {
+    Timber.d('[API] === SAVE GAME EVENT START ===');
+    Timber.d('[API] Received eventData keys: ${eventData.keys.toList()}');
+    Timber.d('[API] Raw eventData received:');
+    eventData.forEach((key, value) => Timber.d('[API]   $key: $value (${value?.runtimeType})'));
+    
     if (_useMockService) {
+      Timber.i('[API] Using mock service for saveGameEvent');
       return _mockService.saveGameEvent(eventData);
     }
     
-    // Game routes are disabled, redirect to analytics endpoint
-    // Convert game event data to analytics event format
-    final analyticsEvent = {
-      'eventType': eventData['eventType'] ?? 'game_event',
-      'childId': eventData['childId'] ?? '',
-      'contentId': eventData['gameId'] ?? eventData['contentId'] ?? eventData['gameType'] ?? 'unknown',
-      'duration': (eventData['duration'] ?? eventData['playTimeMinutes'] ?? 0),
-      'eventData': _prepareEventData(eventData),
-      'sessionId': eventData['sessionId'],
-    };
-    
-    return _dio.post('/analytics/events', data: analyticsEvent);
+    try {
+      Timber.d('[API] Converting to analytics event format...');
+      
+      // Game routes are disabled, redirect to analytics endpoint
+      // Convert game event data to analytics event format
+      final analyticsEvent = {
+        'eventType': eventData['eventType'] ?? 'game_event',
+        'childId': eventData['childId'] ?? '',
+        'contentId': eventData['gameId'] ?? eventData['contentId'] ?? eventData['gameType'] ?? 'unknown',
+        'duration': _parseDuration(eventData['duration'] ?? eventData['playTimeMinutes'] ?? 0),
+        'eventData': _prepareEventData(eventData),
+        'sessionId': eventData['sessionId'],
+      };
+      
+      Timber.d('[API] Analytics event created:');
+      Timber.d('[API]   eventType: ${analyticsEvent['eventType']}');
+      Timber.d('[API]   childId: ${analyticsEvent['childId']}');
+      Timber.d('[API]   contentId: ${analyticsEvent['contentId']}');
+      Timber.d('[API]   duration: ${analyticsEvent['duration']} (${analyticsEvent['duration'].runtimeType})');
+      Timber.d('[API]   sessionId: ${analyticsEvent['sessionId']}');
+      
+      final preparedEventData = analyticsEvent['eventData'] as Map<String, dynamic>;
+      Timber.d('[API]   eventData contents (${preparedEventData.length} fields):');
+      preparedEventData.forEach((key, value) => 
+        Timber.d('[API]     $key: $value (${value?.runtimeType})'));
+      
+      Timber.d('[API] Making POST request to /analytics/events...');
+      Timber.d('[API] Full request payload: $analyticsEvent');
+      
+      return _dio.post('/analytics/events', data: analyticsEvent);
+      
+    } catch (e, stackTrace) {
+      Timber.e('[API] Error in saveGameEvent: $e');
+      Timber.e('[API] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Helper method to prepare event data preserving proper data types
   Map<String, dynamic> _prepareEventData(Map<String, dynamic> eventData) {
+    Timber.d('[API] === PREPARING EVENT DATA ===');
+    Timber.d('[API] Input eventData has ${eventData.length} fields');
+    
     final cleanedEventData = <String, dynamic>{};
+    final skippedFields = <String>[];
+    const topLevelFields = ['eventType', 'childId', 'gameId', 'contentId', 'duration', 'playTimeMinutes', 'sessionId'];
     
     for (final entry in eventData.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      
+      Timber.d('[API] Processing field: $key = $value (${value?.runtimeType})');
+      
       // Skip fields that are already handled at the top level
-      if (['eventType', 'childId', 'gameId', 'contentId', 'duration', 'playTimeMinutes', 'sessionId'].contains(entry.key)) {
+      if (topLevelFields.contains(key)) {
+        skippedFields.add(key);
+        Timber.d('[API]   → Skipped (top-level field)');
         continue;
       }
       
-      final value = entry.value;
       if (value == null) {
-        // Skip null values to keep the JSON clean
+        Timber.d('[API]   → Skipped (null value)');
         continue;
       } else if (value is DateTime) {
-        // Convert DateTime to milliseconds since epoch for proper timestamp handling
-        cleanedEventData[entry.key] = value.millisecondsSinceEpoch;
+        final timestamp = value.millisecondsSinceEpoch;
+        cleanedEventData[key] = timestamp;
+        Timber.d('[API]   → Converted DateTime to timestamp: $timestamp');
       } else if (value is bool || value is num || value is String) {
-        // Keep primitive types as-is
-        cleanedEventData[entry.key] = value;
+        cleanedEventData[key] = value;
+        Timber.d('[API]   → Kept primitive type as-is');
       } else if (value is List || value is Map) {
-        // Keep structured data as-is for JSONB storage
-        cleanedEventData[entry.key] = value;
+        cleanedEventData[key] = value;
+        Timber.d('[API]   → Kept structured data as-is (${value is List ? "List[${value.length}]" : "Map[${(value as Map).length}]"})');
       } else {
-        // Convert other objects to string representation
-        cleanedEventData[entry.key] = value.toString();
+        final stringValue = value.toString();
+        cleanedEventData[key] = stringValue;
+        Timber.d('[API]   → Converted to string: $stringValue');
       }
     }
     
+    Timber.d('[API] Event data preparation complete:');
+    Timber.d('[API]   - Processed ${eventData.length} input fields');
+    Timber.d('[API]   - Skipped ${skippedFields.length} top-level fields: $skippedFields');
+    Timber.d('[API]   - Included ${cleanedEventData.length} fields in eventData');
+    
     return cleanedEventData;
+  }
+
+  /// Parse duration value to int, handling both string and numeric inputs
+  int _parseDuration(dynamic durationValue) {
+    Timber.d('[API] Parsing duration: $durationValue (${durationValue?.runtimeType})');
+    
+    if (durationValue == null) {
+      Timber.d('[API] Duration is null, returning 0');
+      return 0;
+    }
+    
+    int result;
+    if (durationValue is int) {
+      result = durationValue;
+      Timber.d('[API] Duration is already int: $result');
+    } else if (durationValue is double) {
+      result = durationValue.round();
+      Timber.d('[API] Converted double to int: $durationValue → $result');
+    } else if (durationValue is String) {
+      result = int.tryParse(durationValue) ?? 0;
+      Timber.d('[API] Parsed string to int: "$durationValue" → $result');
+    } else {
+      result = 0;
+      Timber.d('[API] Unknown duration type ${durationValue.runtimeType}, returning 0');
+    }
+    
+    return result;
   }
 
   Future<Response> getChildGameData(String childId) {

@@ -118,6 +118,10 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       lastModified: DateTime.now(),
     );
 
+    // Ensure we have a proper opaque black color for drawing
+    final initialColor = Colors.black.alpha == 0 ? Colors.black.withAlpha(255) : Colors.black;
+    debugPrint('[StickerBookGame] Initial selected color: $initialColor (alpha: ${initialColor.alpha})');
+
     gameState = StickerBookGameState(
       projects: [defaultProject],
       stickerPacks: stickerPacks,
@@ -125,6 +129,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       currentlyEditingProjectId: null, // Start with no editing project
       ageMode: _modeManager.ageMode,
       childAge: widget.child.age,
+      selectedColor: initialColor, // Ensure we have a proper color
     );
   }
 
@@ -1108,13 +1113,17 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   }
 
   void _selectColor(Color color) {
+    // Ensure the selected color is visible (has proper alpha)
+    final visibleColor = color.alpha == 0 ? color.withAlpha(255) : color;
+    debugPrint('[StickerBookGame] Selected color: $visibleColor (alpha: ${visibleColor.alpha})');
+    
     setState(() {
-      gameState = gameState.copyWith(selectedColor: color);
+      gameState = gameState.copyWith(selectedColor: visibleColor);
     });
     
     // Provide voice guidance for little kids
     if (_modeManager.shouldUseVoiceGuidance) {
-      voiceGuidanceService.speakColorSelection(color);
+      voiceGuidanceService.speakColorSelection(visibleColor);
     }
   }
 

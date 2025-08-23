@@ -734,17 +734,31 @@ class _InfiniteCanvasState extends State<InfiniteCanvasWidget>
     final currentStroke = _currentStrokeNotifier.value;
     if (!_isDrawing || currentStroke.isEmpty) return;
 
+    // DEBUG: Log selected color details before creating stroke
+    debugPrint('[InfiniteCanvas] Selected color for drawing: ${widget.selectedColor}');
+    debugPrint('[InfiniteCanvas] Selected color alpha: ${widget.selectedColor.a}');
+    debugPrint('[InfiniteCanvas] Selected color ARGB: ${widget.selectedColor.a},${widget.selectedColor.r},${widget.selectedColor.g},${widget.selectedColor.b}');
+    
+    // Ensure we have a proper opaque color - if alpha is 0, make it fully opaque
+    final drawingColor = widget.selectedColor.a == 0.0 
+        ? widget.selectedColor.withValues(alpha: 1.0)
+        : widget.selectedColor;
+    
+    debugPrint('[InfiniteCanvas] Drawing color (after alpha fix): $drawingColor');
+    debugPrint('[InfiniteCanvas] Drawing color alpha: ${drawingColor.a}');
+
     final stroke = DrawingStroke(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       points: List.from(currentStroke),
-      color: widget.selectedColor,
+      color: drawingColor,
       strokeWidth: widget.selectedBrushSize,
       paintStyle: Paint()
-        ..color = widget.selectedColor
+        ..color = drawingColor
         ..strokeWidth = widget.selectedBrushSize
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+        ..strokeJoin = StrokeJoin.round
+        ..isAntiAlias = true,
       createdAt: DateTime.now(),
     );
 
