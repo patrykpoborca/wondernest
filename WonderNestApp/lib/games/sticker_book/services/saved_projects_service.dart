@@ -491,7 +491,7 @@ class SavedProjectsService {
   // BACKEND SYNC METHODS
   // =============================================================================
   
-  /// Load projects from backend
+  /// Load projects from backend using proper game data persistence endpoint
   Future<List<SavedProject>> _loadProjectsFromBackend() async {
     if (_apiService == null || _currentChildId == null) {
       return [];
@@ -500,11 +500,11 @@ class SavedProjectsService {
     try {
       Timber.d('[SavedProjectsService] Loading projects from backend for child: $_currentChildId');
       
-      // Get child's game data from backend
-      final response = await _apiService!.getChildGameData(_currentChildId!);
-      final data = response.data['data'] ?? response.data;
+      // Get sticker book game data from backend using enhanced API v2
+      final response = await _apiService!.getGameData(_currentChildId!, gameType: 'sticker_book');
+      final data = response.data;
       
-      // Look for sticker book saved projects in game data
+      // Enhanced API v2 returns: {success: bool, gameData: [...]}
       final gameDataList = data['gameData'] as List? ?? [];
       final stickerProjects = gameDataList.where((item) {
         final dataKey = item['dataKey'] as String? ?? '';
@@ -515,7 +515,8 @@ class SavedProjectsService {
       
       for (final item in stickerProjects) {
         try {
-          final projectData = json.decode(item['dataValue'] ?? '{}');
+          // The dataValue should be the direct SavedProject JSON
+          final projectData = item['dataValue'] as Map<String, dynamic>? ?? {};
           final savedProject = SavedProject.fromJson(projectData);
           backendProjects.add(savedProject);
         } catch (e) {
@@ -532,7 +533,7 @@ class SavedProjectsService {
     }
   }
   
-  /// Save project to backend
+  /// Save project to backend using proper game data persistence endpoint
   Future<void> _saveProjectToBackend(SavedProject project) async {
     if (_apiService == null || _currentChildId == null) {
       Timber.w('[SavedProjectsService] Cannot save to backend: apiService=${_apiService != null}, childId=${_currentChildId}');
@@ -547,31 +548,21 @@ class SavedProjectsService {
       Timber.d('[SavedProjectsService] Child ID: $_currentChildId');
       Timber.d('[SavedProjectsService] Age Mode: ${project.ageMode}');
       
-      // Create a summary of the project instead of full data to avoid 500 errors
-      final projectSummary = _createProjectSummary(project);
-      Timber.d('[SavedProjectsService] Project summary created: $projectSummary');
-      
-      // Prepare the event data structure
-      final eventData = {
-        'gameType': 'sticker_book',
-        'eventType': 'save_project',
-        'childId': _currentChildId!,
-        'projectId': project.id,
-        'projectName': project.name,
-        'projectMode': project.ageMode.toString(),
-        'stickerCount': projectSummary['stickerCount'].toString(),
-        'drawingStrokeCount': projectSummary['drawingStrokeCount'].toString(),
-        'pageCount': projectSummary['pageCount'].toString(),
-        'lastModified': project.originalProject.lastModified.toIso8601String(),
-        'duration': '0', // Required by analytics endpoint
+      // Prepare game data for enhanced API v2 - proper GameRegistry architecture
+      final gameDataPayload = {
+        'gameKey': 'sticker_book',
+        'dataKey': 'sticker_project_${project.id}',
+        'dataValue': project.toJson(), // Full project data as JSON
       };
       
-      Timber.d('[SavedProjectsService] Event data prepared for backend:');
-      eventData.forEach((key, value) => Timber.d('[SavedProjectsService]   $key: $value (${value.runtimeType})'));
+      Timber.d('[SavedProjectsService] Game data payload prepared:');
+      Timber.d('[SavedProjectsService]   gameKey: ${gameDataPayload['gameKey']}');
+      Timber.d('[SavedProjectsService]   dataKey: ${gameDataPayload['dataKey']}');
+      Timber.d('[SavedProjectsService]   dataValue size: ${json.encode(gameDataPayload['dataValue']).length} characters');
       
-      // Use saveGameEvent to store project summary
-      Timber.d('[SavedProjectsService] Calling ApiService.saveGameEvent...');
-      final response = await _apiService!.saveGameEvent(eventData);
+      // Use saveGameData to store project data (NOT analytics endpoint)
+      Timber.d('[SavedProjectsService] Calling ApiService.saveGameData...');
+      final response = await _apiService!.saveGameData(_currentChildId!, gameDataPayload);
       
       Timber.i('[SavedProjectsService] Project saved to backend successfully: ${project.name}');
       Timber.d('[SavedProjectsService] Backend response status: ${response.statusCode}');
@@ -594,7 +585,7 @@ class SavedProjectsService {
     }
   }
   
-  /// Delete project from backend
+  /// Delete project from backend using proper game data persistence endpoint
   Future<void> _deleteProjectFromBackend(String projectId) async {
     if (_apiService == null || _currentChildId == null) {
       // Add to sync queue for later
@@ -605,14 +596,9 @@ class SavedProjectsService {
     try {
       Timber.d('[SavedProjectsService] Deleting project from backend: $projectId');
       
-      // Use saveGameEvent to mark project as deleted
-      await _apiService!.saveGameEvent({
-        'gameType': 'sticker_book',
-        'eventType': 'delete_project',
-        'childId': _currentChildId!,
-        'projectId': projectId,
-        'duration': '0', // Required by analytics endpoint
-      });
+      // Use deleteGameData to remove the project (NOT analytics endpoint)
+      final dataKey = 'sticker_project_$projectId';
+      await _apiService!.deleteGameData(_currentChildId!, 'sticker_book', dataKey);
       
       Timber.i('[SavedProjectsService] Project deleted from backend: $projectId');
       
@@ -882,59 +868,6 @@ class SavedProjectsService {
     }
   }
   
-  /// Create a lightweight summary of the project for backend storage
-  Map<String, dynamic> _createProjectSummary(SavedProject project) {
-    int stickerCount = 0;
-    int drawingStrokeCount = 0;
-    int pageCount = 0;
-    
-    try {
-      Timber.d('[SavedProjectsService] Creating summary for project: ${project.name}');
-      final originalProject = project.originalProject;
-      Timber.d('[SavedProjectsService] Original project has flipBook: ${originalProject.flipBook != null}');
-      Timber.d('[SavedProjectsService] Original project has infiniteCanvas: ${originalProject.infiniteCanvas != null}');
-      
-      if (originalProject.flipBook != null) {
-        pageCount = originalProject.flipBook!.pages.length;
-        Timber.d('[SavedProjectsService] FlipBook has $pageCount pages');
-        
-        for (int i = 0; i < originalProject.flipBook!.pages.length; i++) {
-          final page = originalProject.flipBook!.pages[i];
-          final pageStickers = page.stickers.length;
-          final pageDrawings = page.drawings.length;
-          
-          Timber.d('[SavedProjectsService] Page $i: $pageStickers stickers, $pageDrawings drawings');
-          stickerCount += pageStickers;
-          drawingStrokeCount += pageDrawings;
-        }
-      }
-      
-      if (originalProject.infiniteCanvas != null) {
-        pageCount = 1; // Infinite canvas counts as one page
-        final canvasStickers = originalProject.infiniteCanvas!.stickers.length;
-        final canvasDrawings = originalProject.infiniteCanvas!.drawings.length;
-        
-        Timber.d('[SavedProjectsService] InfiniteCanvas: $canvasStickers stickers, $canvasDrawings drawings');
-        stickerCount += canvasStickers;
-        drawingStrokeCount += canvasDrawings;
-      }
-      
-      Timber.d('[SavedProjectsService] Summary totals: stickers=$stickerCount, drawings=$drawingStrokeCount, pages=$pageCount');
-      
-    } catch (e, stackTrace) {
-      Timber.e('[SavedProjectsService] Error creating project summary: $e');
-      Timber.e('[SavedProjectsService] Summary creation stack trace: $stackTrace');
-    }
-    
-    final summary = {
-      'stickerCount': stickerCount,
-      'drawingStrokeCount': drawingStrokeCount,
-      'pageCount': pageCount,
-    };
-    
-    Timber.d('[SavedProjectsService] Final summary: $summary');
-    return summary;
-  }
 }
 
 /// Represents a saved sticker book project

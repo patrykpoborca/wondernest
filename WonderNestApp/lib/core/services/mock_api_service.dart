@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -507,45 +508,88 @@ class MockApiService {
   Future<Response> getChildGameData(String childId) async {
     await Future.delayed(const Duration(milliseconds: 500));
     
+    // Create mock saved sticker book project data that matches the expected backend format
+    final mockProject = {
+      'id': 'mock_project_1',
+      'name': 'My First Creation',
+      'originalProject': {
+        'name': 'My First Creation',
+        'lastModified': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'infiniteCanvas': {
+          'stickers': [
+            {
+              'sticker': {'emoji': '🦄', 'category': 'animals'},
+              'position': {'dx': 100.0, 'dy': 150.0},
+              'scale': 1.0,
+              'rotation': 0.0,
+            },
+            {
+              'sticker': {'emoji': '🌟', 'category': 'shapes'},
+              'position': {'dx': 200.0, 'dy': 100.0},
+              'scale': 1.2,
+              'rotation': 0.5,
+            },
+          ],
+          'drawings': [
+            {
+              'points': [
+                {'dx': 50.0, 'dy': 50.0},
+                {'dx': 60.0, 'dy': 60.0},
+                {'dx': 70.0, 'dy': 55.0},
+              ],
+              'color': {'value': 4294901760}, // Red color
+              'strokeWidth': 3.0,
+            },
+          ],
+        },
+        'flipBook': null,
+      },
+      'savedAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+      'ageMode': 'bigKid',
+      'thumbnailPath': null,
+      'description': null,
+    };
+    
+    // Format the response to match the real backend structure
     return Response(
-      requestOptions: RequestOptions(path: '/games/child/$childId'),
+      requestOptions: RequestOptions(path: '/analytics/children/$childId/events'),
       statusCode: 200,
       data: {
-        'success': true,
         'data': {
-          'gameProgress': [
+          'gameData': [
             {
-              'gameId': 'sticker_book',
-              'childId': childId,
-              'score': 150,
-              'level': 2,
-              'data': {
-                'totalStickersCollected': 15,
-                'completedPages': ['animals_farm'],
-                'unlockedStickers': ['cow', 'pig', 'chicken'],
-              },
-              'lastModified': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+              'dataKey': 'sticker_project_mock_project_1',
+              'dataValue': jsonEncode(mockProject),
+            },
+            // Add a second mock project to test multi-project scenarios
+            {
+              'dataKey': 'sticker_project_mock_project_2', 
+              'dataValue': jsonEncode({
+                'id': 'mock_project_2',
+                'name': 'Rainbow Drawing',
+                'originalProject': {
+                  'name': 'Rainbow Drawing',
+                  'lastModified': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+                  'infiniteCanvas': {
+                    'stickers': [
+                      {
+                        'sticker': {'emoji': '🌈', 'category': 'nature'},
+                        'position': {'dx': 150.0, 'dy': 100.0},
+                        'scale': 1.5,
+                        'rotation': 0.0,
+                      },
+                    ],
+                    'drawings': [],
+                  },
+                  'flipBook': null,
+                },
+                'savedAt': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+                'ageMode': 'littleKid',
+                'thumbnailPath': null,
+                'description': null,
+              }),
             },
           ],
-          'achievements': [
-            {
-              'id': 'first_sticker',
-              'gameId': 'sticker_book',
-              'childId': childId,
-              'unlockedAt': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
-            },
-          ],
-          'virtualCurrency': {
-            'balance': 75,
-            'transactions': [
-              {
-                'amount': 10,
-                'reason': 'Sticker collected',
-                'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-                'balanceAfter': 75,
-              },
-            ],
-          },
         },
       },
     );
@@ -591,6 +635,105 @@ class MockApiService {
           'transactionCount': transactions.length,
           'updatedAt': DateTime.now().toIso8601String(),
         },
+      },
+    );
+  }
+
+  // =============================================================================
+  // GAME DATA PERSISTENCE
+  // =============================================================================
+
+  // Simulated game data storage
+  static final Map<String, List<Map<String, dynamic>>> _gameData = {};
+  
+  Future<Response> saveGameData(String childId, Map<String, dynamic> gameData) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    // Initialize child's game data if not exists
+    _gameData[childId] ??= [];
+    
+    // Enhanced API v2 uses gameKey instead of gameType
+    final gameKey = gameData['gameKey'] as String;
+    final dataKey = gameData['dataKey'] as String;
+    _gameData[childId]!.removeWhere((item) => 
+      item['gameKey'] == gameKey && item['dataKey'] == dataKey);
+    
+    // Add new data
+    _gameData[childId]!.add({
+      'id': 'mock_id_${DateTime.now().millisecondsSinceEpoch}',
+      'instanceId': 'mock_instance_${DateTime.now().millisecondsSinceEpoch}',
+      'childId': childId,
+      'gameKey': gameKey,
+      'dataKey': dataKey,
+      'dataValue': gameData['dataValue'],
+      'dataVersion': 1,
+      'createdAt': DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    });
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/children/$childId/data'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'message': 'Game data saved successfully',
+        'childId': childId,
+        'gameKey': gameKey,
+        'dataKey': dataKey,
+        'data': _gameData[childId]!.last,
+      },
+    );
+  }
+  
+  Future<Response> getGameData(String childId, {String? gameType, String? dataKey}) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    final childData = _gameData[childId] ?? [];
+    
+    // Apply filters - gameType parameter maps to gameKey for v2 compatibility
+    var filteredData = childData;
+    if (gameType != null) {
+      filteredData = filteredData.where((item) => item['gameKey'] == gameType).toList();
+    }
+    if (dataKey != null) {
+      filteredData = filteredData.where((item) => item['dataKey'] == dataKey).toList();
+    }
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/children/$childId/data'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'gameData': filteredData,
+      },
+    );
+  }
+  
+  Future<Response> deleteGameData(String childId, String gameKey, String dataKey) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    final childData = _gameData[childId] ?? [];
+    final initialLength = childData.length;
+    
+    // Remove matching data - use gameKey for v2 compatibility
+    _gameData[childId] = childData.where((item) => 
+      !(item['gameKey'] == gameKey && item['dataKey'] == dataKey)).toList();
+    
+    final found = _gameData[childId]!.length < initialLength;
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/children/$childId/data/$gameKey/$dataKey'),
+      statusCode: found ? 200 : 404,
+      data: found ? {
+        'success': true,
+        'message': 'Game data deleted successfully',
+        'childId': childId,
+        'gameKey': gameKey,
+        'dataKey': dataKey,
+        'data': null,
+      } : {
+        'success': false,
+        'message': 'Game data not found',
       },
     );
   }

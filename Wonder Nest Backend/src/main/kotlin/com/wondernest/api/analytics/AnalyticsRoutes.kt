@@ -1,5 +1,6 @@
 package com.wondernest.api.analytics
 
+import com.wondernest.data.database.table.SimpleGameData
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -7,9 +8,16 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
+
+// Database operations for game data storage
 
 @Serializable
 data class MessageResponse(val message: String)
@@ -156,6 +164,49 @@ fun Route.analyticsRoutes() {
                 }
             }
             
+            // Get analytics events for a child - for game data retrieval
+            get("/children/{childId}/events") {
+                try {
+                    val childIdParam = call.parameters["childId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, MessageResponse("Child ID is required"))
+
+                    val principal = call.principal<JWTPrincipal>()
+                    val familyId = principal?.payload?.getClaim("familyId")?.asString()
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, MessageResponse("No family context in token"))
+
+                    call.application.environment.log.info("Loading game data for child: $childIdParam")
+                    
+                    val childId = UUID.fromString(childIdParam)
+                    
+                    // Get stored game data for this child from database
+                    val gameDataList = transaction {
+                        SimpleGameData.selectAll()
+                            .where { SimpleGameData.childId eq childId }
+                            .map { row ->
+                                val dataValueMap = row[SimpleGameData.dataValue]
+                                // Convert the JsonElement map back to a JSON string
+                                val dataValueJson = Json.encodeToString(dataValueMap)
+                                mapOf(
+                                    "dataKey" to row[SimpleGameData.dataKey],
+                                    "dataValue" to dataValueJson
+                                )
+                            }
+                    }
+                    
+                    val response = mapOf(
+                        "data" to mapOf(
+                            "gameData" to gameDataList
+                        )
+                    )
+                    
+                    call.respond(HttpStatusCode.OK, response)
+                    call.application.environment.log.info("Loaded ${gameDataList.size} projects from backend")
+                } catch (e: Exception) {
+                    call.application.environment.log.error("Error retrieving analytics events", e)
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse("Failed to retrieve events"))
+                }
+            }
+            
             post("/events") {
                 call.application.environment.log.info("=== ANALYTICS EVENT POST REQUEST START ===")
                 
@@ -220,6 +271,131 @@ fun Route.analyticsRoutes() {
                     }
 
                     call.application.environment.log.info("All validation passed, processing event...")
+                    
+                    // Special handling for sticker book project saves
+                    call.application.environment.log.info("🎯 CHECKING EVENT TYPE: eventType='${event.eventType}', gameType='${event.eventData["gameType"]}'")
+                    
+                    if (event.eventType == "save_project" && event.eventData["gameType"]?.toString() == "sticker_book") {
+                        call.application.environment.log.info("🎨 ===== STICKER BOOK SAVE DETECTED =====")
+                        call.application.environment.log.info("🎨 Project save event for child: ${event.childId}")
+                        
+                        val projectId = event.eventData["projectId"]?.toString()
+                        val fullProjectData = event.eventData["fullProjectData"]?.toString()
+                        
+                        call.application.environment.log.info("🎨 Project ID: $projectId")
+                        call.application.environment.log.info("🎨 Full project data length: ${fullProjectData?.length ?: 0} characters")
+                        
+                        if (projectId != null && fullProjectData != null) {
+                            call.application.environment.log.info("🎨 Both projectId and fullProjectData are present - proceeding with save")
+                            val childId = UUID.fromString(event.childId)
+                            val dataKey = "sticker_project_$projectId"
+                            
+                            // Parse and validate the JSON data
+                            val projectDataMap: Map<String, kotlinx.serialization.json.JsonElement> = try {
+                                // Parse the JSON string to ensure it's valid
+                                Json.decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(fullProjectData)
+                            } catch (e: Exception) {
+                                call.application.environment.log.error("Failed to parse project data JSON: $e")
+                                call.application.environment.log.error("Project data that failed to parse: ${fullProjectData.take(500)}...")
+                                // Create an error map with JsonElement values
+                                mapOf(
+                                    "error" to kotlinx.serialization.json.JsonPrimitive("parse_error"),
+                                    "message" to kotlinx.serialization.json.JsonPrimitive(e.message ?: "Unknown error"),
+                                    "timestamp" to kotlinx.serialization.json.JsonPrimitive(Clock.System.now().toString())
+                                )
+                            }
+                            
+                            // Store the full project data in database
+                            call.application.environment.log.info("🎨 Starting database transaction for child: $childId, dataKey: $dataKey")
+                            
+                            try {
+                                transaction {
+                                    call.application.environment.log.info("🎨 Checking for existing project...")
+                                    val existingCount = SimpleGameData.selectAll()
+                                        .where { 
+                                            (SimpleGameData.childId eq childId) and
+                                            (SimpleGameData.gameType eq "sticker_book") and
+                                            (SimpleGameData.dataKey eq dataKey)
+                                        }.count()
+                                    
+                                    call.application.environment.log.info("🎨 Found $existingCount existing projects with this key")
+                                    
+                                    if (existingCount > 0) {
+                                        call.application.environment.log.info("🎨 Updating existing project...")
+                                        // Update existing project
+                                        val updatedRows = SimpleGameData.update({
+                                            (SimpleGameData.childId eq childId) and
+                                            (SimpleGameData.gameType eq "sticker_book") and
+                                            (SimpleGameData.dataKey eq dataKey)
+                                        }) {
+                                            it[dataValue] = projectDataMap
+                                            it[updatedAt] = Clock.System.now()
+                                        }
+                                        call.application.environment.log.info("🎨 ✅ UPDATED sticker project: $projectId for child: ${event.childId} ($updatedRows rows)")
+                                    } else {
+                                        call.application.environment.log.info("🎨 Inserting new project...")
+                                        // Insert new project
+                                        SimpleGameData.insert {
+                                            it[SimpleGameData.childId] = childId
+                                            it[gameType] = "sticker_book"
+                                            it[SimpleGameData.dataKey] = dataKey
+                                            it[dataValue] = projectDataMap
+                                            it[createdAt] = Clock.System.now()
+                                            it[updatedAt] = Clock.System.now()
+                                        }
+                                        call.application.environment.log.info("🎨 ✅ INSERTED new sticker project: $projectId for child: ${event.childId}")
+                                    }
+                                    
+                                    // Get total count for logging
+                                    val totalCount = SimpleGameData.selectAll()
+                                        .where { 
+                                            (SimpleGameData.childId eq childId) and
+                                            (SimpleGameData.gameType eq "sticker_book")
+                                        }.count()
+                                    call.application.environment.log.info("🎨 📊 Total projects for child ${event.childId}: $totalCount")
+                                }
+                                call.application.environment.log.info("🎨 ✅ DATABASE TRANSACTION COMPLETED SUCCESSFULLY")
+                            } catch (dbException: Exception) {
+                                call.application.environment.log.error("🎨 ❌ DATABASE TRANSACTION FAILED: ${dbException.message}", dbException)
+                                throw dbException
+                            }
+                        } else {
+                            call.application.environment.log.warn("Missing project ID or full project data in save_project event")
+                        }
+                    }
+                    
+                    // Handle project deletions
+                    if (event.eventType == "delete_project" && event.eventData["gameType"]?.toString() == "sticker_book") {
+                        call.application.environment.log.info("Detected sticker book project delete event")
+                        
+                        val projectId = event.eventData["projectId"]?.toString()
+                        if (projectId != null) {
+                            val childId = UUID.fromString(event.childId)
+                            val dataKey = "sticker_project_$projectId"
+                            
+                            transaction {
+                                val deletedCount = SimpleGameData.deleteWhere {
+                                    (SimpleGameData.childId eq childId) and
+                                    (SimpleGameData.gameType eq "sticker_book") and
+                                    (SimpleGameData.dataKey eq dataKey)
+                                }
+                                
+                                if (deletedCount > 0) {
+                                    call.application.environment.log.info("Deleted sticker project: $projectId for child: ${event.childId}")
+                                    
+                                    // Get remaining count for logging
+                                    val remainingCount = SimpleGameData.selectAll()
+                                        .where { 
+                                            (SimpleGameData.childId eq childId) and
+                                            (SimpleGameData.gameType eq "sticker_book")
+                                        }.count()
+                                    call.application.environment.log.info("Remaining projects for child ${event.childId}: $remainingCount")
+                                } else {
+                                    call.application.environment.log.warn("Project not found for deletion: $projectId for child: ${event.childId}")
+                                }
+                            }
+                        }
+                    }
                     
                     // TODO: PRODUCTION - Store event in analytics database
                     // This would include events like:

@@ -14,6 +14,15 @@ class ApiService {
       return 'http://localhost:8080/api/v1';
     }
   }
+
+  // Enhanced API v2 for game data - using proper architecture
+  static String get baseUrlV2 {
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8080/api/v2';
+    } else {
+      return 'http://localhost:8080/api/v2';
+    }
+  }
   
   static String get healthUrl {
     if (Platform.isAndroid) {
@@ -31,6 +40,7 @@ class ApiService {
   factory ApiService() => _instance;
   
   late final Dio _dio;
+  late final Dio _dioV2;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   
   // Use mock service when backend is not available
@@ -45,6 +55,16 @@ class ApiService {
     
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ));
+
+    // Initialize API v2 Dio instance for enhanced game routes
+    _dioV2 = Dio(BaseOptions(
+      baseUrl: baseUrlV2,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
@@ -150,6 +170,75 @@ class ApiService {
               // Retry the original request with new token
               error.requestOptions.headers['Authorization'] = 'Bearer $newToken';
               final cloneReq = await _dio.request(
+                error.requestOptions.path,
+                options: Options(
+                  method: error.requestOptions.method,
+                  headers: error.requestOptions.headers,
+                ),
+                data: error.requestOptions.data,
+                queryParameters: error.requestOptions.queryParameters,
+              );
+              
+              return handler.resolve(cloneReq);
+            } catch (e) {
+              // Refresh failed, logout user
+              await logout();
+            }
+          }
+        }
+        handler.next(error);
+      },
+    ));
+
+    // Add same interceptors to v2 Dio instance
+    _dioV2.interceptors.add(PrettyDioLogger(
+      requestHeader: true,
+      requestBody: true,
+      responseBody: true,
+      responseHeader: false,
+      error: true,
+      compact: true,
+    ));
+
+    _dioV2.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storage.read(key: tokenKey);
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        handler.next(options);
+      },
+      onError: (error, handler) async {
+        if (error.response?.statusCode == 401) {
+          // Token expired, try to refresh
+          final refreshToken = await _storage.read(key: refreshTokenKey);
+          if (refreshToken != null) {
+            try {
+              // Create a new Dio instance for refresh to avoid interceptor loops
+              final refreshDio = Dio(BaseOptions(
+                baseUrl: baseUrl,
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              ));
+              
+              final response = await refreshDio.post('/auth/session/refresh', data: {
+                'refreshToken': refreshToken,
+              });
+              
+              // Handle response structure with data wrapper
+              final responseData = response.data['data'] ?? response.data;
+              final newToken = responseData['accessToken'];
+              final newRefreshToken = responseData['refreshToken'];
+              
+              await _storage.write(key: tokenKey, value: newToken);
+              await _storage.write(key: refreshTokenKey, value: newRefreshToken);
+              
+              // Retry the original request with new token
+              error.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+              final cloneReq = await _dioV2.request(
                 error.requestOptions.path,
                 options: Options(
                   method: error.requestOptions.method,
@@ -573,20 +662,8 @@ class ApiService {
       return _mockService.getChildGameData(childId);
     }
     
-    // Game routes are disabled, return a mock response structure for now
-    // In production, this would query analytics data to reconstruct game state
-    return Future.value(Response(
-      requestOptions: RequestOptions(path: '/games/child/$childId'),
-      statusCode: 200,
-      data: {
-        'success': true,
-        'data': {
-          'gameProgress': [],
-          'achievements': [],
-          'virtualCurrency': {'balance': 0, 'transactions': []},
-        },
-      },
-    ));
+    // Game routes are disabled, get saved game data from analytics events instead
+    return _dio.get('/analytics/children/$childId/events');
   }
 
   Future<Response> unlockAchievement({
@@ -672,6 +749,51 @@ class ApiService {
       'verificationMethod': verificationMethod,
       if (verificationData != null) 'verificationData': verificationData,
     });
+  }
+
+  // =============================================================================
+  // GAME DATA PERSISTENCE - Enhanced API v2 using proper GameRegistry architecture
+  // =============================================================================
+  
+  /// Save game data for a child using enhanced API v2
+  Future<Response> saveGameData(String childId, Map<String, dynamic> gameData) {
+    if (_useMockService) {
+      return _mockService.saveGameData(childId, gameData);
+    }
+    Timber.d('[API] Saving game data (v2) for child: $childId');
+    Timber.d('[API] Game data keys: ${gameData.keys.toList()}');
+    
+    // Enhanced API v2 expects: {gameKey, dataKey, dataValue}
+    // Route: PUT /api/v2/games/children/{childId}/data
+    return _dioV2.put('/games/children/$childId/data', data: gameData);
+  }
+  
+  /// Get game data for a child using enhanced API v2  
+  Future<Response> getGameData(String childId, {String? gameType, String? dataKey}) {
+    if (_useMockService) {
+      return _mockService.getGameData(childId, gameType: gameType, dataKey: dataKey);
+    }
+    Timber.d('[API] Getting game data (v2) for child: $childId');
+    if (gameType != null) Timber.d('[API] Game key filter: $gameType');
+    if (dataKey != null) Timber.d('[API] Data key filter: $dataKey');
+    
+    final queryParams = <String, String>{};
+    if (gameType != null) queryParams['gameKey'] = gameType;  // v2 uses gameKey instead of gameType
+    if (dataKey != null) queryParams['dataKey'] = dataKey;
+    
+    // Route: GET /api/v2/games/children/{childId}/data
+    return _dioV2.get('/games/children/$childId/data', queryParameters: queryParams);
+  }
+  
+  /// Delete specific game data for a child using enhanced API v2
+  Future<Response> deleteGameData(String childId, String gameKey, String dataKey) {
+    if (_useMockService) {
+      return _mockService.deleteGameData(childId, gameKey, dataKey);
+    }
+    Timber.d('[API] Deleting game data (v2) for child: $childId, gameKey: $gameKey, dataKey: $dataKey');
+    
+    // Route: DELETE /api/v2/games/children/{childId}/data/{gameKey}/{dataKey}
+    return _dioV2.delete('/games/children/$childId/data/$gameKey/$dataKey');
   }
 }
 

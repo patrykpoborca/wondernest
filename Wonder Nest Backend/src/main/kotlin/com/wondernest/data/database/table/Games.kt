@@ -348,3 +348,23 @@ object DailyGameMetrics : UUIDTable("daily_game_metrics", "games") {
         uniqueIndex(childId, gameId, date)
     }
 }
+
+// =============================================================================
+// SIMPLIFIED GAME DATA (for sticker book and similar games that don't need full game registry)
+// =============================================================================
+
+object SimpleGameData : UUIDTable("simple_game_data", "games") {
+    val childId = uuid("child_id") // Direct child_id reference without foreign key constraint for flexibility
+    val gameType = varchar("game_type", 100) // e.g., "sticker_book", "drawing", etc.
+    val dataKey = varchar("data_key", 200) // e.g., "sticker_project_123", "drawing_456"
+    val dataValue = jsonb<Map<String, kotlinx.serialization.json.JsonElement>>("data_value",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    )
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    
+    init {
+        uniqueIndex(childId, gameType, dataKey)
+    }
+}
