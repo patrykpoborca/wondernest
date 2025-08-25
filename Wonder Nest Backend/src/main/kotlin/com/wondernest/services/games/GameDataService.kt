@@ -46,19 +46,54 @@ class GameDataService {
             else -> mapOf("data" to dataValue.toString())  // Wrap non-object JSON in a map
         }
         
-        // Save the data
+        // Check if data already exists for this instance and key
+        val existingData = ChildGameData
+            .select { 
+                (ChildGameData.childGameInstanceId eq instanceId) and 
+                (ChildGameData.dataKey eq dataKey) 
+            }
+            .singleOrNull()
+        
         val now = Clock.System.now()
-        val dataId = ChildGameData.insertAndGetId {
-            it[ChildGameData.childGameInstanceId] = instanceId
-            it[ChildGameData.dataKey] = dataKey
-            it[ChildGameData.dataVersion] = 1
-            it[ChildGameData.dataValue] = dataValueMap
-            it[ChildGameData.createdAt] = now
-            it[ChildGameData.updatedAt] = now
+        val dataId = if (existingData != null) {
+            // Update existing data
+            val currentVersion = existingData[ChildGameData.dataVersion]
+            ChildGameData.update({ 
+                (ChildGameData.childGameInstanceId eq instanceId) and 
+                (ChildGameData.dataKey eq dataKey) 
+            }) {
+                it[ChildGameData.dataValue] = dataValueMap
+                it[ChildGameData.dataVersion] = currentVersion + 1
+                it[ChildGameData.updatedAt] = now
+            }
+            existingData[ChildGameData.id]
+        } else {
+            // Insert new data
+            ChildGameData.insertAndGetId {
+                it[ChildGameData.childGameInstanceId] = instanceId
+                it[ChildGameData.dataKey] = dataKey
+                it[ChildGameData.dataVersion] = 1
+                it[ChildGameData.dataValue] = dataValueMap
+                it[ChildGameData.createdAt] = now
+                it[ChildGameData.updatedAt] = now
+            }
         }
         
         // Update instance last played time
         childGameInstanceService.updatePlayTime(instanceId, 0) // Just update timestamp
+        
+        // Determine version and creation time for response
+        val dataVersion = if (existingData != null) {
+            existingData[ChildGameData.dataVersion] + 1
+        } else {
+            1
+        }
+        
+        val createdAt = if (existingData != null) {
+            existingData[ChildGameData.createdAt].toString()
+        } else {
+            now.toString()
+        }
         
         GameDataOperationResult.success(
             "Game data saved successfully",
@@ -69,8 +104,8 @@ class GameDataService {
                 gameKey = gameKey,
                 dataKey = dataKey,
                 dataValue = dataValue,  // Keep original JsonElement
-                dataVersion = 1,
-                createdAt = now.toString(),
+                dataVersion = dataVersion,
+                createdAt = createdAt,
                 updatedAt = now.toString()
             )
         )

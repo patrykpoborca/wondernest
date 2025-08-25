@@ -94,6 +94,9 @@ data class GameDataInfo(
 - ✅ API endpoint is accessible
 - ✅ Successfully saves complex sticker project JSON
 - ✅ Returns properly formatted response with saved data
+- ✅ Properly handles updates (UPSERT logic)
+- ✅ Increments version numbers on updates
+- ✅ Preserves creation timestamp on updates
 - ⏳ Flutter app integration test pending
 
 ## Next Steps
@@ -102,9 +105,28 @@ data class GameDataInfo(
 3. Check data retrieval and loading in Flutter
 4. Monitor for any edge cases with complex project structures
 
+## Update Issue Fix
+### Problem
+When editing an existing sticker book, saves were failing because the `saveGameData` method was only doing INSERT operations, which violated the unique constraint on `(child_game_instance_id, data_key)`.
+
+### Solution
+Modified `saveGameData` to implement UPSERT logic:
+1. Check if data already exists for the instance and key
+2. If exists: UPDATE with incremented version
+3. If not exists: INSERT as new data
+4. Properly track version numbers and timestamps
+
+### Verification
+Tested with multiple sequential updates:
+- Version 1: Initial save
+- Version 2: First update with new content
+- Version 3: Second update with more changes
+All updates successful with proper versioning.
+
 ## Architecture Notes
 This fix aligns with the proper GameRegistry → ChildGameInstances → ChildGameData architecture:
 - GameRegistry defines available games
 - ChildGameInstances tracks which children have access to which games
 - ChildGameData stores flexible JSON data for each game instance
 - Using JSONB in PostgreSQL allows storage of any JSON structure without schema constraints
+- Versioning ensures data integrity and update tracking
