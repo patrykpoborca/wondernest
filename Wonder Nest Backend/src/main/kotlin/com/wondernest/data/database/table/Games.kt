@@ -15,17 +15,17 @@ import java.util.UUID
 // GAME REGISTRY TABLES
 // =============================================================================
 
-object GameTypes : UUIDTable("game_types", "games") {
+object GameTypes : UUIDTable("games.game_types") {
     val name = varchar("name", 100).uniqueIndex()
     val description = text("description")
-    val defaultSchema = jsonb<Map<String, Any>>("default_schema",
+    val defaultSchema = jsonb<Map<String, String>>("default_schema",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
     val createdAt = timestamp("created_at")
 }
 
-object GameCategories : UUIDTable("game_categories", "games") {
+object GameCategories : UUIDTable("games.game_categories") {
     val name = varchar("name", 100).uniqueIndex()
     val parentCategoryId = reference("parent_category_id", GameCategories, onDelete = ReferenceOption.SET_NULL).nullable()
     val iconUrl = varchar("icon_url", 500).nullable()
@@ -34,7 +34,7 @@ object GameCategories : UUIDTable("game_categories", "games") {
     val createdAt = timestamp("created_at")
 }
 
-object GameRegistry : UUIDTable("game_registry", "games") {
+object GameRegistry : UUIDTable("games.game_registry") {
     val gameKey = varchar("game_key", 100).uniqueIndex()
     val displayName = varchar("display_name", 200)
     val description = text("description")
@@ -49,11 +49,11 @@ object GameRegistry : UUIDTable("game_registry", "games") {
     val maxAgeMonths = integer("max_age_months").default(144)
     
     // Configuration
-    val configuration = jsonb<Map<String, Any>>("configuration",
+    val configuration = jsonb<Map<String, String>>("configuration",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
-    val defaultSettings = jsonb<Map<String, Any>>("default_settings",
+    val defaultSettings = jsonb<Map<String, String>>("default_settings",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -101,16 +101,16 @@ object GameRegistry : UUIDTable("game_registry", "games") {
 // CHILD GAME INSTANCES
 // =============================================================================
 
-object ChildGameInstances : UUIDTable("child_game_instances", "games") {
+object ChildGameInstances : UUIDTable("games.child_game_instances") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE)
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.CASCADE)
     
     // Instance configuration
-    val settings = jsonb<Map<String, Any>>("settings",
+    val settings = jsonb<Map<String, String>>("settings",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
-    val preferences = jsonb<Map<String, Any>>("preferences",
+    val preferences = jsonb<Map<String, String>>("preferences",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -138,11 +138,11 @@ object ChildGameInstances : UUIDTable("child_game_instances", "games") {
     }
 }
 
-object ChildGameData : UUIDTable("child_game_data", "games") {
+object ChildGameData : UUIDTable("games.child_game_data") {
     val childGameInstanceId = reference("child_game_instance_id", ChildGameInstances, onDelete = ReferenceOption.CASCADE)
     val dataKey = varchar("data_key", 200)
     val dataVersion = integer("data_version").default(1)
-    val dataValue = jsonb<Map<String, Any>>("data_value",
+    val dataValue = jsonb<Map<String, String>>("data_value",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -158,7 +158,7 @@ object ChildGameData : UUIDTable("child_game_data", "games") {
 // GAME SESSIONS
 // =============================================================================
 
-object GameSessions : UUIDTable("game_sessions", "games") {
+object GameSessions : UUIDTable("games.game_sessions") {
     val childGameInstanceId = reference("child_game_instance_id", ChildGameInstances, onDelete = ReferenceOption.CASCADE)
     
     // Session timing
@@ -172,11 +172,11 @@ object GameSessions : UUIDTable("game_sessions", "games") {
     val gameVersion = varchar("game_version", 20).nullable()
     
     // Metrics
-    val sessionData = jsonb<Map<String, Any>>("session_data",
+    val sessionData = jsonb<Map<String, String>>("session_data",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
-    val events = jsonb<List<Map<String, Any>>>("events",
+    val events = jsonb<List<Map<String, String>>>("events",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -188,7 +188,7 @@ object GameSessions : UUIDTable("game_sessions", "games") {
 // ACHIEVEMENTS SYSTEM
 // =============================================================================
 
-object Achievements : UUIDTable("achievements", "games") {
+object Achievements : UUIDTable("games.achievements") {
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.CASCADE)
     
     val achievementKey = varchar("achievement_key", 200)
@@ -197,7 +197,7 @@ object Achievements : UUIDTable("achievements", "games") {
     val iconUrl = varchar("icon_url", 500).nullable()
     
     // Unlock criteria
-    val criteria = jsonb<Map<String, Any>>("criteria",
+    val criteria = jsonb<Map<String, String>>("criteria",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -217,7 +217,7 @@ object Achievements : UUIDTable("achievements", "games") {
     }
 }
 
-object ChildAchievements : UUIDTable("child_achievements", "games") {
+object ChildAchievements : UUIDTable("games.child_achievements") {
     val childGameInstanceId = reference("child_game_instance_id", ChildGameInstances, onDelete = ReferenceOption.CASCADE)
     val achievementId = reference("achievement_id", Achievements, onDelete = ReferenceOption.CASCADE)
     
@@ -235,7 +235,7 @@ object ChildAchievements : UUIDTable("child_achievements", "games") {
 // SHARED ASSET SYSTEM
 // =============================================================================
 
-object GameAssets : UUIDTable("game_assets", "games") {
+object GameAssets : UUIDTable("games.game_assets") {
     val assetType = varchar("asset_type", 50) // 'sticker', 'background', 'sound', 'sprite'
     val assetCategory = varchar("asset_category", 100).nullable()
     val name = varchar("name", 200)
@@ -243,7 +243,7 @@ object GameAssets : UUIDTable("game_assets", "games") {
     // Asset data
     val url = varchar("url", 500).nullable()
     val thumbnailUrl = varchar("thumbnail_url", 500).nullable()
-    val metadata = jsonb<Map<String, Any>>("metadata",
+    val metadata = jsonb<Map<String, String>>("metadata",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -262,12 +262,12 @@ object GameAssets : UUIDTable("game_assets", "games") {
 object GameAssetRegistry : Table("games.game_asset_registry") {
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.CASCADE)
     val assetId = reference("asset_id", GameAssets, onDelete = ReferenceOption.CASCADE)
-    val usageContext = jsonb<Map<String, Any>>("usage_context",
+    val usageContext = jsonb<Map<String, String>>("usage_context",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     ).nullable()
     val isStarter = bool("is_starter").default(false)
-    val unlockRequirement = jsonb<Map<String, Any>>("unlock_requirement",
+    val unlockRequirement = jsonb<Map<String, String>>("unlock_requirement",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     ).nullable()
@@ -279,14 +279,14 @@ object GameAssetRegistry : Table("games.game_asset_registry") {
 // PARENT APPROVAL SYSTEM
 // =============================================================================
 
-object ParentApprovals : UUIDTable("parent_approvals", "games") {
+object ParentApprovals : UUIDTable("games.parent_approvals") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE)
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.SET_NULL).nullable()
     
     // Request details
     val approvalType = varchar("approval_type", 100) // 'custom_content', 'premium_purchase', 'sharing'
     val requestContext = varchar("request_context", 500).nullable()
-    val requestData = jsonb<Map<String, Any>>("request_data",
+    val requestData = jsonb<Map<String, String>>("request_data",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -307,7 +307,7 @@ object ParentApprovals : UUIDTable("parent_approvals", "games") {
 // VIRTUAL CURRENCY
 // =============================================================================
 
-object VirtualCurrency : UUIDTable("virtual_currency", "games") {
+object VirtualCurrency : UUIDTable("games.virtual_currency") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE).uniqueIndex()
     val balance = integer("balance").default(0)
     val totalEarned = integer("total_earned").default(0)
@@ -315,7 +315,7 @@ object VirtualCurrency : UUIDTable("virtual_currency", "games") {
     val lastUpdated = timestamp("last_updated")
 }
 
-object CurrencyTransactions : UUIDTable("currency_transactions", "games") {
+object CurrencyTransactions : UUIDTable("games.currency_transactions") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE)
     val amount = integer("amount")
     val transactionType = varchar("transaction_type", 50) // 'earned', 'spent', 'bonus', 'refund'
@@ -328,7 +328,7 @@ object CurrencyTransactions : UUIDTable("currency_transactions", "games") {
 // ANALYTICS
 // =============================================================================
 
-object DailyGameMetrics : UUIDTable("daily_game_metrics", "games") {
+object DailyGameMetrics : UUIDTable("games.daily_game_metrics") {
     val childId = reference("child_id", ChildProfiles, onDelete = ReferenceOption.CASCADE)
     val gameId = reference("game_id", GameRegistry, onDelete = ReferenceOption.SET_NULL).nullable()
     val date = date("date")
@@ -337,7 +337,7 @@ object DailyGameMetrics : UUIDTable("daily_game_metrics", "games") {
     val playTimeMinutes = integer("play_time_minutes").default(0)
     val sessionsCount = integer("sessions_count").default(0)
     val achievementsUnlocked = integer("achievements_unlocked").default(0)
-    val metrics = jsonb<Map<String, Any>>("metrics",
+    val metrics = jsonb<Map<String, String>>("metrics",
         serialize = { Json.encodeToString(it) },
         deserialize = { Json.decodeFromString(it) }
     )
@@ -353,7 +353,7 @@ object DailyGameMetrics : UUIDTable("daily_game_metrics", "games") {
 // SIMPLIFIED GAME DATA (for sticker book and similar games that don't need full game registry)
 // =============================================================================
 
-object SimpleGameData : UUIDTable("simple_game_data", "games") {
+object SimpleGameData : UUIDTable("games.simple_game_data") {
     val childId = uuid("child_id") // Direct child_id reference without foreign key constraint for flexibility
     val gameType = varchar("game_type", 100) // e.g., "sticker_book", "drawing", etc.
     val dataKey = varchar("data_key", 200) // e.g., "sticker_project_123", "drawing_456"

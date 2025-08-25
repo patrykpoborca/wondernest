@@ -4,6 +4,7 @@ import com.wondernest.data.database.table.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -28,7 +29,7 @@ class GameDataService {
         childId: UUID,
         gameKey: String,
         dataKey: String,
-        dataValue: Map<String, JsonElement>
+        dataValue: JsonElement
     ): GameDataOperationResult = transaction {
         
         // Get the game from registry
@@ -39,13 +40,19 @@ class GameDataService {
         val instance = childGameInstanceService.getOrCreateInstance(childId, UUID.fromString(game.id))
         val instanceId = UUID.fromString(instance.id)
         
+        // Convert JsonElement to Map<String, String> for storage
+        val dataValueMap = when (dataValue) {
+            is JsonObject -> dataValue.mapValues { (_, value) -> value.toString() }
+            else -> mapOf("data" to dataValue.toString())  // Wrap non-object JSON in a map
+        }
+        
         // Save the data
         val now = Clock.System.now()
         val dataId = ChildGameData.insertAndGetId {
             it[ChildGameData.childGameInstanceId] = instanceId
             it[ChildGameData.dataKey] = dataKey
             it[ChildGameData.dataVersion] = 1
-            it[ChildGameData.dataValue] = dataValue.mapValues { (_, value) -> value.toString() }
+            it[ChildGameData.dataValue] = dataValueMap
             it[ChildGameData.createdAt] = now
             it[ChildGameData.updatedAt] = now
         }
@@ -61,7 +68,7 @@ class GameDataService {
                 childId = childId.toString(),
                 gameKey = gameKey,
                 dataKey = dataKey,
-                dataValue = dataValue,
+                dataValue = dataValue,  // Keep original JsonElement
                 dataVersion = 1,
                 createdAt = now.toString(),
                 updatedAt = now.toString()
@@ -76,7 +83,7 @@ class GameDataService {
         childId: UUID,
         gameKey: String,
         dataKey: String,
-        dataValue: Map<String, JsonElement>
+        dataValue: JsonElement
     ): GameDataOperationResult = transaction {
         
         // Get the game and instance
@@ -94,13 +101,19 @@ class GameDataService {
             (ChildGameData.dataKey eq dataKey)
         }.singleOrNull()
         
+        // Convert JsonElement to Map<String, String> for storage
+        val dataValueMap = when (dataValue) {
+            is JsonObject -> dataValue.mapValues { (_, value) -> value.toString() }
+            else -> mapOf("data" to dataValue.toString())  // Wrap non-object JSON in a map
+        }
+        
         if (existingData != null) {
             // Update existing data
             val now = Clock.System.now()
             val currentVersion = existingData[ChildGameData.dataVersion]
             
             ChildGameData.update({ ChildGameData.id eq existingData[ChildGameData.id] }) {
-                it[ChildGameData.dataValue] = dataValue.mapValues { (_, value) -> value.toString() }
+                it[ChildGameData.dataValue] = dataValueMap
                 it[ChildGameData.dataVersion] = currentVersion + 1
                 it[ChildGameData.updatedAt] = now
             }
@@ -116,7 +129,7 @@ class GameDataService {
                     childId = childId.toString(),
                     gameKey = gameKey,
                     dataKey = dataKey,
-                    dataValue = dataValue,
+                    dataValue = dataValue,  // Keep original JsonElement
                     dataVersion = currentVersion + 1,
                     createdAt = existingData[ChildGameData.createdAt].toString(),
                     updatedAt = now.toString()
@@ -148,9 +161,18 @@ class GameDataService {
         
         filteredQuery.orderBy(ChildGameData.updatedAt to SortOrder.DESC)
             .map { row ->
-                @Suppress("UNCHECKED_CAST")
-                val dataValueMap = (row[ChildGameData.dataValue] as Map<String, Any>).mapValues { (_, value) ->
-                    Json.parseToJsonElement(value.toString())
+                val storedData = row[ChildGameData.dataValue]
+                
+                // Reconstruct JsonElement from stored data
+                val dataValueJson = if (storedData.containsKey("data")) {
+                    // Was wrapped non-object JSON
+                    Json.parseToJsonElement(storedData["data"].toString())
+                } else {
+                    // Was a JsonObject, reconstruct it
+                    val jsonMap = storedData.mapValues { (_, value) ->
+                        Json.parseToJsonElement(value.toString())
+                    }
+                    JsonObject(jsonMap)
                 }
                 
                 GameDataInfo(
@@ -159,7 +181,7 @@ class GameDataService {
                     childId = childId.toString(),
                     gameKey = gameKey,
                     dataKey = row[ChildGameData.dataKey],
-                    dataValue = dataValueMap,
+                    dataValue = dataValueJson,
                     dataVersion = row[ChildGameData.dataVersion],
                     createdAt = row[ChildGameData.createdAt].toString(),
                     updatedAt = row[ChildGameData.updatedAt].toString()
@@ -259,7 +281,7 @@ data class GameDataInfo(
     val childId: String,
     val gameKey: String,
     val dataKey: String,
-    val dataValue: Map<String, JsonElement>,
+    val dataValue: JsonElement,  // Store as JsonElement for flexible serialization
     val dataVersion: Int,
     val createdAt: String,
     val updatedAt: String
@@ -296,12 +318,12 @@ data class GameDataOperationResult(
 data class SaveGameDataRequest(
     val gameKey: String,
     val dataKey: String,
-    val dataValue: Map<String, JsonElement>
+    val dataValue: JsonElement  // Accept any JSON structure, not just Map
 )
 
 @Serializable
 data class UpdateGameDataRequest(
     val gameKey: String,
     val dataKey: String,
-    val dataValue: Map<String, JsonElement>
+    val dataValue: JsonElement  // Accept any JSON structure, not just Map
 )

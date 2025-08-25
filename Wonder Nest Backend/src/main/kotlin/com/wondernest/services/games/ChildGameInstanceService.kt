@@ -47,8 +47,8 @@ class ChildGameInstanceService {
             val newInstanceId = ChildGameInstances.insertAndGetId {
                 it[ChildGameInstances.childId] = childId
                 it[ChildGameInstances.gameId] = gameId
-                it[ChildGameInstances.settings] = mapOf<String, Any>()
-                it[ChildGameInstances.preferences] = mapOf<String, Any>()
+                it[ChildGameInstances.settings] = mapOf<String, String>()
+                it[ChildGameInstances.preferences] = mapOf<String, String>()
                 it[ChildGameInstances.isUnlocked] = true
                 it[ChildGameInstances.totalPlayTimeMinutes] = 0
                 it[ChildGameInstances.sessionCount] = 0

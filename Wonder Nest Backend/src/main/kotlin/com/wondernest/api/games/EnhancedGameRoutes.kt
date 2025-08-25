@@ -174,7 +174,8 @@ fun Route.enhancedGameRoutes() {
                 }
                 
                 try {
-                    val result = gameDataService.updateGameData(
+                    // Use saveGameData which creates instance if needed, then updates
+                    val result = gameDataService.saveGameData(
                         childId = childId,
                         gameKey = request.gameKey,
                         dataKey = request.dataKey,
