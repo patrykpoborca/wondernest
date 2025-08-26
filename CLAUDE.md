@@ -1,426 +1,464 @@
-# CLAUDE.md
+# CLAUDE.md - WonderNest AI Development Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides comprehensive guidance to Claude AI when working with the WonderNest codebase, incorporating feature development standards and tracking patterns.
 
-## Project Overview
-WonderNest is a COPPA-compliant child development platform with audio monitoring and content curation. The system consists of a Flutter mobile app and KTOR backend with PostgreSQL/Redis.
+## 🎯 Project Overview
+WonderNest is a COPPA-compliant child development platform with audio monitoring and content curation. The system consists of:
+- **Frontend**: Flutter mobile app (iOS/Android/Desktop support)
+- **Backend**: KTOR 3.0 with Kotlin
+- **Database**: PostgreSQL 16 with multiple schemas (core, games, content, analytics, compliance)
+- **Cache**: Redis 7
 
-## Build and Development Commands
+## 📁 AI Guidance Directory Structure
+
+All AI-assisted development is tracked in the `ai_guidance/` directory:
+
+```
+ai_guidance/
+├── features/                           # Feature-specific documentation
+│   └── {feature_name}/
+│       ├── feature_description.md      # Business requirements
+│       ├── implementation_todo.md       # Technical checklist
+│       ├── changelog.md                # Session history
+│       ├── api_endpoints.md           # API documentation
+│       └── remaining_todos.md         # Incomplete work
+├── business_definitions.md            # Domain terminology
+└── architecture_decisions/            # ADRs for key decisions
+```
+
+## 🚀 Session Start Protocol
+
+### At Each Session Start:
+1. **Check for existing work**:
+```bash
+# List all features with remaining work
+find ai_guidance/features -name "remaining_todos.md" -exec grep -l "." {} \;
+
+# Check recent changes
+find ai_guidance/features -name "changelog.md" -exec grep -l "$(date +'%Y-%m-%d')" {} \;
+```
+
+2. **Review context**:
+- Read relevant `feature_description.md`
+- Check `changelog.md` for recent work
+- Review `implementation_todo.md` progress
+
+3. **Set up tracking** (for new features):
+```bash
+mkdir -p ai_guidance/features/{feature_name}
+# Create required files from templates
+```
+
+## 📋 Feature Development Standards
+
+### Feature Documentation Template
+Each feature MUST have:
+
+#### feature_description.md
+```markdown
+# {Feature Name}
+
+## Overview
+Brief description of the feature and its business value.
+
+## User Stories
+- As a {user type}, I want to {action} so that {benefit}
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+## Technical Constraints
+- Must work offline for mobile
+- Must be COPPA compliant
+- Must support iOS/Android/Desktop
+
+## Security Considerations
+- Authentication requirements
+- Data privacy concerns
+```
+
+#### implementation_todo.md
+```markdown
+# Implementation Todo: {Feature Name}
+
+## Pre-Implementation
+- [ ] Review business requirements
+- [ ] Check existing similar features
+- [ ] Design database schema
+
+## Backend Implementation
+- [ ] Create/update models
+- [ ] Implement services
+- [ ] Create API routes
+- [ ] Add validation
+- [ ] Write tests
+
+## Frontend Implementation
+- [ ] Create/update providers
+- [ ] Implement screens
+- [ ] Add navigation
+- [ ] Handle states (loading/error/success)
+- [ ] Test on all platforms
+
+## Testing
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Manual testing on iOS/Android
+```
+
+### Changelog Format
+Every coding session MUST add a changelog entry:
+
+```markdown
+## [YYYY-MM-DD HH:MM] - Type: {FEATURE|BUGFIX|REFACTOR|TEST|DOCS}
+
+### Summary
+One-line description of work done
+
+### Changes Made
+- ✅ Completed change
+- ⚠️ Change with caveats
+- 🐛 Bug discovered
+
+### Files Modified
+| File | Change Type | Description |
+|------|------------|-------------|
+| `/path/to/file` | CREATE/MODIFY | What changed |
+
+### Testing
+- Tested: What was tested
+- Result: Test outcome
+
+### Next Steps
+- What should be done next
+```
+
+## 🏗️ Architecture Patterns
+
+### Frontend (Flutter)
+**State Management**: Riverpod with StateNotifier
+```dart
+// Provider pattern
+final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
+  return GameNotifier(ref.read(apiServiceProvider));
+});
+```
+
+**Navigation**: GoRouter with PIN protection
+```dart
+// Protected routes require parent PIN
+GoRoute(
+  path: '/parent-dashboard',
+  builder: (context, state) => const ParentDashboard(),
+  redirect: (context, state) => checkParentAuth(),
+)
+```
+
+**API Integration**: Service pattern with mock fallback
+```dart
+// Automatic fallback to mock when backend unavailable
+final apiService = ref.watch(apiServiceProvider);
+// Automatically uses MockApiService when backend is down
+```
+
+### Backend (KTOR)
+**Database Access**: Repository pattern
+```kotlin
+// Use transaction wrapper for all DB operations
+fun saveGameData(data: GameData) = transaction {
+    // Set schema path for games tables
+    exec("SET search_path TO games, public")
+    // Perform operations
+}
+```
+
+**API Routes**: RESTful with versioning
+```kotlin
+route("/api/v2/games") {
+    authenticate("auth-jwt") {
+        put("/children/{childId}/data") {
+            // Implementation
+        }
+    }
+}
+```
+
+## 🔧 Build and Development Commands
 
 ### Flutter App (WonderNestApp/)
 ```bash
 # Install dependencies
 flutter pub get
 
-# Run app on iOS simulator/Android emulator
-flutter run
+# Run app
+flutter run                           # Default device
+flutter run --device-id [device_id]   # Specific device
 
-# Run on specific device
-flutter run --device-id [device_id]
-
-# Build for production
+# Build
 flutter build ios --release
 flutter build apk --release
+flutter build macos --release
 
-# Analyze code for issues
-flutter analyze --no-fatal-infos
+# Testing
+flutter test                          # All tests
+flutter test test/widget_test.dart    # Specific test
 
-# Run tests
-flutter test
+# Code generation
+dart run build_runner build --delete-conflicting-outputs
 
-# Update iOS dependencies
+# iOS specific
 cd ios && pod install && cd ..
 
-# Generate code (models, providers)
-dart run build_runner build --delete-conflicting-outputs
+# Analyze code
+flutter analyze --no-fatal-infos
 ```
 
 ### Backend (Wonder Nest Backend/)
 ```bash
-# Start all services (Docker)
-docker-compose up -d
+# Start services
+docker-compose up -d                  # All services
+./gradlew run                         # Backend only
 
-# Run backend locally
-./gradlew run
-
-# Build backend
+# Build and test
 ./gradlew build
-
-# Run tests
 ./gradlew test
+./gradlew integrationTest
 
-# Database setup
-./setup-database.sh
-./verify-database.sh
+# Database
+./setup-database.sh                   # Initial setup
+./verify-database.sh                  # Check connection
 
-# Database migrations (use these instead of manual SQL)
-./gradlew flywayInfo        # Check migration status
-./gradlew flywayMigrate     # Apply pending migrations
-./gradlew flywayValidate    # Validate checksums
-./gradlew flywayRepair      # Fix checksum mismatches (use carefully)
-
-# View logs
-docker-compose logs -f backend
+# Migrations (NEVER edit manually)
+./gradlew flywayInfo                 # Check status
+./gradlew flywayMigrate              # Apply migrations
+./gradlew flywayValidate             # Validate checksums
 ```
 
-## Architecture Overview
+## 🗄️ Database Schema Architecture
 
-### Frontend Architecture
-**State Management**: Riverpod with StateNotifier pattern
-- Key providers: `AuthProvider`, `AppModeProvider`, `FamilyProvider`, `ContentProvider`
-- All providers located in `/lib/providers/`
+### Schema Organization
+```sql
+-- Core business entities
+core.users, core.families, core.children
 
-**Navigation**: GoRouter with PIN-protected parent routes
-- Router configuration: `main.dart:74-257`
-- Kid mode is default; parent mode requires PIN verification
+-- Game system (enhanced architecture)
+games.game_registry      -- Available games
+games.child_game_instances -- Per-child game access
+games.child_game_data     -- Game save data (JSONB)
 
-**API Integration**:
-- Main service: `ApiService` (`/lib/core/services/api_service.dart`)
-- Mock fallback: `MockApiService` for offline development
-- Auto-fallback when backend unavailable
+-- Content filtering
+content.filters, content.whitelist
 
-**Security Model**:
-- App starts in Kid Mode by default
-- Parent Mode requires PIN entry (`/pin-entry` route)
-- 15-minute auto-lock for Parent Mode
-- Audio processing stays on-device (privacy-first)
+-- Analytics and metrics
+analytics.speech_metrics, analytics.development_insights
 
-### Backend Architecture
-**Tech Stack**: Kotlin, KTOR 3.0, PostgreSQL 16, Redis 7
+-- Compliance
+compliance.coppa_consent, compliance.audit_logs
+```
 
-**Database Schema**:
-- `core` schema: users, sessions, families, children
-- `content` schema: filters, whitelist, activity
-- `compliance` schema: coppa_consent, audit_logs
-- `analytics` schema: speech_metrics, development_insights
+### Game Data Architecture
+Following the proper pattern:
+```
+GameRegistry → ChildGameInstances → ChildGameData
+```
 
-**Key API Endpoints**:
-- Auth: `/api/v1/auth/parent/[register|login|verify-pin]`
-- Family: `/api/v1/family/[profile|children]`
-- Content: `/api/v1/content/[filters|library|recommendations]`
-- Analytics: `/api/v1/analytics/children/{childId}/[daily|insights]`
-- COPPA: `/api/v1/coppa/consent`
+Key tables:
+- `games.game_registry`: Master list of available games
+- `games.child_game_instances`: Tracks which children have access to which games
+- `games.child_game_data`: Stores flexible JSON data with versioning
 
-**Authentication**: JWT with refresh tokens, bcrypt for PIN hashing
-
-## Critical Implementation Details
-
-### Logging Standards
-- **NEVER use print() directly in Flutter code** - Use Timber for all logging
-- Timber provides structured logging with proper log levels
-- Use Timber methods: `Timber.d()` for debug, `Timber.i()` for info, `Timber.w()` for warning, `Timber.e()` for error
-- Configure Timber in main.dart with appropriate log levels for debug vs release builds
-- This ensures production-ready logging that can be controlled by environment
-
-### Audio Privacy
-- All speech recognition happens on-device using `speech_to_text` package
-- Only processed transcriptions (no raw audio) sent to backend
-- Implementation: `/lib/services/audio_processing_service.dart`
+## 🔐 Security & Privacy
 
 ### COPPA Compliance
-- Parental consent flow: `/lib/screens/coppa/coppa_consent_screen.dart`
+- Parental consent required for data collection
 - Minimal data collection policy
 - Age verification during child profile creation
 - Data retention limits enforced
 
-### Content Safety
-- Whitelist-only approach for web content
-- YouTube Kids API integration
-- Age-appropriate filtering based on child profile
-- Real-time monitoring in `mini_game_framework.dart`
+### Audio Privacy
+- All speech recognition on-device only
+- No raw audio transmitted
+- Only processed transcriptions sent to backend
 
-## Logging Standards
-- **NEVER use print() directly in Flutter code** - Use Timber for all logging
-- Always use structured logging with appropriate levels (debug, info, warn, error)
-- Include context in log messages for better debugging
-- Example: `Timber.d('User logged in: $userId');`
+### Authentication
+- JWT tokens with refresh mechanism
+- PIN protection for parent mode
+- 15-minute auto-lock for parent features
+- Bcrypt hashing for PINs
 
-## Common Issues & Solutions
+## 🐛 Common Issues & Solutions
 
 ### Flutter Issues
-- **RangeSlider bounds error**: Values must be clamped to min/max range
-- **RenderFlex overflow**: Wrap widgets in Flexible/Expanded
-- **Provider not found**: Use ConsumerWidget/ConsumerStatefulWidget
-- **iOS build fails**: Run `cd ios && pod install`
+| Issue | Solution |
+|-------|----------|
+| RangeSlider bounds error | Clamp values to min/max range |
+| RenderFlex overflow | Wrap in Flexible/Expanded |
+| Provider not found | Use ConsumerWidget/ConsumerStatefulWidget |
+| iOS build fails | Run `cd ios && pod install` |
 
 ### Backend Issues
-- **API 404 errors**: Check if endpoint exists in mock service
-- **Connection refused**: Verify Docker is running (`docker ps`)
-- **Database errors**: Run `./verify-database.sh` to check connection
-- **Flyway checksum mismatch**: File was modified after migration - use `./gradlew flywayRepair` carefully or create new migration
-- **Migration fails**: Check database logs and never manually edit `flyway_schema_history`
-- **"No database found" error**: Ensure PostgreSQL container is running and accessible on port 5433
+| Issue | Solution |
+|-------|----------|
+| API 404 errors | Check endpoint in MockApiService |
+| Connection refused | Verify Docker: `docker ps` |
+| Database errors | Run `./verify-database.sh` |
+| Schema not found | Tables use qualified names: `games.table_name` |
+| Serialization errors | Use `Map<String, String>` not `Map<String, Any>` |
 
-### Development Tips
-- App auto-switches to MockApiService when backend unavailable
-- Test PIN: Any 6 digits work in mock mode
-- All mock data in `/lib/core/services/mock_api_service.dart`
-- Backend runs on `http://localhost:8080`
-- Database on port 5433, Redis on 6379
+### Migration Issues
+| Issue | Solution |
+|-------|----------|
+| Checksum mismatch | NEVER modify existing migrations |
+| Out of order | Create new migration with higher version |
+| Failed migration | Check logs, create repair migration |
 
-## Environment Configuration
+## 📝 Logging Standards
 
-### Flutter App
-Uses FlutterSecureStorage for sensitive data:
-- `auth_token`, `refresh_token`: JWT tokens
-- `parent_pin`: Hashed PIN
-- `onboarding_completed`, `parent_account_created`: Boolean flags
-
-### Backend (.env.local)
-```
-DB_HOST=localhost
-DB_PORT=5433
-DB_NAME=wondernest_prod
-DB_USERNAME=wondernest_app
-DB_PASSWORD=wondernest_secure_password_dev
-JWT_SECRET=your-secret-key
+### Flutter
+```dart
+// NEVER use print() - Always use Timber
+Timber.d('Debug message');           // Debug
+Timber.i('Info message');            // Info  
+Timber.w('Warning message');         // Warning
+Timber.e('Error message: $error');   // Error
 ```
 
-## Database Migration Management
+### Backend
+```kotlin
+// Use structured logging
+logger.info("Operation completed: $operation")
+logger.error("Database error", exception)
+```
 
-### What Went Wrong Previously
-**Critical Issue**: The V2 migration was manually inserted into `flyway_schema_history` instead of using proper Flyway tools. This created:
-- Incorrect checksum (-1838916409 vs actual 98952696)
-- Zero execution time (impossible for 13KB migration)
-- Database/filesystem sync issues
-- Failed Flyway validations
+## 🧪 Testing Strategy
 
-**Root Cause**: Bypassed Flyway's migration process and manually manipulated the schema history table.
+### Required Testing
+1. **Unit Tests**: All business logic
+2. **Integration Tests**: API endpoints
+3. **Platform Tests**: iOS, Android, Desktop
+4. **Manual Tests**: User flows
 
-### Proper Migration Workflow
+### Test Checklist
+- [ ] Backend unit tests pass
+- [ ] API integration tests pass
+- [ ] Flutter widget tests pass
+- [ ] iOS simulator testing
+- [ ] Android emulator testing
+- [ ] Mock mode testing
 
-#### Creating New Migrations
+## 🎯 Quality Checklist
+
+Before marking any feature complete:
+- [ ] All todos in implementation_todo.md checked
+- [ ] Comprehensive changelog entry added
+- [ ] API documentation current
+- [ ] Tests passing
+- [ ] No remaining_todos or empty
+- [ ] Code follows patterns
+- [ ] COPPA compliant
+- [ ] Works offline (mobile)
+- [ ] Error handling comprehensive
+
+## 🚨 Critical Rules
+
+### ALWAYS:
+1. Create changelog entries for EVERY session
+2. Use proper schema-qualified table names
+3. Test on both iOS and Android
+4. Use Timber for logging (never print())
+5. Handle offline scenarios
+6. Follow existing patterns
+7. Document assumptions
+
+### NEVER:
+1. Skip changelog entries
+2. Use Map<String, Any> in JSONB columns
+3. Modify existing migrations
+4. Commit without testing
+5. Store raw audio data
+6. Break COPPA compliance
+7. Use incorrect domain terms
+
+## 📊 Progress Indicators
+
+Use standardized status indicators in documentation:
+- 🚧 In Progress
+- ✅ Complete
+- ⚠️ Complete with caveats
+- 🐛 Has bugs
+- 📝 Needs documentation
+- 🔄 Needs refactoring
+- ❌ Blocked
+
+## 🔍 Useful Commands
+
 ```bash
-# 1. Create new migration file with proper naming
-# Format: V{version}__{description}.sql
-# Example: V3__Add_User_Preferences.sql
+# Find incomplete features
+grep -r "remaining_todos.md" ai_guidance/features/
 
-# 2. Always validate before applying
-./gradlew flywayValidateVerbose
+# Check today's changes
+find ai_guidance -name "changelog.md" -exec grep -l "$(date +'%Y-%m-%d')" {} \;
 
-# 3. Check current database state
-./gradlew flywayInfo
+# List all game data for a child
+PGPASSWORD=wondernest_secure_password_dev psql -h localhost -p 5433 -U wondernest_app -d wondernest_prod -c "SELECT * FROM games.child_game_data WHERE child_game_instance_id IN (SELECT id FROM games.child_game_instances WHERE child_id = 'UUID');"
 
-# 4. Apply migration with verbose output
-./gradlew flywayMigrateVerbose
+# Check backend logs
+docker-compose logs -f backend --tail=100
 
-# 5. Verify migration succeeded
-./gradlew flywayInfo
+# Kill process on port 8080
+lsof -ti:8080 | xargs kill -9
 ```
 
-#### Testing Migrations Locally
-```bash
-# 1. Start fresh database for testing
-docker-compose down
-docker volume rm wondernest_postgres_data
-docker-compose up -d postgres
+## 🎓 Example Session Flow
 
-# 2. Run all migrations from scratch
-./gradlew flywayMigrate
+1. **Start**: Check for existing work
+2. **Context**: Review feature requirements
+3. **Implementation**: Follow todo checklist
+4. **Testing**: Verify on all platforms
+5. **Documentation**: Update changelog
+6. **End**: Document remaining work
 
-# 3. Validate all checksums
-./gradlew flywayValidate
+## 📚 Key File Locations
 
-# 4. Check final state
-./gradlew flywayInfo
+### Frontend
+- Router: `main.dart:74-257`
+- API Service: `/lib/core/services/api_service.dart`
+- Mock Service: `/lib/core/services/mock_api_service.dart`
+- Providers: `/lib/providers/`
+- Game Services: `/lib/games/*/services/`
+
+### Backend
+- Routes: `/src/main/kotlin/com/wondernest/api/`
+- Services: `/src/main/kotlin/com/wondernest/services/`
+- Tables: `/src/main/kotlin/com/wondernest/data/database/table/`
+- Config: `/src/main/kotlin/com/wondernest/config/`
+
+## 🔄 Git Workflow
+
+### Commit Message Format
+```
+{type}({scope}): {subject}
+
+{body}
+
+{footer}
 ```
 
-#### Handling Migration Conflicts
+Types: feat, fix, docs, style, refactor, test, chore
+Scope: Feature name or module
 
-**Checksum Mismatches**:
-```bash
-# 1. NEVER modify existing migration files
-# 2. If checksum mismatch occurs, investigate why:
-./gradlew flywayValidate  # Shows which migration has issues
+Example:
+```
+feat(sticker-book): add UPSERT logic for game saves
 
-# 3. Options to resolve:
-# Option A: Repair checksum (DANGEROUS - only if file is correct)
-./gradlew flywayRepair
+- Fixed saveGameData to handle updates with versioning
+- Changed from INSERT-only to proper UPSERT pattern
+- Maintains version history and timestamps
 
-# Option B: Create new migration to fix issues
-# Create V{next}__Fix_Previous_Migration.sql
-
-# Option C: Reset and reapply (development only)
-./gradlew flywayClean flywayMigrate
+Fixes update failures during sticker book editing
 ```
 
-**Migration Ordering Issues**:
-```bash
-# Check for out-of-order migrations
-./gradlew flywayInfo
+---
 
-# If migrations are out of order:
-# 1. Create new migration with higher version number
-# 2. NEVER reorder existing migrations
-# 3. Use descriptive names to avoid confusion
-```
-
-#### Production Migration Procedures
-
-**Pre-deployment Checklist**:
-1. Test migration on production-like data
-2. Backup database before migration
-3. Validate migration syntax and logic
-4. Check for breaking changes
-5. Plan rollback strategy
-
-**Production Commands**:
-```bash
-# 1. Backup database first
-./scripts/backup.sh
-
-# 2. Validate current state
-./gradlew flywayInfo
-
-# 3. Dry-run validation
-./gradlew flywayValidate
-
-# 4. Apply with monitoring
-./gradlew flywayMigrateVerbose
-
-# 5. Verify success
-./gradlew flywayInfo
-```
-
-#### Emergency Procedures
-
-**If Migration Fails Mid-execution**:
-```bash
-# 1. Check Flyway history for partial state
-./gradlew flywayInfo
-
-# 2. Manually verify database state
-docker exec wondernest_postgres psql -U wondernest_app -d wondernest_prod -c "SELECT * FROM flyway_schema_history ORDER BY installed_rank;"
-
-# 3. Fix the issue:
-# - Complete the failed migration manually if safe
-# - Create repair migration
-# - Use flywayRepair if absolutely necessary
-
-# 4. Never manually edit flyway_schema_history unless absolutely critical
-```
-
-**Database Recovery**:
-```bash
-# 1. Restore from backup
-./scripts/restore.sh [backup_file]
-
-# 2. Re-run migrations from known good state
-./gradlew flywayInfo
-./gradlew flywayMigrate
-
-# 3. Validate final state
-./gradlew flywayValidate
-```
-
-### Migration Best Practices
-
-#### File Management
-- **NEVER modify existing migration files** after they've been applied
-- Use semantic versioning: V1, V2, V3 (not V1.1, V1.2)
-- Descriptive names: `V3__Add_User_Preferences_Table.sql`
-- Always include rollback instructions in comments
-
-#### Content Guidelines
-```sql
--- V3__Add_User_Preferences.sql
--- Adds user preferences table for storing UI settings
--- 
--- Rollback: DROP TABLE user_preferences; 
--- Dependencies: Requires V2 (users table)
--- Breaking Changes: None
-
-CREATE TABLE user_preferences (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    preference_key VARCHAR(100) NOT NULL,
-    preference_value TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
-```
-
-#### Testing Requirements
-- Test on empty database (clean install)
-- Test on database with existing data
-- Verify indexes and constraints work
-- Check performance impact of large migrations
-- Test rollback procedures
-
-#### Common Pitfalls to Avoid
-1. **Manual schema_history manipulation** - Always use Flyway commands
-2. **Modifying applied migrations** - Create new migrations instead
-3. **Ignoring checksum errors** - These indicate serious sync issues
-4. **Running migrations without backups** - Always backup production first
-5. **Mixing manual SQL with Flyway** - Choose one approach per environment
-
-### Troubleshooting Migration Issues
-
-#### Flyway Command Failures
-```bash
-# Database connection issues
-./verify-database.sh  # Check if database is accessible
-
-# Permission issues
-docker exec wondernest_postgres psql -U wondernest_app -d wondernest_prod -c "\du"  # Check user permissions
-
-# Configuration issues
-./gradlew flywayInfo --debug  # Verbose debugging output
-```
-
-#### Common Error Messages
-- **"No database found"**: Database not running or connection failed
-- **"Checksum mismatch"**: File modified after migration applied
-- **"Out of order migration"**: Lower version number after higher ones
-- **"Failed migration"**: SQL syntax error or constraint violation
-
-## Testing Strategy
-
-### Flutter Testing
-```bash
-# Unit tests
-flutter test
-
-# Integration tests
-flutter test integration_test
-
-# Test specific file
-flutter test test/widget_test.dart
-```
-
-### Backend Testing
-```bash
-# All tests
-./gradlew test
-
-# Integration tests
-./gradlew integrationTest
-
-# With test containers
-./gradlew testWithContainers
-```
-
-## File Organization
-
-### Flutter App Structure
-```
-lib/
-├── core/           # Core utilities, theme, constants
-├── models/         # Data models
-├── providers/      # Riverpod state management
-├── screens/        # UI screens by feature
-├── services/       # Business logic services
-└── widgets/        # Reusable UI components
-```
-
-### Backend Structure
-```
-src/main/kotlin/com/wondernest/
-├── api/            # REST endpoints
-├── config/         # App configuration
-├── data/           # Database layer
-├── domain/         # Business models
-├── services/       # Business services
-└── utils/          # Utilities
-```
+**Remember**: This is a living document. Update it as patterns emerge and the project evolves. The goal is consistency, clarity, and maintainability across all AI-assisted development sessions.
