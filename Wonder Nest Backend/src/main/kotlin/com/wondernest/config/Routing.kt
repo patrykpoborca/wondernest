@@ -8,6 +8,7 @@ import com.wondernest.api.coppa.coppaRoutes
 import com.wondernest.api.family.familyRoutes
 import com.wondernest.api.games.gameDataRoutes
 import com.wondernest.api.games.enhancedGameRoutes
+import com.wondernest.api.games.storyAdventureRoutes
 import com.wondernest.api.health.healthRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -87,5 +88,8 @@ fun Application.configureRouting() {
             authRoutes()                // Reuse auth for v2
             enhancedGameRoutes()        // New proper architecture routes
         }
+        
+        // Story Adventure routes (standalone)
+        storyAdventureRoutes()
     }
 }
