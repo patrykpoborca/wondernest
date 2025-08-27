@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:math' as math;
 import '../../../core/services/timber_wrapper.dart';
 import '../../../models/child_profile.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/story_models.dart';
 import '../story_adventure_plugin.dart';
+import '../widgets/image_first_story_viewer.dart';
+import '../widgets/story_interaction_settings.dart';
 
 /// Story reader screen - displays story content with interactive features
 class StoryReaderScreen extends ConsumerStatefulWidget {
@@ -23,23 +27,38 @@ class StoryReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<StoryReaderScreen> createState() => _StoryReaderScreenState();
 }
 
-class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen> {
+class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen> 
+    with TickerProviderStateMixin {
   late PageController _pageController;
   int _currentPage = 0;
   List<StoryPage> _pages = [];
   bool _isLoading = true;
+  bool _useImageFirstMode = true; // Toggle for image-first vs traditional mode
+  late AnimationController _transitionController;
 
   @override
   void initState() {
     super.initState();
     _currentPage = widget.storySession.currentPage - 1; // Convert to 0-based index
     _pageController = PageController(initialPage: _currentPage);
+    _transitionController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
     _loadStoryPages();
+    _checkUserPreference();
+  }
+  
+  void _checkUserPreference() {
+    // Check if child's age suggests image-first mode
+    final ageInYears = widget.childProfile.age;
+    _useImageFirstMode = ageInYears <= 8; // Use image-first for younger children
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _transitionController.dispose();
     super.dispose();
   }
 
@@ -178,6 +197,43 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen> {
   }
 
   Widget _buildStoryContent() {
+    // Use image-first mode for younger children
+    if (_useImageFirstMode) {
+      return PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        itemCount: _pages.length,
+        itemBuilder: (context, index) {
+          final page = _pages[index];
+          return ImageFirstStoryViewer(
+            imageUrl: page.image,
+            narratorText: page.text,
+            dialogues: _extractDialogues(page),
+            currentPage: index,
+            totalPages: _pages.length,
+            onNextPage: () {
+              if (index < _pages.length - 1) {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            onPreviousPage: () {
+              if (index > 0) {
+                _pageController.previousPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            enableSound: true,
+          );
+        },
+      );
+    }
+    
+    // Traditional mode for older children
     return PageView.builder(
       controller: _pageController,
       onPageChanged: _onPageChanged,
@@ -186,6 +242,23 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen> {
         return _buildStoryPage(_pages[index]);
       },
     );
+  }
+  
+  List<CharacterDialogue>? _extractDialogues(StoryPage page) {
+    // Extract character dialogues from page if available
+    // This would parse the page content for dialogue markers
+    // For now, return sample dialogues for demo
+    if (page.text.contains('"')) {
+      return [
+        CharacterDialogue(
+          text: "Let's explore!",
+          characterName: 'Character',
+          position: BubblePosition.left,
+          color: Colors.blue[100],
+        ),
+      ];
+    }
+    return null;
   }
 
   Widget _buildStoryPage(StoryPage page) {
