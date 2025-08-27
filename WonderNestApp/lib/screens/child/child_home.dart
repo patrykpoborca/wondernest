@@ -773,6 +773,12 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       _launchStickerBookGame();
       return;
     }
+    
+    // Handle story adventure game directly
+    if (activity.id == 'story_adventure') {
+      _launchStoryAdventureGame();
+      return;
+    }
 
     // For other activities, show the dialog
     showDialog(
@@ -869,6 +875,25 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
     // Navigate to the sticker book game using the plugin route
     context.go('/game/sticker_book', extra: {
       'gameId': 'sticker_book',
+      'childId': activeChild.id,
+      'childName': activeChild.name,
+    });
+  }
+
+  void _launchStoryAdventureGame() {
+    final appModeState = ref.read(appModeProvider);
+    final activeChild = appModeState.activeChild;
+    
+    if (activeChild == null) {
+      Timber.e('[ERROR] Cannot launch story adventure game - no active child');
+      return;
+    }
+
+    Timber.d('[GAME] Launching story adventure game for child: ${activeChild.name}');
+    
+    // Navigate to the story adventure game using the plugin route
+    context.go('/game/story-adventure', extra: {
+      'gameId': 'story-adventure',
       'childId': activeChild.id,
       'childName': activeChild.name,
     });

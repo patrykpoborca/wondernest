@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/child_profile.dart';
 import '../../games/sticker_book/sticker_book_plugin.dart';
+import '../../games/story_adventure/story_adventure_plugin.dart';
 import 'game_plugin.dart';
 
 /// Manages registration and discovery of game plugins
@@ -178,6 +179,10 @@ class GameRegistry {
     // Register the sticker book game plugin
     final stickerBookPlugin = StickerBookPlugin();
     await registerGame(stickerBookPlugin);
+    
+    // Register the story adventure game plugin
+    final storyAdventurePlugin = StoryAdventurePlugin();
+    await registerGame(storyAdventurePlugin);
     
     debugPrint('Registered ${_registeredGames.length} built-in games');
   }
