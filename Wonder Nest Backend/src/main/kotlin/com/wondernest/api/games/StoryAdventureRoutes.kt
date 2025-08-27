@@ -13,7 +13,10 @@ import java.util.UUID
 
 /**
  * Story Adventure API routes for interactive storytelling feature
- * Handles story templates, reading instances, vocabulary tracking, and marketplace
+ * REFACTORED: Now follows WonderNest plugin architecture
+ * - Child data uses /api/v2/games/children/{childId}/data with game_type='story-adventure'
+ * - Platform features (templates, marketplace) keep custom routes
+ * - Backwards compatible during transition period
  */
 fun Route.storyAdventureRoutes() {
     route("/api/v2/games/story-adventure") {
@@ -21,6 +24,7 @@ fun Route.storyAdventureRoutes() {
         val templateService = StoryTemplateService()
         val instanceService = StoryInstanceService()
         val vocabularyService = VocabularyService()
+        val storyPlugin = StoryAdventurePlugin()
         
         authenticate("auth-jwt") {
             
@@ -216,10 +220,112 @@ fun Route.storyAdventureRoutes() {
             }
             
             // =============================================================================
-            // STORY INSTANCES (Reading Sessions)
+            // CHILD DATA ROUTES - REFACTORED TO PLUGIN ARCHITECTURE
             // =============================================================================
             
-            // Get all story instances for a child
+            // Get all child data for Story Adventure (NEW UNIFIED ENDPOINT)
+            get("/children/{childId}/data") {
+                val childId = call.parameters["childId"]?.let {
+                    try { UUID.fromString(it) }
+                    catch (e: IllegalArgumentException) { null }
+                } ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid child ID")
+                
+                try {
+                    val childData = storyPlugin.getChildData(childId)
+                    if (childData != null) {
+                        call.respond(HttpStatusCode.OK, childData)
+                    } else {
+                        call.respond(HttpStatusCode.NotFound, mapOf(
+                            "error" to "No Story Adventure data found for child"
+                        ))
+                    }
+                } catch (e: Exception) {
+                    call.application.log.error("Error fetching child data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf(
+                        "error" to "Failed to fetch child data"
+                    ))
+                }
+            }
+            
+            // Initialize Story Adventure for a child (NEW)
+            post("/children/{childId}/initialize") {
+                val childId = call.parameters["childId"]?.let {
+                    try { UUID.fromString(it) }
+                    catch (e: IllegalArgumentException) { null }
+                } ?: return@post call.respond(HttpStatusCode.BadRequest, "Invalid child ID")
+                
+                try {
+                    val result = storyPlugin.initializeForChild(childId)
+                    if (result.success) {
+                        call.respond(HttpStatusCode.Created, result)
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest, result)
+                    }
+                } catch (e: Exception) {
+                    call.application.log.error("Error initializing Story Adventure", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf(
+                        "error" to "Failed to initialize Story Adventure"
+                    ))
+                }
+            }
+            
+            // Update child preferences (NEW)
+            put("/children/{childId}/preferences") {
+                val childId = call.parameters["childId"]?.let {
+                    try { UUID.fromString(it) }
+                    catch (e: IllegalArgumentException) { null }
+                } ?: return@put call.respond(HttpStatusCode.BadRequest, "Invalid child ID")
+                
+                val preferences = try {
+                    call.receive<Map<String, JsonElement>>()
+                } catch (e: Exception) {
+                    return@put call.respond(HttpStatusCode.BadRequest, "Invalid request body")
+                }
+                
+                try {
+                    val result = storyPlugin.updatePreferences(childId, preferences)
+                    if (result.success) {
+                        call.respond(HttpStatusCode.OK, result)
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest, result)
+                    }
+                } catch (e: Exception) {
+                    call.application.log.error("Error updating preferences", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf(
+                        "error" to "Failed to update preferences"
+                    ))
+                }
+            }
+            
+            // Generate progress report (NEW)
+            get("/children/{childId}/progress-report") {
+                val childId = call.parameters["childId"]?.let {
+                    try { UUID.fromString(it) }
+                    catch (e: IllegalArgumentException) { null }
+                } ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid child ID")
+                
+                try {
+                    val report = storyPlugin.generateProgressReport(childId)
+                    if (report != null) {
+                        call.respond(HttpStatusCode.OK, report)
+                    } else {
+                        call.respond(HttpStatusCode.NotFound, mapOf(
+                            "error" to "No progress data found for child"
+                        ))
+                    }
+                } catch (e: Exception) {
+                    call.application.log.error("Error generating progress report", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf(
+                        "error" to "Failed to generate progress report"
+                    ))
+                }
+            }
+            
+            // =============================================================================
+            // BACKWARDS COMPATIBLE ROUTES (DEPRECATED - Use /children/{childId}/data)
+            // =============================================================================
+            
+            // Get all story instances for a child (DEPRECATED)
             get("/instances/{childId}") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }
@@ -244,7 +350,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Start a new reading session
+            // Start a new reading session (DEPRECATED - Use plugin methods)
             post("/instances/{childId}/start") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }
@@ -266,7 +372,8 @@ fun Route.storyAdventureRoutes() {
                         audioEnabled = request.audioEnabled
                     )
                     
-                    val result = instanceService.startStoryInstance(startRequest)
+                    // Use plugin method for better integration
+                    val result = storyPlugin.startStory(childId, UUID.fromString(request.templateId), request.customizations)
                     
                     if (result.success) {
                         call.respond(HttpStatusCode.Created, result)
@@ -282,7 +389,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Update reading progress
+            // Update reading progress (DEPRECATED - Use direct data updates)
             put("/instances/{instanceId}/progress") {
                 val instanceId = call.parameters["instanceId"]?.let {
                     try { UUID.fromString(it) }
@@ -312,7 +419,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Complete story reading session
+            // Complete story reading session (DEPRECATED)
             post("/instances/{instanceId}/complete") {
                 val instanceId = call.parameters["instanceId"]?.let {
                     try { UUID.fromString(it) }
@@ -346,7 +453,7 @@ fun Route.storyAdventureRoutes() {
             // VOCABULARY TRACKING
             // =============================================================================
             
-            // Record vocabulary word encounter
+            // Record vocabulary word encounter (DEPRECATED - Use plugin methods)
             post("/vocabulary/{childId}/encounter") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }
@@ -370,9 +477,8 @@ fun Route.storyAdventureRoutes() {
                     
                     val templateId = request.templateId?.let { UUID.fromString(it) }
                     
-                    val result = vocabularyService.recordWordEncounter(
-                        childId, request.word, templateId, interactionType
-                    )
+                    // Use plugin method for better integration
+                    val result = storyPlugin.recordVocabularyEncounter(childId, request.word, templateId, interactionType)
                     
                     if (result.success) {
                         call.respond(HttpStatusCode.OK, result)
@@ -388,7 +494,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Get vocabulary progress for a child
+            // Get vocabulary progress for a child (DEPRECATED - Use /children/{childId}/data)
             get("/vocabulary/{childId}/progress") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }
@@ -413,7 +519,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Get vocabulary statistics for a child
+            // Get vocabulary statistics for a child (DEPRECATED - Use progress report)
             get("/vocabulary/{childId}/stats") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }
@@ -432,7 +538,7 @@ fun Route.storyAdventureRoutes() {
                 }
             }
             
-            // Get words needing practice
+            // Get words needing practice (DEPRECATED)
             get("/vocabulary/{childId}/practice") {
                 val childId = call.parameters["childId"]?.let {
                     try { UUID.fromString(it) }

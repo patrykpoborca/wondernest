@@ -86,10 +86,11 @@ fun Application.configureRouting() {
         // API v2 routes with proper game architecture
         route("/api/v2") {
             authRoutes()                // Reuse auth for v2
-            enhancedGameRoutes()        // New proper architecture routes
+            gameDataRoutes()            // Standard game data routes (plugin architecture)
+            enhancedGameRoutes()        // Legacy enhanced routes
         }
         
-        // Story Adventure routes (standalone)
+        // Story Adventure routes (includes both standard plugin routes and platform-specific routes)
         storyAdventureRoutes()
     }
 }
