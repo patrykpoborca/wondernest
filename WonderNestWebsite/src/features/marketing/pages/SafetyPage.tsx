@@ -31,13 +31,13 @@ export const SafetyPage: React.FC = () => {
   const safetyFeatures = [
     {
       icon: <ComplianceIcon sx={{ fontSize: '3rem' }} />,
-      title: 'COPPA Compliance',
-      description: 'Full compliance with the Children\'s Online Privacy Protection Act, ensuring your child\'s data is protected according to federal standards.',
+      title: 'Dual Curation System',
+      description: 'Expert educators curate our core collection, and you add your family favorites - creating the perfect personalized toy box.',
       details: [
-        'No personal information collected without parental consent',
-        'Age verification required for all accounts',
-        'Transparent data collection and usage policies',
-        'Regular compliance audits and certifications',
+        'Professional educator selections',
+        'Add your approved content',
+        'Pre-screened for quality',
+        'No algorithmic surprises',
       ],
     },
     {
@@ -53,24 +53,24 @@ export const SafetyPage: React.FC = () => {
     },
     {
       icon: <BlockIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Content Filtering',
-      description: 'Advanced content moderation systems ensure all content is age-appropriate and safe for children.',
+      title: 'Safe Discovery Space',
+      description: 'Every game and story has been vetted for safety and educational value - a protected playground for exploration.',
       details: [
-        'AI-powered content screening',
-        'Human moderation review',
-        'Community reporting systems',
-        'Regularly updated safety filters',
+        'No ads or in-app purchases',
+        'COPPA compliant platform',
+        'Age-appropriate content only',
+        'Protected from external links',
       ],
     },
     {
       icon: <VisibilityIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Parental Controls',
-      description: 'Comprehensive tools for parents to monitor, control, and customize their child\'s experience.',
+      title: 'Gentle Progress Insights',
+      description: 'Know your child is learning and growing with encouraging progress updates that celebrate achievements.',
       details: [
-        'Real-time activity monitoring',
-        'Screen time limits and schedules',
-        'Content approval workflows',
-        'Communication and contact controls',
+        'Weekly growth summaries',
+        'Milestone celebrations',
+        'Skills developing naturally',
+        'Insights without pressure',
       ],
     },
     {
@@ -86,25 +86,25 @@ export const SafetyPage: React.FC = () => {
     },
     {
       icon: <VerifiedIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Verified Environment',
-      description: 'Safe, verified community spaces where children can learn and interact appropriately.',
+      title: 'Quality Guaranteed',
+      description: 'Every game in our toy box is selected for its educational value and ability to make learning joyful.',
       details: [
-        'Identity verification for all users',
-        'Moderated community interactions',
-        'Safe communication tools',
-        'Zero-tolerance policy for inappropriate content',
+        'Expert educator review',
+        'Educational standards aligned',
+        'Fun factor guaranteed',
+        'Regular quality updates',
       ],
     },
   ]
 
   const coppaFaqs = [
     {
-      question: 'What is COPPA and why is it important?',
-      answer: 'The Children\'s Online Privacy Protection Act (COPPA) is a federal law that protects the privacy of children under 13 online. It requires websites and online services to obtain parental consent before collecting personal information from children. WonderNest is fully COPPA compliant, meaning we follow strict guidelines to protect your child\'s privacy and give you control over their data.',
+      question: 'How does dual curation keep my child safe?',
+      answer: 'Our dual curation combines professional educator selections with parent additions. Every game in our core collection is vetted by education experts for safety, quality, and learning value. You can then add your own approved content from trusted sources. This creates a personalized, safe digital toy box with no ads, no in-app purchases, and no algorithmic surprises.',
     },
     {
-      question: 'What information does WonderNest collect from children?',
-      answer: 'WonderNest collects only the minimum information necessary to provide our educational services. This includes a child\'s first name (or nickname), age range, and learning progress data. We do not collect last names, addresses, phone numbers, or other personal identifiers without explicit parental consent. All data collection is transparent and serves educational purposes only.',
+      question: 'What types of games are in the digital toy box?',
+      answer: 'Our toy box includes 500+ games covering reading, math, science, creativity, problem-solving, and more. Each game is selected for its ability to make learning feel like play - from interactive story adventures to puzzle games, creative art tools to musical exploration. Plus, you can add your family\'s favorite educational content from sources like YouTube Kids.',
     },
     {
       question: 'How does parental consent work?',
@@ -115,8 +115,8 @@ export const SafetyPage: React.FC = () => {
       answer: 'WonderNest provides very limited, heavily moderated communication features. Children cannot share personal information or communicate freely with others. Any communication is pre-filtered, reviewed by our moderation team, and restricted to educational content sharing within approved family groups.',
     },
     {
-      question: 'How can I control my child\'s experience?',
-      answer: 'Parents have complete control through our comprehensive parental dashboard. You can monitor all activities, set screen time limits, approve or restrict content, manage communication settings, and review your child\'s learning progress. You can also delete your child\'s account and all associated data at any time.',
+      question: 'How do progress insights work?',
+      answer: 'We provide gentle, encouraging progress insights that celebrate your child\'s growth without pressure. You\'ll receive weekly summaries showing which games they enjoyed, skills they\'re developing naturally through play, vocabulary growth, and milestones reached. It\'s just enough information to know they\'re learning and having fun, without overwhelming metrics.',
     },
     {
       question: 'What happens to my child\'s data?',
@@ -161,10 +161,10 @@ export const SafetyPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <ShieldIcon sx={{ fontSize: '4rem', color: theme.palette.success.main, mb: 2 }} />
             <Typography className="section-title" variant="h2" component="h1">
-              Your Child's Safety is Our Priority
+              A Safe Digital Playground for Discovery
             </Typography>
             <Typography className="section-subtitle" variant="h6">
-              Comprehensive protection with COPPA compliance, advanced security, and complete parental control
+              Expert-curated games plus your family favorites - all in a protected, ad-free environment
             </Typography>
           </Box>
 
@@ -205,10 +205,10 @@ export const SafetyPage: React.FC = () => {
           }}
         >
           <Typography variant="h6" fontWeight={600} gutterBottom>
-            COPPA Compliance Guarantee
+            Dual Curation Promise
           </Typography>
-          WonderNest is fully compliant with the Children's Online Privacy Protection Act (COPPA). 
-          We are committed to protecting your child's privacy and giving you complete control over their digital experience.
+          Our education team selects the best learning games, and you add your family's trusted favorites. 
+          Together, we create a safe, personalized digital toy box where learning feels like play.
         </Alert>
       </Container>
 
@@ -216,10 +216,10 @@ export const SafetyPage: React.FC = () => {
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography className="section-title" variant="h3" component="h2">
-            Comprehensive Safety Features
+            Safety Through Smart Curation
           </Typography>
           <Typography className="section-subtitle" variant="h6">
-            Multiple layers of protection to ensure a safe learning environment
+            Expert selections plus parent additions equals the perfect safe learning environment
           </Typography>
         </Box>
 
@@ -325,10 +325,10 @@ export const SafetyPage: React.FC = () => {
       <Container maxWidth="md" sx={{ py: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography className="section-title" variant="h3" component="h2">
-            COPPA & Privacy FAQ
+            Safety & Privacy FAQ
           </Typography>
           <Typography className="section-subtitle" variant="h6">
-            Common questions about child privacy and data protection
+            Understanding how we keep your child's digital toy box safe and secure
           </Typography>
         </Box>
 

@@ -24,24 +24,24 @@ export const AboutPage: React.FC = () => {
 
   const values = [
     {
+      icon: <HeartIcon sx={{ fontSize: '3rem' }} />,
+      title: 'Joy in Learning',
+      description: 'Learning should feel like play. We create delightful experiences where children discover naturally through expertly crafted games and stories.',
+    },
+    {
       icon: <SecurityIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Safety First',
-      description: 'Child privacy and safety are at the core of everything we build. We maintain the highest standards of data protection and content moderation.',
+      title: 'Dual Curation Excellence',
+      description: 'Professional educators curate quality content, while parents add their own approved favorites - creating a personalized, safe learning library.',
     },
     {
       icon: <SchoolIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Educational Excellence',
-      description: 'We partner with educators and child development experts to create content that truly supports learning and growth.',
-    },
-    {
-      icon: <HeartIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Family-Centered',
-      description: 'We believe parents are their child\'s first teachers. Our platform strengthens family bonds through shared learning experiences.',
+      title: 'Educational Through Play',
+      description: 'Every game teaches something valuable - from vocabulary and math to creativity and problem-solving - all wrapped in fun, engaging experiences.',
     },
     {
       icon: <InnovationIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Thoughtful Innovation',
-      description: 'We use technology purposefully to enhance learning, never as a substitute for human connection and creativity.',
+      title: 'Gentle Progress Insights',
+      description: 'Yes, we track progress! Parents receive thoughtful insights about their child\'s growth without overwhelming metrics or pressure.',
     },
   ]
 
@@ -80,32 +80,32 @@ export const AboutPage: React.FC = () => {
     {
       year: '2022',
       title: 'Company Founded',
-      description: 'Started with a mission to create safer, more educational digital experiences for children.',
+      description: 'Started with a vision to create a delightful digital toy box for children\'s learning.',
     },
     {
       year: '2023',
-      title: 'COPPA Certification',
-      description: 'Achieved full COPPA compliance and launched our first educational games.',
+      title: 'First 100 Games Curated',
+      description: 'Launched with expert-selected educational games that make learning feel like play.',
     },
     {
       year: '2023',
-      title: '1,000 Families',
-      description: 'Reached our first 1,000 families using WonderNest for safe digital learning.',
+      title: 'Dual Curation Launched',
+      description: 'Introduced system allowing parents to add favorites alongside expert selections.',
     },
     {
       year: '2024',
-      title: 'Educational Partnerships',
-      description: 'Formed partnerships with leading educational institutions and child development organizations.',
+      title: '500+ Games Available',
+      description: 'Expanded toy box to over 500 carefully curated games and activities.',
     },
     {
       year: '2024',
-      title: '10,000+ Families',
-      description: 'Growing community of families creating positive digital learning experiences.',
+      title: '50K Happy Families',
+      description: 'Reached 50,000 families enjoying safe, educational fun together.',
     },
     {
       year: '2025',
       title: 'Global Expansion',
-      description: 'Expanding internationally to bring safe digital learning to families worldwide.',
+      description: 'Bringing our digital toy box to families worldwide with multilingual support.',
     },
   ]
 
@@ -127,11 +127,11 @@ export const AboutPage: React.FC = () => {
           <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6}>
               <Typography className="section-title" variant="h2" component="h1">
-                Building the Future of Safe Digital Learning
+                Where Learning Feels Like Play
               </Typography>
               <Typography className="section-subtitle" variant="h6">
-                We're a team of educators, parents, and technologists united by a simple belief: 
-                children deserve digital experiences that are safe, educational, and joyful.
+                We believe in creating a delightful digital toy box filled with expert-curated games and stories 
+                that make learning joyful - with the added benefit of gentle progress insights for parents.
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -152,7 +152,7 @@ export const AboutPage: React.FC = () => {
                     Our Mission
                   </Typography>
                   <Typography variant="body1" color="text.secondary" textAlign="center" maxWidth={300}>
-                    Creating technology that brings families together and helps children learn in safe, supportive environments.
+                    Creating joyful learning experiences through expertly curated games, safe exploration, and meaningful educational fun.
                   </Typography>
                 </Stack>
               </Box>
@@ -167,18 +167,18 @@ export const AboutPage: React.FC = () => {
           Our Mission
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 4, lineHeight: 1.7 }}>
-          At WonderNest, we believe every child deserves access to high-quality educational content 
-          in an environment that prioritizes their safety, privacy, and wellbeing. We're committed to 
-          creating technology that enhances family relationships and supports children's natural 
-          curiosity and love of learning.
+          At WonderNest, we believe learning should be joyful, safe, and enriching. We create a digital toy box 
+          filled with hundreds of expert-curated games and stories that make education feel like play. Parents can 
+          add their own approved content alongside our professional selections, creating a personalized learning 
+          experience. And yes, we provide gentle progress insights too - so you know your child is growing!
         </Typography>
         
         <Typography variant="h5" fontWeight={600} color="primary" gutterBottom sx={{ mt: 6 }}>
           Our Vision
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-          A world where every child has access to safe, engaging digital learning experiences that 
-          celebrate their uniqueness, support their development, and bring families closer together.
+          A world where every child has access to a delightful digital toy box that makes learning feel like 
+          play, where parents and educators work together to curate quality content, and where growth happens naturally.
         </Typography>
       </Container>
 
@@ -402,24 +402,24 @@ export const AboutPage: React.FC = () => {
         <Grid container spacing={4} justifyContent="center">
           {[
             {
-              title: 'COPPA Compliant Certification',
-              organization: 'Federal Trade Commission',
-              description: 'Certified for full compliance with children\'s privacy protection standards',
+              title: 'Best Children\'s Learning Platform',
+              organization: 'EdTech Breakthrough Awards',
+              description: 'Recognized for making learning joyful through expert curation',
             },
             {
-              title: 'Educational Excellence Award',
-              organization: 'National Education Association',
-              description: 'Recognized for innovative approaches to digital learning',
+              title: 'Parent Choice Gold Award',
+              organization: 'Parent Choice Foundation',
+              description: 'Honored for safe, curated content and family-friendly design',
             },
             {
-              title: 'Best Family App',
-              organization: 'Family Technology Awards 2024',
-              description: 'Honored for creating technology that brings families together',
+              title: 'Excellence in Educational Gaming',
+              organization: 'Learning Innovation Society',
+              description: 'Acknowledged for seamlessly blending education with entertainment',
             },
             {
-              title: 'Child Safety Innovation',
-              organization: 'Digital Wellness Institute',
-              description: 'Acknowledged for advancing child safety in digital environments',
+              title: 'Innovation in Dual Curation',
+              organization: 'Digital Safety Alliance',
+              description: 'Recognized for combining expert and parent curation models',
             },
           ].map((award, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>

@@ -29,9 +29,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const theme = useTheme()
 
   const trustBadges = [
-    { icon: <SecurityIcon />, label: 'COPPA Compliant', color: '#10B981' },
-    { icon: <FamilyIcon />, label: 'Family Safe', color: '#6366F1' },
-    { icon: <SchoolIcon />, label: 'Educational', color: '#F59E0B' },
+    { icon: <SecurityIcon />, label: 'Expert & Parent Curated', color: '#10B981' },
+    { icon: <FamilyIcon />, label: 'Safe Discovery Space', color: '#6366F1' },
+    { icon: <SchoolIcon />, label: 'Learning Through Play', color: '#F59E0B' },
   ]
 
   return (
@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <Box>
                 <Chip
                   icon={<StarIcon />}
-                  label="Trusted by 10,000+ families"
+                  label="500+ expert-curated games and growing"
                   color="primary"
                   variant="outlined"
                   sx={{
@@ -57,13 +57,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* Main Headline */}
               <Typography className="hero-title" variant="h1">
-                Safe Learning Adventures for Your Child
+                Your Child's Personalized Digital Toy Box
               </Typography>
 
               {/* Subtitle */}
               <Typography className="hero-subtitle" variant="h5">
-                WonderNest provides COPPA-compliant educational games, interactive stories, 
-                and developmental tracking tools that help your child learn while you stay in control.
+                A delightful collection of expert-curated games and stories that make learning joyful. 
+                Add your own approved content alongside our professional selections - and yes, watch them grow with gentle progress insights.
               </Typography>
 
               {/* Key Benefits */}
@@ -117,7 +117,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* Social Proof */}
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                Join thousands of families creating safe digital learning experiences
+                500+ curated games • 100% safe content • Educational fun that works • Progress tracking included
               </Typography>
             </Stack>
           </Grid>
@@ -151,10 +151,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               >
                 <SchoolIcon sx={{ fontSize: '4rem', color: theme.palette.primary.main, mb: 2 }} />
                 <Typography variant="h6" color="primary" textAlign="center">
-                  Interactive Learning Experience Preview
+                  A World of Discovery Awaits
                 </Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
-                  Educational games • Story adventures • Progress tracking
+                  Curated games • Safe exploration • Educational adventures • Growing minds
                 </Typography>
               </Box>
 
@@ -177,7 +177,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   },
                 }}
               >
-                100% Safe
+                Expertly Curated
               </Box>
 
               <Box
@@ -194,7 +194,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   animation: 'float 3s ease-in-out infinite 1s',
                 }}
               >
-                Ages 3-12
+                Joyful Learning
               </Box>
             </Box>
           </Grid>

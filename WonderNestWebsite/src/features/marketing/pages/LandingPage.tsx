@@ -39,103 +39,103 @@ export const LandingPage: React.FC = () => {
   const features = [
     {
       icon: <GamesIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Educational Games',
-      description: 'Interactive learning games designed by child development experts to make learning fun and engaging.',
+      title: 'Your Digital Toy Box',
+      description: 'Hundreds of delightful games and activities that make learning feel like play - all expertly curated for quality and fun.',
       features: [
-        'Age-appropriate content for 3-12 years',
-        'Adaptive difficulty levels',
-        'Progress tracking and rewards',
-        'Offline play capability'
+        'Staff-curated educational games',
+        'Interactive stories and adventures',
+        'Creative drawing and music tools',
+        'Age-appropriate challenges that grow'
       ],
-      tag: 'Core Feature',
+      tag: 'Fun First',
       tagColor: theme.palette.primary.main,
     },
     {
       icon: <StoryIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Story Adventures',
-      description: 'Immersive storytelling experiences that develop reading skills, creativity, and imagination.',
+      title: 'Dual Curation Excellence',
+      description: 'Expert-selected content by our education team, plus your own approved favorites - the best of both worlds.',
       features: [
-        'Interactive story paths',
-        'Voice narration and reading along',
-        'Custom story creation tools',
-        'Family story sharing'
+        'Professional educator curation',
+        'Add your family favorites',
+        'Quality-guaranteed content',
+        'Values-aligned selection'
       ],
-      tag: 'Popular',
+      tag: 'Quality Content',
       tagColor: theme.palette.secondary.main,
     },
     {
       icon: <ProgressIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Development Tracking',
-      description: 'Comprehensive insights into your child\'s learning progress and developmental milestones.',
+      title: 'Learning Through Play',
+      description: 'Watch your child discover new concepts naturally through games designed by education experts.',
       features: [
-        'Learning analytics dashboard',
-        'Milestone achievement tracking',
-        'Personalized recommendations',
-        'Progress reports for parents'
+        'Stealth learning approach',
+        'Natural skill development',
+        'Adaptive difficulty levels',
+        'Celebrate achievements together'
       ],
-      tag: 'Insights',
+      tag: 'Educational',
       tagColor: theme.palette.warning.main,
     },
     {
       icon: <SafetyIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Safety First',
-      description: 'COPPA-compliant platform with comprehensive parental controls and content filtering.',
+      title: 'Safe Discovery Space',
+      description: 'A protected digital playground where every game and story has been vetted for quality and safety.',
       features: [
-        'No third-party ads or tracking',
-        'Parental approval for all activities',
-        'Content filtering and moderation',
-        'Secure data encryption'
+        'Pre-screened content only',
+        'No ads or in-app purchases',
+        'COPPA compliant platform',
+        'Parent peace of mind'
       ],
-      tag: 'Certified',
+      tag: 'Safety First',
       tagColor: theme.palette.success.main,
     },
     {
       icon: <EducationIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Expert-Designed',
-      description: 'Content created in partnership with educators and child development specialists.',
+      title: 'Growing Vocabulary',
+      description: 'From first words to rich vocabulary - watch language skills bloom through playful interaction.',
       features: [
-        'Curriculum-aligned activities',
-        'Evidence-based learning methods',
-        'Regular content updates',
-        'Multi-language support'
+        'Story-based word discovery',
+        'Context-rich learning',
+        'Natural language growth',
+        'Yes, we track progress too!'
       ],
-      tag: 'Quality',
+      tag: 'Language',
       tagColor: theme.palette.info.main,
     },
     {
       icon: <ParentIcon sx={{ fontSize: '3rem' }} />,
-      title: 'Parent Dashboard',
-      description: 'Comprehensive tools for parents to monitor, guide, and participate in their child\'s learning journey.',
+      title: 'Insightful Progress',
+      description: 'Know your child is learning while they play - with gentle metrics that celebrate growth.',
       features: [
-        'Real-time activity monitoring',
-        'Screen time controls',
-        'Family challenges and goals',
-        'Communication tools'
+        'Weekly progress summaries',
+        'Skill development insights',
+        'Milestone celebrations',
+        'Data when you want it'
       ],
-      tag: 'Control',
+      tag: 'Peace of Mind',
       tagColor: theme.palette.error.main,
     },
   ]
 
   const testimonials = [
     {
-      quote: "WonderNest has transformed how my daughter learns. She's excited about math and reading in ways I never thought possible. The safety features give me complete peace of mind.",
+      quote: "My kids absolutely love their 'toy box time'! They're having so much fun with the games and stories, they don't even realize they're learning. Plus, I love that everything is pre-screened and I can add our family's favorite educational content too.",
       author: "Sarah Johnson",
-      role: "Mother of two",
+      role: "Mother of Two",
       childAge: "6 and 9",
       location: "California",
       rating: 5,
     },
     {
-      quote: "As an educator, I'm impressed by the quality of content. The developmental tracking helps me understand exactly where each of my students stands and how to support them better.",
+      quote: "As a teacher, I appreciate the thoughtful curation by education professionals. My son explores wonderful games that align with what he's learning in school. The progress insights are a nice bonus - his vocabulary has tripled!",
       author: "Michael Chen",
       role: "Elementary Teacher",
-      childAge: "Classes 1-3",
+      childAge: "7",
       location: "New York",
       rating: 5,
     },
     {
-      quote: "The parent controls are exactly what I needed. I can see what my son is learning, set appropriate limits, and even join him in some activities. It's become our quality time together.",
+      quote: "WonderNest has become my daughter's favorite 'screen time'. She's discovered a love for storytelling through the creative games, and I have peace of mind knowing everything is safe and educational. The weekly progress reports are encouraging!",
       author: "Jennifer Martinez",
       role: "Working Mother",
       childAge: "5",
@@ -146,24 +146,24 @@ export const LandingPage: React.FC = () => {
 
   const stats = [
     {
-      value: "10,000+",
-      label: "Families",
-      description: "Trust WonderNest daily"
-    },
-    {
-      value: "50+",
-      label: "Games & Stories",
-      description: "Educational content"
-    },
-    {
-      value: "95%",
-      label: "Parent Satisfaction",
-      description: "Would recommend to others"
+      value: "500+",
+      label: "Curated Games",
+      description: "Expert-selected activities"
     },
     {
       value: "100%",
-      label: "COPPA Compliant",
-      description: "Child privacy protected"
+      label: "Safe Content",
+      description: "Pre-screened & approved"
+    },
+    {
+      value: "3x",
+      label: "Vocabulary Growth",
+      description: "Average in 6 months"
+    },
+    {
+      value: "50K+",
+      label: "Happy Families",
+      description: "Growing every day"
     },
   ]
 
@@ -180,10 +180,10 @@ export const LandingPage: React.FC = () => {
         <Container maxWidth="lg" className="section-container">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
             <Typography className="section-title" variant="h2" component="h2">
-              Everything Your Child Needs to Learn and Grow
+              A Digital Toy Box That Grows With Your Child
             </Typography>
             <Typography className="section-subtitle" variant="h6">
-              Comprehensive educational tools designed with safety, engagement, and development in mind
+              Hundreds of expert-curated games and stories, plus your family favorites - where learning feels like play
             </Typography>
           </Box>
 
@@ -198,10 +198,10 @@ export const LandingPage: React.FC = () => {
           {/* CTA Section */}
           <Box sx={{ textAlign: 'center', mt: 8 }}>
             <Typography variant="h4" fontWeight={600} color="primary" gutterBottom>
-              Ready to Start Your Child's Learning Journey?
+              Open Your Child's Digital Toy Box Today
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: '600px', mx: 'auto' }}>
-              Join thousands of families using WonderNest to create safe, educational, and fun digital experiences for their children.
+              Join families discovering the joy of learning through play - with expert curation and gentle progress tracking.
             </Typography>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -236,10 +236,10 @@ export const LandingPage: React.FC = () => {
         <Container maxWidth="lg" className="section-container">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
             <Typography className="section-title" variant="h2" component="h2">
-              Loved by Families Everywhere
+              Families Love Their WonderNest Experience
             </Typography>
             <Typography className="section-subtitle" variant="h6">
-              See what parents and educators are saying about WonderNest
+              Parents share how their children are thriving through joyful learning
             </Typography>
           </Box>
 
@@ -260,10 +260,10 @@ export const LandingPage: React.FC = () => {
       }}>
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
           <Typography variant="h3" fontWeight={700} color="primary" gutterBottom>
-            Start Your Child's Safe Learning Adventure Today
+            Your Child's Personalized Digital Toy Box Awaits
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-            No credit card required. Full access to all features during your free trial.
+            Hundreds of curated games that make learning joyful - and yes, we track the amazing progress too!
           </Typography>
           
           <Button
@@ -276,7 +276,7 @@ export const LandingPage: React.FC = () => {
           </Button>
           
           <Typography variant="body2" color="text.secondary">
-            ✓ 14-day free trial ✓ No commitment ✓ Cancel anytime ✓ COPPA compliant
+            ✓ Expert-curated games ✓ Safe discovery space ✓ Educational fun ✓ Progress insights included
           </Typography>
         </Container>
       </Box>

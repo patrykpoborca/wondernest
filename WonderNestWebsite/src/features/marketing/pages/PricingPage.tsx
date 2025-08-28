@@ -33,77 +33,77 @@ export const PricingPage: React.FC = () => {
       price: isAnnual ? '9' : '12',
       originalPrice: isAnnual ? '15' : undefined,
       period: isAnnual ? 'month' : 'month',
-      description: 'Perfect for families with one child just getting started',
+      description: 'Perfect for exploring our digital toy box',
       features: [
         '1 child profile',
-        '10 educational games',
-        '5 story adventures',
-        'Basic progress tracking',
-        'Parental controls',
-        'Safe content filtering',
-        'Email support',
+        '100+ curated games & stories',
+        'Safe, ad-free environment',
+        'Add your own approved content',
+        'Weekly progress insights',
+        'Vocabulary growth tracking',
+        'All core educational games',
       ],
       buttonText: 'Start Free Trial',
-      badge: '14-day free trial',
+      badge: 'Great for getting started',
     },
     {
       title: 'Family',
       price: isAnnual ? '19' : '25',
       originalPrice: isAnnual ? '30' : undefined,
       period: isAnnual ? 'month' : 'month',
-      description: 'Ideal for families with multiple children and comprehensive learning',
+      description: 'Our complete digital toy box for growing families',
       features: [
         'Up to 4 child profiles',
-        '50+ educational games',
-        '20+ story adventures',
-        'Advanced progress tracking',
-        'Family challenges',
-        'Custom content recommendations',
-        'Priority email & chat support',
-        'Offline content download',
+        '500+ curated games & stories',
+        'Priority access to new content',
+        'YouTube Kids integration',
+        'Daily progress summaries',
+        'Detailed learning insights',
+        'Milestone celebrations',
+        'Family sharing features',
       ],
       isPopular: true,
-      buttonText: 'Start Free Trial',
-      badge: 'Most Popular',
+      buttonText: 'Start Growing Together',
+      badge: 'Most Popular Choice',
     },
     {
       title: 'Premium',
       price: isAnnual ? '35' : '45',
       originalPrice: isAnnual ? '54' : undefined,
       period: isAnnual ? 'month' : 'month',
-      description: 'Complete solution for families and educators who want everything',
+      description: 'Everything for education professionals and large families',
       features: [
         'Unlimited child profiles',
-        'All educational games & content',
-        'Unlimited story creation',
-        'Advanced analytics dashboard',
-        'Custom learning paths',
-        'Video calls with educational consultants',
-        '24/7 priority support',
+        'All 500+ games & stories',
         'Early access to new features',
-        'Bulk family account management',
+        'Custom content curation',
+        'Advanced progress analytics',
+        'Educator dashboard',
+        'Expert support line',
+        'Multi-language content',
+        'Classroom management tools',
       ],
-      buttonText: 'Start Free Trial',
-      badge: 'Complete Solution',
+      buttonText: 'Get Premium Access',
+      badge: 'For Educators & Large Families',
     },
   ]
 
   const faqItems = [
     {
-      question: 'Is there really a free trial?',
-      answer: 'Yes! All plans include a 14-day free trial with full access to all features. No credit card required to start, and you can cancel anytime during the trial period.',
+      question: 'What types of games and content are included?',
+      answer: 'Our digital toy box includes 500+ expert-curated games covering reading, math, science, creativity, problem-solving, and more. Every game is educational but designed to feel like pure fun. Plus, you can add your own approved content from sources like YouTube Kids to personalize the experience.',
     },
     {
-      question: 'How does the child profile system work?',
-      answer: 'Each child gets their own personalized profile with age-appropriate content, individual progress tracking, and customized learning paths. Parents can easily switch between profiles and manage all children from one dashboard.',
+      question: 'How does the progress tracking work?',
+      answer: 'We provide gentle, encouraging progress insights that celebrate your child\'s growth. You\'ll receive weekly summaries showing what games they enjoyed, skills they\'re developing, vocabulary growth, and milestones reached. It\'s informative without being overwhelming - just enough to know they\'re learning while having fun.',
     },
     {
       question: 'What happens if I exceed my plan limits?',
       answer: 'If you need more child profiles, you\'ll receive a notification and can easily upgrade your plan. There are no overage fees, and we\'ll work with you to find the best solution for your family.',
     },
     {
-      question: 'Is WonderNest really COPPA compliant?',
-      answer: 'Absolutely. We are fully COPPA compliant and take child privacy seriously. We don\'t collect unnecessary personal information, don\'t show ads, and don\'t share data with third parties. Parents have full control over their child\'s data.',
+      question: 'How does the dual curation system work?',
+      answer: 'Our dual curation combines the best of both worlds: professional educators select high-quality games and stories for our core collection, and you can add your own approved favorites. This means your child gets expert-vetted content plus family favorites you trust. Everything is pre-screened for safety and educational value.',
     },
     {
       question: 'Can I change or cancel my subscription anytime?',
@@ -129,10 +129,10 @@ export const PricingPage: React.FC = () => {
       <Box sx={{ pt: 8, pb: 4, textAlign: 'center' }}>
         <Container maxWidth="lg">
           <Typography className="section-title" variant="h2" component="h1">
-            Choose the Perfect Plan for Your Family
+            Choose Your Digital Toy Box Size
           </Typography>
           <Typography className="section-subtitle" variant="h6">
-            All plans include a 14-day free trial with full access to features
+            Every plan includes expert-curated games, safe exploration, and gentle progress insights
           </Typography>
 
           {/* Annual/Monthly Toggle */}
@@ -183,16 +183,16 @@ export const PricingPage: React.FC = () => {
         {/* Additional Info */}
         <Box sx={{ textAlign: 'center', mt: 6, p: 4, bgcolor: 'background.paper', borderRadius: 2 }}>
           <Typography variant="h6" fontWeight={600} color="primary" gutterBottom>
-            All Plans Include
+            All Plans Include Everything Your Child Needs
           </Typography>
           <Grid container spacing={2} sx={{ mt: 2 }}>
             {[
-              'COPPA-compliant safety',
-              'No ads or third-party tracking',
-              'Offline content access',
-              'Cross-platform compatibility',
-              'Regular content updates',
-              'Family sharing features',
+              'Expert-curated games & stories',
+              'Safe, ad-free environment',
+              'Add your own approved content',
+              'Educational through play',
+              'Progress insights for parents',
+              'COPPA compliant platform',
             ].map((feature, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
                 <Typography

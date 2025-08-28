@@ -31,96 +31,96 @@ export const FeaturesPage: React.FC = () => {
   const mainFeatures = [
     {
       icon: <GamesIcon sx={{ fontSize: '4rem', color: theme.palette.primary.main }} />,
-      title: 'Interactive Educational Games',
-      description: 'Our library of 50+ educational games covers math, science, reading, and critical thinking skills.',
+      title: 'Digital Toy Box Collection',
+      description: 'Hundreds of delightful games and activities, each expertly selected by education professionals for quality, fun, and learning value.',
       image: '/api/placeholder/600/400', // Placeholder for game screenshot
       features: [
-        'Age-adaptive difficulty levels',
-        'Curriculum-aligned content',
-        'Multiple learning styles supported',
-        'Progress tracking and analytics',
-        'Reward and achievement system',
-        'Collaborative family challenges',
+        'Puzzle games that teach logic',
+        'Story adventures for reading',
+        'Creative art and music tools',
+        'Math games that feel like play',
+        'Science exploration activities',
+        'Language learning adventures',
       ],
-      category: 'Learning',
+      category: 'Games & Fun',
     },
     {
       icon: <StoryIcon sx={{ fontSize: '4rem', color: theme.palette.secondary.main }} />,
-      title: 'Story Adventures & Creation',
-      description: 'Immersive storytelling experiences that develop reading comprehension and creative writing skills.',
+      title: 'Dual Curation System',
+      description: 'Professional educators curate quality content, while you add your own approved favorites - creating a personalized learning library.',
       image: '/api/placeholder/600/400', // Placeholder for story screenshot
       features: [
-        'Interactive story branching',
-        'Voice narration and read-along',
-        'Custom story creation tools',
-        'Character and world building',
-        'Family story sharing library',
-        'Reading comprehension quizzes',
+        'Expert educator selections',
+        'Add your family favorites',
+        'YouTube Kids integration',
+        'Custom content approval',
+        'Quality-first approach',
+        'Values-aligned choices',
       ],
-      category: 'Creativity',
+      category: 'Curation',
     },
     {
       icon: <ProgressIcon sx={{ fontSize: '4rem', color: theme.palette.warning.main }} />,
-      title: 'Development Tracking',
-      description: 'Comprehensive insights into learning progress with detailed analytics and milestone tracking.',
+      title: 'Natural Learning Journey',
+      description: 'Watch your child discover and grow through play, with games that adapt to their pace and celebrate their achievements.',
       image: '/api/placeholder/600/400', // Placeholder for analytics dashboard
       features: [
-        'Real-time learning analytics',
-        'Developmental milestone tracking',
-        'Personalized learning recommendations',
-        'Progress reports and insights',
-        'Goal setting and achievement',
-        'Parent-teacher communication tools',
+        'Games that grow with your child',
+        'Natural skill progression',
+        'Milestone celebrations',
+        'Encouraging feedback',
+        'No pressure, just fun',
+        'Progress insights for parents',
       ],
-      category: 'Analytics',
+      category: 'Educational',
     },
     {
       icon: <SafetyIcon sx={{ fontSize: '4rem', color: theme.palette.success.main }} />,
-      title: 'Safety & Privacy',
-      description: 'COPPA-compliant platform with comprehensive safety features and parental controls.',
+      title: 'Safe Discovery Space',
+      description: 'Every game, story, and activity has been carefully vetted - creating a protected digital playground for exploration.',
       image: '/api/placeholder/600/400', // Placeholder for safety dashboard
       features: [
-        'Full COPPA compliance',
-        'No third-party advertising',
-        'Content moderation and filtering',
-        'Secure data encryption',
-        'Parental approval workflows',
-        'Emergency contact system',
+        'Pre-screened content only',
+        'No ads or in-app purchases',
+        'COPPA compliant platform',
+        'Age-appropriate content',
+        'Safe social features',
+        'Parent peace of mind',
       ],
-      category: 'Security',
+      category: 'Safety',
     },
   ]
 
   const additionalFeatures = [
     {
       icon: <CognitionIcon />,
-      title: 'Cognitive Development',
-      description: 'Activities designed to enhance memory, attention, and problem-solving skills.',
+      title: 'Growing Vocabulary',
+      description: 'Watch language bloom naturally through stories and games - from first words to rich expression.',
     },
     {
       icon: <RewardsIcon />,
-      title: 'Achievement System',
-      description: 'Motivating rewards and badges that celebrate learning milestones.',
+      title: 'Celebration Moments',
+      description: 'Achievements and milestones that make your child feel proud of their learning journey.',
     },
     {
       icon: <OfflineIcon />,
-      title: 'Offline Access',
-      description: 'Download content for learning anywhere, even without internet connection.',
+      title: 'Works Offline Too',
+      description: 'Download favorites for car rides, flights, or anywhere without internet.',
     },
     {
       icon: <MultilingualIcon />,
-      title: 'Multilingual Support',
-      description: 'Content available in multiple languages to support diverse families.',
+      title: 'Multiple Languages',
+      description: 'Games and stories in various languages to support bilingual families.',
     },
     {
       icon: <TimeIcon />,
-      title: 'Screen Time Controls',
-      description: 'Smart time management tools to promote healthy digital habits.',
+      title: 'Gentle Progress Tracking',
+      description: 'Weekly summaries show growth without pressure - data when you want it.',
     },
     {
       icon: <CommunityIcon />,
-      title: 'Family Community',
-      description: 'Safe community features for families to share and celebrate learning.',
+      title: 'Family Sharing',
+      description: 'Multiple child profiles with age-appropriate content for each sibling.',
     },
   ]
 
@@ -134,10 +134,10 @@ export const FeaturesPage: React.FC = () => {
       <Box sx={{ pt: 8, pb: 6, textAlign: 'center', bgcolor: 'background.default' }}>
         <Container maxWidth="lg">
           <Typography className="section-title" variant="h2" component="h1">
-            Comprehensive Learning Platform
+            A Digital Toy Box Where Learning Feels Like Play
           </Typography>
           <Typography className="section-subtitle" variant="h6">
-            Everything your child needs for safe, engaging, and educational digital experiences
+            Expert-curated games and stories, plus your family favorites - all in one safe, delightful space
           </Typography>
         </Container>
       </Box>
@@ -277,10 +277,10 @@ export const FeaturesPage: React.FC = () => {
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 6 }}>
             <Typography className="section-title" variant="h3" component="h2">
-              Additional Features
+              More Delightful Features
             </Typography>
             <Typography className="section-subtitle" variant="h6">
-              Every detail designed with your child's development and safety in mind
+              Everything you need for a complete, safe, and enriching digital experience
             </Typography>
           </Box>
 
@@ -327,10 +327,10 @@ export const FeaturesPage: React.FC = () => {
       <Box sx={{ py: 8 }}>
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
           <Typography variant="h3" fontWeight={700} color="primary" gutterBottom>
-            Ready to Explore All Features?
+            Open Your Child's Digital Toy Box Today
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-            Start your free trial today and give your child access to our complete educational platform.
+            Join families discovering the joy of learning through expertly curated games and stories.
           </Typography>
           
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
@@ -351,7 +351,7 @@ export const FeaturesPage: React.FC = () => {
           </Stack>
           
           <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-            ✓ Full feature access during trial ✓ No credit card required ✓ Cancel anytime
+            ✓ 500+ curated games ✓ Safe discovery space ✓ Add your favorites ✓ Progress insights included
           </Typography>
         </Container>
       </Box>
