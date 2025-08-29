@@ -3,10 +3,10 @@ import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolk
 
 import { RootState } from '../index'
 import { logout, tokenRefreshed } from '../slices/authSlice'
-import { LoginCredentials, LoginResponse, RefreshTokenRequest, ApiError } from '@/types/auth'
+import { LoginCredentials, LoginResponse, BackendAuthResponse, RefreshTokenRequest, User, UserRole, Permission } from '@/types/auth'
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: '/api/web/v1',
+  baseUrl: '/api/v1',
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState
     const token = state.auth.token
@@ -33,9 +33,14 @@ const baseQueryWithReauth: BaseQueryFn<
     const refreshToken = state.auth.refreshToken
     
     if (refreshToken) {
+      // Try parent refresh first, fallback to admin if needed
+      const state = api.getState() as RootState
+      const isParent = state.auth.user?.userType === 'parent'
+      const refreshUrl = isParent ? '/auth/parent/refresh' : '/admin/auth/refresh'
+      
       const refreshResult = await baseQuery(
         {
-          url: '/admin/auth/refresh',
+          url: refreshUrl,
           method: 'POST',
           body: { refreshToken } as RefreshTokenRequest,
         },
@@ -92,18 +97,48 @@ export const apiSlice = createApi({
       invalidatesTags: ['Session', 'AdminUser'],
     }),
     
-    // Parent Authentication (uses existing endpoint)
+    // Parent Authentication (uses parent-specific endpoint)
     parentLogin: builder.mutation<LoginResponse, LoginCredentials>({
       query: (credentials) => ({
-        url: '/auth/login', // Uses existing mobile auth endpoint
+        url: '/auth/parent/login', // Uses parent-specific endpoint like mobile app
         method: 'POST',
         body: credentials,
       }),
+      transformResponse: (response: BackendAuthResponse): LoginResponse => {
+        // Transform backend response to frontend structure
+        const user: User = {
+          id: response.data.userId,
+          email: response.data.email,
+          firstName: response.data.email.split('@')[0], // Extract from email for now
+          lastName: '',
+          userType: UserRole.PARENT,
+          permissions: [
+            Permission.VIEW_CHILD_PROGRESS,
+            Permission.MANAGE_CHILD_SETTINGS,
+            Permission.MANAGE_BOOKMARKS,
+            Permission.VIEW_CHILD_CONTENT,
+            Permission.MANAGE_CONTENT_FILTERS,
+            Permission.VIEW_ANALYTICS,
+            Permission.MANAGE_FAMILY_SETTINGS,
+          ],
+          twoFactorEnabled: false,
+          familyId: response.data.userId, // Use userId as familyId for now
+        }
+
+        return {
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken,
+          user: user,
+          permissions: user.permissions,
+          expiresIn: response.data.expiresIn,
+          requiresTwoFactor: response.data.requiresPinSetup,
+        }
+      },
       invalidatesTags: ['Session', 'User'],
     }),
     
-    // Refresh Token
-    refreshToken: builder.mutation<LoginResponse, RefreshTokenRequest>({
+    // Refresh Token - Admin
+    adminRefreshToken: builder.mutation<LoginResponse, RefreshTokenRequest>({
       query: (request) => ({
         url: '/admin/auth/refresh',
         method: 'POST',
@@ -111,10 +146,37 @@ export const apiSlice = createApi({
       }),
     }),
     
-    // Logout
-    logout: builder.mutation<{ message: string }, void>({
+    // Refresh Token - Parent
+    parentRefreshToken: builder.mutation<LoginResponse, RefreshTokenRequest>({
+      query: (request) => ({
+        url: '/auth/parent/refresh',
+        method: 'POST',
+        body: request,
+      }),
+    }),
+    
+    // Logout - Admin
+    adminLogout: builder.mutation<{ message: string }, void>({
       query: () => ({
         url: '/admin/auth/logout',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Session', 'AdminUser'],
+    }),
+    
+    // Logout - Parent
+    parentLogout: builder.mutation<{ message: string }, void>({
+      query: () => ({
+        url: '/auth/parent/logout',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Session', 'User'],
+    }),
+    
+    // Logout (Generic - chooses appropriate endpoint)
+    logout: builder.mutation<{ message: string }, { userType?: 'admin' | 'parent' }>({
+      query: ({ userType = 'admin' }) => ({
+        url: userType === 'parent' ? '/auth/parent/logout' : '/admin/auth/logout',
         method: 'POST',
       }),
       invalidatesTags: ['Session', 'AdminUser', 'User'],
@@ -137,7 +199,10 @@ export const apiSlice = createApi({
 export const {
   useAdminLoginMutation,
   useParentLoginMutation,
-  useRefreshTokenMutation,
+  useAdminRefreshTokenMutation,
+  useParentRefreshTokenMutation,
+  useAdminLogoutMutation,
+  useParentLogoutMutation,
   useLogoutMutation,
   useGetCurrentUserQuery,
   useGetSessionsQuery,

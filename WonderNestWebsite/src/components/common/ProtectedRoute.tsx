@@ -59,9 +59,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     isAuthenticated, 
     isLoading, 
     user, 
-    hasRole, 
     hasAnyRole, 
-    hasPermission, 
     hasAnyPermission, 
     hasAllPermissions 
   } = useAuth()

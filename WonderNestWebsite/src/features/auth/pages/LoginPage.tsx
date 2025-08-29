@@ -6,17 +6,15 @@ import {
   Button, 
   Typography, 
   Alert,
-  Tabs,
-  Tab,
   InputAdornment,
-  IconButton
+  IconButton,
+  Link
 } from '@mui/material'
 import { 
   Visibility,
   VisibilityOff,
   AdminPanelSettings,
-  FamilyRestroom,
-  Create
+  FamilyRestroom
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
@@ -38,29 +36,18 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 type UserType = 'admin' | 'parent'
 
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
-  <div hidden={value !== index} style={{ width: '100%' }}>
-    {value === index && children}
-  </div>
-)
-
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, isLoading, error } = useAuth()
   
-  const [userType, setUserType] = useState<UserType>('admin')
+  const [userType, setUserType] = useState<UserType>('parent')
+  const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
   
-  const { control, handleSubmit, formState: { errors }, watch, reset } = useForm<LoginFormData>({
+  const { control, handleSubmit, formState: { errors }, reset } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -73,7 +60,7 @@ export const LoginPage: React.FC = () => {
   const getRedirectPath = () => {
     const from = location.state?.from?.pathname || '/'
     if (from !== '/') return from
-    return userType === 'admin' ? '/admin' : '/parent'
+    return showAdminLogin ? '/admin' : '/parent'
   }
   
   const onSubmit = async (data: LoginFormData) => {
@@ -97,9 +84,10 @@ export const LoginPage: React.FC = () => {
     }
   }
   
-  const handleUserTypeChange = (_: React.SyntheticEvent, newValue: number) => {
-    const newUserType: UserType = newValue === 0 ? 'admin' : 'parent'
-    setUserType(newUserType)
+  const handleToggleAdminLogin = () => {
+    const newShowAdmin = !showAdminLogin
+    setShowAdminLogin(newShowAdmin)
+    setUserType(newShowAdmin ? 'admin' : 'parent')
     setRequiresTwoFactor(false)
     setLoginError(null)
     reset()
@@ -145,28 +133,15 @@ export const LoginPage: React.FC = () => {
             WonderNest
           </Typography>
           <Typography variant="h6" color="textSecondary" fontWeight={400}>
-            Web Platform
+            {showAdminLogin ? 'Admin Portal' : 'Parent Portal'}
+          </Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+            {showAdminLogin 
+              ? 'Platform management and content moderation'
+              : 'Manage your child\'s learning journey'
+            }
           </Typography>
         </Box>
-        
-        {/* User Type Tabs */}
-        <Tabs 
-          value={userType === 'admin' ? 0 : 1} 
-          onChange={handleUserTypeChange}
-          variant="fullWidth"
-          sx={{ mb: 3 }}
-        >
-          <Tab 
-            icon={<AdminPanelSettings />} 
-            label="Admin" 
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          />
-          <Tab 
-            icon={<FamilyRestroom />} 
-            label="Parent" 
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          />
-        </Tabs>
         
         {/* Error Alert */}
         {(error || loginError) && (
@@ -183,106 +158,118 @@ export const LoginPage: React.FC = () => {
         )}
         
         {/* Login Form */}
-        <TabPanel value={userType === 'admin' ? 0 : 1} index={userType === 'admin' ? 0 : 1}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Email Address"
-                    type="email"
-                    fullWidth
-                    variant="outlined"
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
-                    disabled={isLoading}
-                    autoComplete="email"
-                  />
-                )}
-              />
-              
-              <Controller
-                name="password"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Password"
-                    type={showPassword ? 'text' : 'password'}
-                    fullWidth
-                    variant="outlined"
-                    error={!!errors.password}
-                    helperText={errors.password?.message}
-                    disabled={isLoading}
-                    autoComplete="current-password"
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            size="small"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                )}
-              />
-              
-              {requiresTwoFactor && (
-                <Controller
-                  name="twoFactorCode"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="2FA Code"
-                      fullWidth
-                      variant="outlined"
-                      placeholder="Enter 6-digit code"
-                      error={!!errors.twoFactorCode}
-                      helperText={errors.twoFactorCode?.message}
-                      disabled={isLoading}
-                      autoComplete="one-time-code"
-                    />
-                  )}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Email Address"
+                  type="email"
+                  fullWidth
+                  variant="outlined"
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                  disabled={isLoading}
+                  autoComplete="email"
                 />
               )}
-              
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                fullWidth
-                disabled={isLoading}
-                sx={{ 
-                  mt: 2,
-                  py: 1.5,
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                }}
-              >
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Button>
-            </Box>
-          </form>
-        </TabPanel>
-        
-        {/* Footer */}
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Typography variant="caption" color="textSecondary">
-            {userType === 'admin' ? (
-              'Admin access for platform management and content moderation'
-            ) : (
-              'Parent access for child activity management and progress tracking'
+            />
+            
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  fullWidth
+                  variant="outlined"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+            />
+            
+            {requiresTwoFactor && (
+              <Controller
+                name="twoFactorCode"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="2FA Code"
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Enter 6-digit code"
+                    error={!!errors.twoFactorCode}
+                    helperText={errors.twoFactorCode?.message}
+                    disabled={isLoading}
+                    autoComplete="one-time-code"
+                  />
+                )}
+              />
             )}
-          </Typography>
+            
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={isLoading}
+              startIcon={showAdminLogin ? <AdminPanelSettings /> : <FamilyRestroom />}
+              sx={{ 
+                mt: 2,
+                py: 1.5,
+                fontSize: '1rem',
+                fontWeight: 600,
+              }}
+            >
+              {isLoading ? 'Signing In...' : `Sign In as ${showAdminLogin ? 'Admin' : 'Parent'}`}
+            </Button>
+          </Box>
+        </form>
+        
+        {/* Admin Access Toggle */}
+        <Box sx={{ textAlign: 'center', mt: 3 }}>
+          <Link
+            component="button"
+            type="button"
+            onClick={handleToggleAdminLogin}
+            sx={{
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              textDecoration: 'none',
+              '&:hover': {
+                color: 'primary.main',
+                textDecoration: 'underline',
+              },
+              cursor: 'pointer',
+            }}
+          >
+            {showAdminLogin 
+              ? 'Are you a parent? Switch to Parent Login' 
+              : 'Are you a staff member? Access Admin Portal'
+            }
+          </Link>
         </Box>
       </Paper>
     </Box>

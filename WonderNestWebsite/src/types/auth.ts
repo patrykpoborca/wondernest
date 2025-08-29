@@ -76,6 +76,22 @@ export interface LoginCredentials {
   twoFactorCode?: string
 }
 
+// Backend response structure
+export interface BackendAuthResponse {
+  success: boolean
+  data: {
+    userId: string
+    email: string
+    accessToken: string
+    refreshToken: string
+    expiresIn: number
+    hasPin: boolean
+    requiresPinSetup: boolean
+    children: string[]
+  }
+}
+
+// Frontend response structure (transformed from backend)
 export interface LoginResponse {
   accessToken: string
   refreshToken: string

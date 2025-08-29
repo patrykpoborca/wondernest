@@ -54,8 +54,9 @@ export const useAuth = () => {
   
   const logout = async () => {
     try {
-      // Call the logout endpoint to invalidate server-side session
-      await logoutMutation().unwrap()
+      // Call the appropriate logout endpoint based on user type
+      const userType = authState.user?.userType === 'parent' ? 'parent' : 'admin'
+      await logoutMutation({ userType }).unwrap()
     } catch (error) {
       // Even if server logout fails, we still clear local state
       console.warn('Server logout failed, but clearing local state:', error)

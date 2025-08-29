@@ -15,7 +15,7 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }).concat(apiSlice.middleware),
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: true, // Always enable for development
 })
 
 // Enable refetching on focus/reconnect behaviors

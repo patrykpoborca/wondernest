@@ -18,7 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 
 export const ParentDashboard: React.FC = () => {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   return (
     <Box sx={{ p: 3 }}>
