@@ -13,19 +13,17 @@ const API_V2_PREFIX = '../v2' // Relative path to v2 from v1 base
 
 // Helper function to get child ID from user context
 const getChildId = () => {
-  // For now, use the user's ID as the child ID since parents are the primary users
-  // In a real implementation, this would come from selected child context
-  const userStr = localStorage.getItem('wondernest_user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      // Use the family ID or user ID as a proxy for child ID
-      return user.familyId || user.id || 'default-child'
-    } catch {
-      return 'default-child'
-    }
-  }
-  return 'default-child'
+  // TODO: In production, parents should select which child they're creating stories for
+  // For now, use a test child ID that exists in the database
+  // This is "Test Test" child from the database
+  const TEST_CHILD_ID = '50cb1b31-bd85-4604-8cd1-efc1a73c9359'
+  
+  // In future, we would:
+  // 1. Prompt parent to select a child from their family
+  // 2. Or create stories at the family level
+  // 3. Or auto-create a child profile for the parent
+  
+  return TEST_CHILD_ID
 }
 
 // Helper functions
@@ -34,7 +32,24 @@ const createPublishedDataKey = (storyId: string) => `story_published_${storyId}`
 
 const transformGameDataToStoryDraft = (gameData: any): StoryDraft => {
   // dataValue is a Map<String, JsonElement> from backend
-  const data = gameData.dataValue || {}
+  // The story data is stored as a JSON string in the 'data' key
+  let data: any = {}
+  
+  if (gameData.dataValue?.data) {
+    try {
+      // Parse the JSON string
+      data = typeof gameData.dataValue.data === 'string' 
+        ? JSON.parse(gameData.dataValue.data)
+        : gameData.dataValue.data
+    } catch (e) {
+      console.error('Failed to parse story data:', e)
+      data = {}
+    }
+  } else {
+    // Fallback to direct dataValue if no 'data' key
+    data = gameData.dataValue || {}
+  }
+  
   return {
     id: gameData.dataKey.replace('story_draft_', ''),
     title: data.title || 'Untitled Story',
@@ -64,7 +79,7 @@ const transformGameDataToStoryDraft = (gameData: any): StoryDraft => {
 }
 
 const transformStoryDraftToGameData = (draft: Partial<StoryDraft>) => {
-  return {
+  const storyData = {
     title: draft.title,
     description: draft.description,
     content: draft.content,
@@ -72,6 +87,11 @@ const transformStoryDraftToGameData = (draft: Partial<StoryDraft>) => {
     collaborators: draft.collaborators || [],
     version: (draft.version || 0) + 1,
     thumbnail: draft.thumbnail,
+  }
+  
+  // Return as JSON string in 'data' key for backend Map<String, JsonElement>
+  return {
+    data: JSON.stringify(storyData)
   }
 }
 
@@ -126,6 +146,21 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
           }]
         }
 
+        // Wrap the story data as a single JSON value
+        const storyData = {
+          title,
+          description: description || '',
+          content: initialContent,
+          metadata: {
+            targetAge,
+            educationalGoals: [],
+            estimatedReadTime: 60,
+            vocabularyList: []
+          },
+          collaborators: [],
+          version: 1,
+        }
+
         return {
           url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
           method: 'PUT',
@@ -133,17 +168,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
             gameType: GAME_TYPE,
             dataKey: createDraftDataKey(draftId),
             dataValue: {
-              title,
-              description: description || '',
-              content: initialContent,
-              metadata: {
-                targetAge,
-                educationalGoals: [],
-                estimatedReadTime: 60,
-                vocabularyList: []
-              },
-              collaborators: [],
-              version: 1,
+              data: JSON.stringify(storyData) // Store as JSON string in a single key
             }
           }
         }
@@ -189,6 +214,13 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     publishStory: builder.mutation<{ publishedId: string }, { draftId: string; publishData: any }>({
       query: ({ draftId, publishData }) => {
         const publishedId = uuidv4().substring(0, 8)
+        const storyData = {
+          ...publishData,
+          originalDraftId: draftId,
+          publishedAt: new Date().toISOString(),
+          status: 'published'
+        }
+        
         return {
           url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
           method: 'PUT',
@@ -196,10 +228,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
             gameType: GAME_TYPE,
             dataKey: createPublishedDataKey(publishedId),
             dataValue: {
-              ...publishData,
-              originalDraftId: draftId,
-              publishedAt: new Date().toISOString(),
-              status: 'published'
+              data: JSON.stringify(storyData)
             }
           }
         }
