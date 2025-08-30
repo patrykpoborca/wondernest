@@ -62,7 +62,9 @@ const EditorAppBar = styled(AppBar)(({ theme }) => ({
   boxShadow: theme.shadows[1],
 }))
 
-const SaveStatusIndicator = styled(Box)<{ saved: boolean }>(({ theme, saved }) => ({
+const SaveStatusIndicator = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'saved',
+})<{ saved: boolean }>(({ theme, saved }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(0.5),
@@ -102,6 +104,13 @@ export const StoryEditor: React.FC = () => {
       lastSavedContentRef.current = JSON.stringify(backendDraft.content)
     }
   }, [backendDraft, currentDraft, dispatch])
+
+  // Log error for debugging
+  useEffect(() => {
+    if (draftError) {
+      console.error('Failed to load story draft:', draftError)
+    }
+  }, [draftError])
 
   // Auto-save logic
   const triggerAutoSave = useCallback(async () => {
@@ -254,13 +263,34 @@ export const StoryEditor: React.FC = () => {
     )
   }
 
+  if (draftError) {
+    return (
+      <EditorContainer>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 2 }}>
+          <Typography variant="h6" color="error">
+            Failed to load story
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {(draftError as any)?.data?.message || 'Story not found or you don\'t have permission to edit it.'}
+          </Typography>
+          <Button variant="contained" onClick={() => navigate('/app/parent/story-builder')}>
+            Back to Stories
+          </Button>
+        </Box>
+      </EditorContainer>
+    )
+  }
+
   if (!currentDraft) {
     return (
       <EditorContainer>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', gap: 2 }}>
           <Typography variant="h6" color="text.secondary">
-            Story not found.
+            Story not found
           </Typography>
+          <Button variant="contained" onClick={() => navigate('/app/parent/story-builder')}>
+            Back to Stories
+          </Button>
         </Box>
       </EditorContainer>
     )

@@ -120,15 +120,33 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
 
     // Get specific story draft
     getStoryDraft: builder.query<StoryDraft, string>({
-      query: (draftId) => ({
-        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
-      }),
-      transformResponse: (response: any) => {
-        // Backend returns single GameDataItem directly for specific queries
-        if (response && response.dataKey) {
-          return transformGameDataToStoryDraft(response)
+      async queryFn(draftId, _queryApi, _extraOptions, fetchWithBQ) {
+        // First try to get the specific draft
+        const specificResult = await fetchWithBQ({
+          url: `${API_V2_PREFIX}/games/children/${getChildId()}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
+        })
+        
+        if (specificResult.data && (specificResult.data as any).dataKey) {
+          return { data: transformGameDataToStoryDraft(specificResult.data) }
         }
-        throw new Error('Draft not found')
+        
+        // If specific query fails, try to get all drafts and find the one we need
+        const allDraftsResult = await fetchWithBQ({
+          url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
+          params: { gameType: GAME_TYPE },
+        })
+        
+        if (allDraftsResult.data && (allDraftsResult.data as any).success) {
+          const drafts = ((allDraftsResult.data as any).gameData || [])
+            .filter((item: any) => item.dataKey === createDraftDataKey(draftId))
+            .map(transformGameDataToStoryDraft)
+          
+          if (drafts.length > 0) {
+            return { data: drafts[0] }
+          }
+        }
+        
+        return { error: { status: 404, data: { message: 'Story draft not found' } } }
       },
       providesTags: (_, __, draftId) => [{ type: 'StoryDraft', id: draftId }],
     }),
