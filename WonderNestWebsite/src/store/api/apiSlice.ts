@@ -231,6 +231,48 @@ export const apiSlice = createApi({
       }),
       providesTags: ['File'],
     }),
+    
+    // Game Data Endpoints
+    saveGameData: builder.mutation<any, {
+      childId: string;
+      gameType: string;
+      dataKey: string;
+      dataValue: any;
+    }>({
+      query: ({ childId, gameType, dataKey, dataValue }) => ({
+        url: `/games/children/${childId}/data`,
+        method: 'PUT',
+        body: {
+          gameType,
+          dataKey,
+          dataValue,
+        },
+      }),
+      invalidatesTags: ['StoryDraft', 'PublishedStory'],
+    }),
+    
+    loadGameData: builder.query<any, {
+      childId: string;
+      gameType?: string;
+      dataKey?: string;
+    }>({
+      query: ({ childId, gameType, dataKey }) => ({
+        url: `/games/children/${childId}/data`,
+        params: { gameType, dataKey },
+      }),
+      providesTags: ['StoryDraft', 'PublishedStory'],
+    }),
+    
+    getSpecificGameData: builder.query<any, {
+      childId: string;
+      gameType: string;
+      dataKey: string;
+    }>({
+      query: ({ childId, gameType, dataKey }) => ({
+        url: `/games/children/${childId}/data/${gameType}/${dataKey}`,
+      }),
+      providesTags: (_, __, { dataKey }) => [{ type: 'StoryDraft', id: dataKey }],
+    }),
   }),
 })
 
@@ -248,4 +290,7 @@ export const {
   useGetFileQuery,
   useDeleteFileMutation,
   useListUserFilesQuery,
+  useSaveGameDataMutation,
+  useLoadGameDataQuery,
+  useGetSpecificGameDataQuery,
 } = apiSlice

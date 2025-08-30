@@ -29,8 +29,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { 
-  useMockUpdateDraftMutation
-} from '../api/storyBuilderApi'
+  useGetStoryDraftQuery,
+  useUpdateStoryDraftMutation
+} from '../api/storyGameDataApi'
 import { 
   setCurrentDraft, 
   updateCurrentDraftContent,
@@ -41,8 +42,8 @@ import {
   clearError,
   setSavingLoading,
   setLastAutoSave,
-} from '@/store/slices/storyBuilderSlice'
-import { RootState } from '@/store'
+} from '../../../store/slices/storyBuilderSlice'
+import { RootState } from '../../../store'
 import { StoryPage, StoryContent } from '../types/story'
 import { PageNavigator } from '../components/PageNavigator'
 import { StoryCanvas } from '../components/StoryCanvas'
@@ -78,7 +79,12 @@ export const StoryEditor: React.FC = () => {
     (state: RootState) => state.storyBuilder
   )
   
-  const [updateDraft] = useMockUpdateDraftMutation()
+  // Load draft from backend
+  const { data: backendDraft, isLoading: isDraftLoading, error: draftError } = useGetStoryDraftQuery(
+    draftId || '', 
+    { skip: !draftId }
+  )
+  const [updateDraft] = useUpdateStoryDraftMutation()
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -87,40 +93,13 @@ export const StoryEditor: React.FC = () => {
   const autoSaveTimeoutRef = useRef<number | null>(null)
   const lastSavedContentRef = useRef<string>('')
 
-  // Mock loading draft for now (replace with real API call)
+  // Load draft from backend when available
   useEffect(() => {
-    if (draftId && !currentDraft) {
-      // Mock draft data - replace with real API call
-      const mockDraft = {
-        id: draftId,
-        title: 'The Brave Little Bunny',
-        description: 'A story about courage and friendship',
-        content: {
-          version: '1.0',
-          pages: [{
-            pageNumber: 1,
-            textBlocks: [],
-            popupImages: []
-          }]
-        } as StoryContent,
-        metadata: {
-          targetAge: [4, 6] as [number, number],
-          educationalGoals: ['vocabulary', 'courage'],
-          estimatedReadTime: 180,
-          vocabularyList: ['brave', 'bunny', 'forest']
-        },
-        status: 'draft' as const,
-        pageCount: 1,
-        lastModified: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        collaborators: [],
-        version: 1
-      }
-      
-      dispatch(setCurrentDraft(mockDraft))
-      lastSavedContentRef.current = JSON.stringify(mockDraft.content)
+    if (backendDraft && (!currentDraft || currentDraft.id !== backendDraft.id)) {
+      dispatch(setCurrentDraft(backendDraft))
+      lastSavedContentRef.current = JSON.stringify(backendDraft.content)
     }
-  }, [draftId, currentDraft, dispatch])
+  }, [backendDraft, currentDraft, dispatch])
 
   // Auto-save logic
   const triggerAutoSave = useCallback(async () => {
@@ -136,6 +115,9 @@ export const StoryEditor: React.FC = () => {
           description: currentDraft.description,
           content: currentDraft.content,
           metadata: currentDraft.metadata,
+          collaborators: currentDraft.collaborators,
+          version: currentDraft.version,
+          thumbnail: currentDraft.thumbnail,
         }
       }).unwrap()
 
@@ -246,12 +228,36 @@ export const StoryEditor: React.FC = () => {
     console.log('Story settings not yet implemented')
   }
 
-  if (!currentDraft) {
+  if (isDraftLoading) {
     return (
       <EditorContainer>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <Typography variant="h6" color="text.secondary">
             Loading story...
+          </Typography>
+        </Box>
+      </EditorContainer>
+    )
+  }
+
+  if (draftError) {
+    return (
+      <EditorContainer>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <Typography variant="h6" color="error">
+            Failed to load story. Please try again.
+          </Typography>
+        </Box>
+      </EditorContainer>
+    )
+  }
+
+  if (!currentDraft) {
+    return (
+      <EditorContainer>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <Typography variant="h6" color="text.secondary">
+            Story not found.
           </Typography>
         </Box>
       </EditorContainer>

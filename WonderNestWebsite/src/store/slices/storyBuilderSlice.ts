@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { StoryBuilderState, StoryDraft, Asset, StoryTemplate, StoryContent, StoryMetadata } from '@/features/story-builder/types/story'
+import { StoryBuilderState, StoryDraft, Asset, StoryTemplate, StoryContent, StoryMetadata } from '../../features/story-builder/types/story'
 
 const initialState: StoryBuilderState = {
   drafts: [],

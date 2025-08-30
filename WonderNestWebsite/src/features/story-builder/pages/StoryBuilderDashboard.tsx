@@ -36,7 +36,11 @@ import {
 import { styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
 
-import { useMockGetDraftsQuery, useMockCreateDraftMutation, useDeleteDraftMutation } from '../api/storyBuilderApi'
+import { 
+  useGetStoryDraftsQuery, 
+  useCreateStoryDraftMutation, 
+  useDeleteStoryDraftMutation 
+} from '../api/storyGameDataApi'
 import { StoryDraft } from '../types/story'
 
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -202,9 +206,9 @@ const NewStoryDialog: React.FC<NewStoryDialogProps> = ({ open, onClose, onCreate
 
 export const StoryBuilderDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { data: draftsData, isLoading, error } = useMockGetDraftsQuery({})
-  const [createDraft, { isLoading: isCreating }] = useMockCreateDraftMutation()
-  const [deleteDraft] = useDeleteDraftMutation()
+  const { data: draftsData, isLoading, error } = useGetStoryDraftsQuery({})
+  const [createDraft, { isLoading: isCreating }] = useCreateStoryDraftMutation()
+  const [deleteDraft] = useDeleteStoryDraftMutation()
 
   const [newStoryOpen, setNewStoryOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
