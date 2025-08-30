@@ -26,8 +26,9 @@ import {
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 
-import { StoryPage, TextBlock } from '../types/story'
+import { StoryPage, TextBlock, PopupImage } from '../types/story'
 import { PageEditor } from './PageEditor'
+import { ImageLibrary } from './ImageLibrary'
 
 const CanvasContainer = styled(Box)(({ theme }) => ({
   flex: 1,
@@ -105,6 +106,8 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
 }) => {
   const [zoom, setZoom] = useState(0.75)
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null)
+  const [imageLibraryOpen, setImageLibraryOpen] = useState(false)
+  const [imageLibraryMode, setImageLibraryMode] = useState<'background' | 'popup'>('background')
   const canvasRef = useRef<HTMLDivElement>(null)
 
   const handleZoomIn = useCallback(() => {
@@ -161,15 +164,15 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
 
   const handleAddImage = useCallback(() => {
     if (!page || isReadOnly) return
-    // This would open the image library dialog
-    console.log('Add image clicked - would open image library')
+    setImageLibraryMode('popup')
+    setImageLibraryOpen(true)
     setAddMenuAnchor(null)
   }, [page, isReadOnly])
 
   const handleSetBackground = useCallback(() => {
     if (!page || isReadOnly) return
-    // This would open the background selector
-    console.log('Set background clicked - would open background selector')
+    setImageLibraryMode('background')
+    setImageLibraryOpen(true)
     setAddMenuAnchor(null)
   }, [page, isReadOnly])
 
@@ -196,6 +199,36 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
 
     onPageUpdate(updatedPage)
   }, [page, onPageUpdate])
+
+  const handleImageSelect = useCallback((imageUrl: string) => {
+    if (!page) return
+
+    if (imageLibraryMode === 'background') {
+      // Set as page background
+      const updatedPage = {
+        ...page,
+        background: imageUrl,
+      }
+      onPageUpdate(updatedPage)
+    } else {
+      // Add as popup image
+      const newPopupImage: PopupImage = {
+        id: `img_${Date.now()}`,
+        imageUrl: imageUrl,
+        triggerWord: 'click here',
+        position: { x: 200, y: 200 },
+        size: { width: 150, height: 150 },
+      }
+      
+      const updatedPage = {
+        ...page,
+        popupImages: [...page.popupImages, newPopupImage],
+      }
+      onPageUpdate(updatedPage)
+    }
+    
+    setImageLibraryOpen(false)
+  }, [page, onPageUpdate, imageLibraryMode])
 
   const isEmpty = !page || (
     page.textBlocks.length === 0 && 
@@ -378,6 +411,14 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
           <ListItemText>Set Background</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Image Library Dialog */}
+      <ImageLibrary
+        open={imageLibraryOpen}
+        onClose={() => setImageLibraryOpen(false)}
+        onSelectImage={handleImageSelect}
+        title={imageLibraryMode === 'background' ? 'Select Background Image' : 'Add Image to Page'}
+      />
     </CanvasContainer>
   )
 }

@@ -37,15 +37,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     setError(null)
     setUploadProgress(0)
 
-    // Create FormData
+    // Create FormData with just the file
     const formData = new FormData()
     formData.append('file', file)
-    
-    // Add query parameters
-    const queryParams = new URLSearchParams()
-    queryParams.append('category', category)
-    if (childId) queryParams.append('childId', childId)
-    queryParams.append('isPublic', isPublic.toString())
 
     try {
       // Simulate progress for demo
@@ -59,8 +53,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         })
       }, 200)
 
-      // Upload file
-      const result = await uploadFile(formData).unwrap()
+      // Upload file to backend
+      const result = await uploadFile({
+        formData,
+        category,
+        childId: childId || undefined,
+        isPublic,
+      }).unwrap()
       
       clearInterval(progressInterval)
       setUploadProgress(100)

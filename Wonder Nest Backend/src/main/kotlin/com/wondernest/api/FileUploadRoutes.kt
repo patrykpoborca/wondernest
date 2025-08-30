@@ -4,6 +4,7 @@ import com.wondernest.data.database.table.UserRole
 import com.wondernest.domain.model.FileCategory
 import com.wondernest.domain.model.UploadedFileDto
 import com.wondernest.domain.model.User
+import com.wondernest.api.dto.*
 import com.wondernest.services.storage.FileUploadService
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -113,35 +114,31 @@ fun Route.fileUploadRoutes() {
                     }
                     
                     if (uploadedFile != null) {
-                        call.respond(HttpStatusCode.Created, mapOf(
-                            "success" to true,
-                            "data" to uploadedFile
+                        call.respond(HttpStatusCode.Created, FileUploadSuccessResponse(
+                            data = uploadedFile
                         ))
                     } else {
-                        call.respond(HttpStatusCode.BadRequest, mapOf(
-                            "success" to false,
-                            "error" to mapOf(
-                                "code" to "NO_FILE",
-                                "message" to "No file provided in the request"
+                        call.respond(HttpStatusCode.BadRequest, FileErrorResponse(
+                            error = ErrorDetails(
+                                code = "NO_FILE",
+                                message = "No file provided in the request"
                             )
                         ))
                     }
                 } catch (e: IllegalArgumentException) {
                     logger.error(e) { "File validation failed" }
-                    call.respond(HttpStatusCode.BadRequest, mapOf(
-                        "success" to false,
-                        "error" to mapOf(
-                            "code" to "VALIDATION_ERROR",
-                            "message" to e.message
+                    call.respond(HttpStatusCode.BadRequest, FileErrorResponse(
+                        error = ErrorDetails(
+                            code = "VALIDATION_ERROR",
+                            message = e.message ?: "Validation failed"
                         )
                     ))
                 } catch (e: Exception) {
                     logger.error(e) { "File upload failed" }
-                    call.respond(HttpStatusCode.InternalServerError, mapOf(
-                        "success" to false,
-                        "error" to mapOf(
-                            "code" to "UPLOAD_FAILED",
-                            "message" to "Failed to upload file"
+                    call.respond(HttpStatusCode.InternalServerError, FileErrorResponse(
+                        error = ErrorDetails(
+                            code = "UPLOAD_FAILED",
+                            message = "Failed to upload file"
                         )
                     ))
                 }
@@ -305,17 +302,15 @@ fun Route.fileUploadRoutes() {
                         )
                     }
                     
-                    call.respond(HttpStatusCode.OK, mapOf(
-                        "success" to true,
-                        "data" to dtos
+                    call.respond(HttpStatusCode.OK, FileListSuccessResponse(
+                        data = dtos
                     ))
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to list files" }
-                    call.respond(HttpStatusCode.InternalServerError, mapOf(
-                        "success" to false,
-                        "error" to mapOf(
-                            "code" to "LIST_FAILED",
-                            "message" to "Failed to list files"
+                    call.respond(HttpStatusCode.InternalServerError, FileErrorResponse(
+                        error = ErrorDetails(
+                            code = "LIST_FAILED",
+                            message = "Failed to list files"
                         )
                     ))
                 }

@@ -19,9 +19,13 @@ import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
 fun Application.configureDependencyInjection() {
+    val app = this
     install(Koin) {
         slf4jLogger()
         modules(
+            module {
+                single<Application> { app }
+            },
             databaseModule,
             repositoryModule,
             useCaseModule,

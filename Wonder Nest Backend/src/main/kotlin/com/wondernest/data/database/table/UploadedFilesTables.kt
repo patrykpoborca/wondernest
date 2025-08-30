@@ -4,6 +4,10 @@ import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
+import org.jetbrains.exposed.sql.json.jsonb
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import java.util.UUID
 
 /**
@@ -27,8 +31,11 @@ object UploadedFiles : UUIDTable("core.uploaded_files") {
     // Categorization
     val category = varchar("category", 50).default("content")
     
-    // Metadata (stored as TEXT for simplicity - will be parsed as JSON)
-    val metadata = text("metadata").default("{}")
+    // Metadata (stored as JSONB)
+    val metadata = jsonb<Map<String, String>>("metadata",
+        serialize = { Json.encodeToString(it) },
+        deserialize = { Json.decodeFromString(it) }
+    )
     
     // Timestamps
     val uploadedAt = timestamp("uploaded_at")

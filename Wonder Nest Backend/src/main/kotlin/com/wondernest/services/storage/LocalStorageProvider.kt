@@ -182,9 +182,9 @@ class LocalStorageProvider(
         val timestamp = Clock.System.now().epochSeconds
         
         return if (extension.isNotEmpty()) {
-            "uploads/$timestamp/$uuid.$extension"
+            "$timestamp/$uuid.$extension"
         } else {
-            "uploads/$timestamp/$uuid"
+            "$timestamp/$uuid"
         }
     }
     

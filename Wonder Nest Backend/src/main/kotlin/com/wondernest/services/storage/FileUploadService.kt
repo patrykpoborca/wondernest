@@ -7,8 +7,6 @@ import com.wondernest.domain.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -81,7 +79,7 @@ class FileUploadService(
                 it[url] = storageResult.url
                 it[this.isPublic] = isPublic
                 it[this.category] = category.toDbValue()
-                it[this.metadata] = Json.encodeToString(metadata)
+                it[this.metadata] = metadata
                 it[uploadedAt] = Clock.System.now()
             }
             
@@ -128,11 +126,7 @@ class FileUploadService(
                         url = row[UploadedFiles.url],
                         isPublic = row[UploadedFiles.isPublic],
                         category = FileCategory.fromString(row[UploadedFiles.category]),
-                        metadata = try {
-                            Json.decodeFromString<Map<String, String>>(row[UploadedFiles.metadata])
-                        } catch (e: Exception) {
-                            emptyMap()
-                        },
+                        metadata = row[UploadedFiles.metadata],
                         uploadedAt = row[UploadedFiles.uploadedAt],
                         accessedAt = row[UploadedFiles.accessedAt],
                         deletedAt = row[UploadedFiles.deletedAt]
@@ -223,11 +217,7 @@ class FileUploadService(
                         url = row[UploadedFiles.url],
                         isPublic = row[UploadedFiles.isPublic],
                         category = FileCategory.fromString(row[UploadedFiles.category]),
-                        metadata = try {
-                            Json.decodeFromString<Map<String, String>>(row[UploadedFiles.metadata])
-                        } catch (e: Exception) {
-                            emptyMap()
-                        },
+                        metadata = row[UploadedFiles.metadata],
                         uploadedAt = row[UploadedFiles.uploadedAt],
                         accessedAt = row[UploadedFiles.accessedAt],
                         deletedAt = row[UploadedFiles.deletedAt]

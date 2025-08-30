@@ -13,9 +13,11 @@ import com.wondernest.api.games.storyAdventureRoutes
 import com.wondernest.api.health.healthRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import java.io.File
 
 fun Application.configureRouting() {
     routing {
@@ -58,6 +60,13 @@ fun Application.configureRouting() {
                 """.trimIndent(),
                 ContentType.Text.Html
             )
+        }
+        
+        // Static file serving for uploads
+        staticFiles("/files", File("uploads")) {
+            // Optional: Add CORS headers for file serving
+            default("index.html")
+            enableAutoHeadResponse()
         }
         
         // Health and monitoring endpoints

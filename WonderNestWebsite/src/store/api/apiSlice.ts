@@ -7,7 +7,7 @@ import { LoginCredentials, LoginResponse, BackendAuthResponse, RefreshTokenReque
 
 const baseQuery = fetchBaseQuery({
   baseUrl: '/api/v1',
-  prepareHeaders: (headers, { getState }) => {
+  prepareHeaders: (headers, { getState, endpoint }) => {
     const state = getState() as RootState
     const token = state.auth.token
     
@@ -15,7 +15,11 @@ const baseQuery = fetchBaseQuery({
       headers.set('authorization', `Bearer ${token}`)
     }
     
-    headers.set('content-type', 'application/json')
+    // Don't set content-type for file uploads - let the browser set it with boundary
+    if (endpoint !== 'uploadFile') {
+      headers.set('content-type', 'application/json')
+    }
+    
     return headers
   },
 })
@@ -201,14 +205,35 @@ export const apiSlice = createApi({
     }),
     
     // File Upload Endpoints
-    uploadFile: builder.mutation<any, FormData>({
-      query: (formData) => ({
-        url: '/files/upload',
-        method: 'POST',
-        body: formData,
-        formData: true,
-      }),
+    uploadFile: builder.mutation<any, {
+      formData: FormData;
+      category?: string;
+      childId?: string;
+      isPublic?: boolean;
+    }>({
+      query: ({ formData, category, childId, isPublic }) => {
+        // Build query parameters
+        const params = new URLSearchParams()
+        if (category) params.append('category', category)
+        if (childId) params.append('childId', childId)
+        if (isPublic !== undefined) params.append('isPublic', isPublic.toString())
+        
+        return {
+          url: `/files/upload${params.toString() ? `?${params.toString()}` : ''}`,
+          method: 'POST',
+          body: formData,
+        }
+      },
       invalidatesTags: ['File'],
+    }),
+    
+    getUserFiles: builder.mutation<any, { category?: string }>({
+      query: ({ category }) => ({
+        url: '/files',
+        method: 'GET',
+        params: { category },
+      }),
+      providesTags: ['File'],
     }),
     
     getFile: builder.query<any, string>({
@@ -287,6 +312,7 @@ export const {
   useGetCurrentUserQuery,
   useGetSessionsQuery,
   useUploadFileMutation,
+  useGetUserFilesMutation,
   useGetFileQuery,
   useDeleteFileMutation,
   useListUserFilesQuery,
