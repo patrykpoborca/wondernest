@@ -5,16 +5,36 @@ import { v4 as uuidv4 } from 'uuid'
 /**
  * Story Builder API that integrates with the game data system
  * Stories are saved as game data for the "story_adventure" game type
+ * Note: Game routes are at /api/v2 while apiSlice uses /api/v1 base,
+ * so we need to use absolute paths starting with /api/v2
  */
 const GAME_TYPE = 'story_adventure'
-const CHILD_ID = 'dev-child-123' // TODO: Get from actual child context
+const API_V2_PREFIX = '../v2' // Relative path to v2 from v1 base
+
+// Helper function to get child ID from user context
+const getChildId = () => {
+  // For now, use the user's ID as the child ID since parents are the primary users
+  // In a real implementation, this would come from selected child context
+  const userStr = localStorage.getItem('wondernest_user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      // Use the family ID or user ID as a proxy for child ID
+      return user.familyId || user.id || 'default-child'
+    } catch {
+      return 'default-child'
+    }
+  }
+  return 'default-child'
+}
 
 // Helper functions
 const createDraftDataKey = (draftId: string) => `story_draft_${draftId}`
 const createPublishedDataKey = (storyId: string) => `story_published_${storyId}`
 
 const transformGameDataToStoryDraft = (gameData: any): StoryDraft => {
-  const data = gameData.dataValue
+  // dataValue is a Map<String, JsonElement> from backend
+  const data = gameData.dataValue || {}
   return {
     id: gameData.dataKey.replace('story_draft_', ''),
     title: data.title || 'Untitled Story',
@@ -60,12 +80,17 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     // Get all story drafts for current child
     getStoryDrafts: builder.query<{ data: StoryDraft[] }, {}>({
       query: () => ({
-        url: `/games/children/${CHILD_ID}/data`,
-        params: { gameType: GAME_TYPE, dataKey: 'story_draft_' },
+        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
+        params: { gameType: GAME_TYPE },
       }),
       transformResponse: (response: any) => {
+        // Backend returns LoadGameDataResponse with gameData array
+        if (!response || !response.success) {
+          return { data: [] }
+        }
+        
         const drafts = (response.gameData || [])
-          .filter((item: any) => item.dataKey.startsWith('story_draft_'))
+          .filter((item: any) => item.dataKey?.startsWith('story_draft_'))
           .map(transformGameDataToStoryDraft)
         
         return { data: drafts }
@@ -76,11 +101,12 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     // Get specific story draft
     getStoryDraft: builder.query<StoryDraft, string>({
       query: (draftId) => ({
-        url: `/games/children/${CHILD_ID}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
+        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
       }),
       transformResponse: (response: any) => {
-        if (response.success && response.gameData) {
-          return transformGameDataToStoryDraft(response.gameData)
+        // Backend returns single GameDataItem directly for specific queries
+        if (response && response.dataKey) {
+          return transformGameDataToStoryDraft(response)
         }
         throw new Error('Draft not found')
       },
@@ -101,7 +127,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
         }
 
         return {
-          url: `/games/children/${CHILD_ID}/data`,
+          url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
           method: 'PUT',
           body: {
             gameType: GAME_TYPE,
@@ -133,7 +159,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     // Update existing story draft
     updateStoryDraft: builder.mutation<void, { id: string; data: UpdateDraftRequest }>({
       query: ({ id, data }) => ({
-        url: `/games/children/${CHILD_ID}/data`,
+        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
         method: 'PUT',
         body: {
           gameType: GAME_TYPE,
@@ -150,7 +176,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     // Delete story draft
     deleteStoryDraft: builder.mutation<void, string>({
       query: (draftId) => ({
-        url: `/games/children/${CHILD_ID}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
+        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data/${GAME_TYPE}/${createDraftDataKey(draftId)}`,
         method: 'DELETE',
       }),
       invalidatesTags: (_, __, draftId) => [
@@ -164,7 +190,7 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
       query: ({ draftId, publishData }) => {
         const publishedId = uuidv4().substring(0, 8)
         return {
-          url: `/games/children/${CHILD_ID}/data`,
+          url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
           method: 'PUT',
           body: {
             gameType: GAME_TYPE,
@@ -188,8 +214,8 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
     // Get published stories
     getPublishedStories: builder.query<{ data: any[] }, {}>({
       query: () => ({
-        url: `/games/children/${CHILD_ID}/data`,
-        params: { gameType: GAME_TYPE, dataKey: 'story_published_' },
+        url: `${API_V2_PREFIX}/games/children/${getChildId()}/data`,
+        params: { gameType: GAME_TYPE },
       }),
       transformResponse: (response: any) => {
         const stories = (response.gameData || [])

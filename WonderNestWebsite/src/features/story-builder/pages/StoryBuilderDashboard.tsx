@@ -208,7 +208,7 @@ const NewStoryDialog: React.FC<NewStoryDialogProps> = ({ open, onClose, onCreate
 
 export const StoryBuilderDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { data: draftsData, isLoading, error } = useGetStoryDraftsQuery({})
+  const { data: draftsData, isLoading, error, isError } = useGetStoryDraftsQuery({})
   const [createDraft, { isLoading: isCreating }] = useCreateStoryDraftMutation()
   const [deleteDraft] = useDeleteStoryDraftMutation()
 
@@ -216,7 +216,9 @@ export const StoryBuilderDashboard: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedStory, setSelectedStory] = useState<StoryDraft | null>(null)
 
+  // Handle errors gracefully by showing empty state
   const drafts = draftsData?.data || []
+  const hasError = isError && !draftsData?.data
 
   const handleCreateStory = async (title: string, description: string, targetAge: [number, number]) => {
     try {
