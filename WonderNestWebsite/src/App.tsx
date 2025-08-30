@@ -7,6 +7,8 @@ import { LoginPage } from './features/auth/pages/LoginPage'
 import { SignupPage } from './features/auth/pages/SignupPage'
 import { ParentDashboard } from './features/parent-portal/pages/ParentDashboard'
 import { FileManagementPage } from './features/parent-portal/pages/FileManagementPage'
+import { StoryBuilderDashboard } from './features/story-builder/pages/StoryBuilderDashboard'
+import { StoryEditor } from './features/story-builder/pages/StoryEditor'
 import { AdminDashboard } from './features/admin-portal/pages/AdminDashboard'
 import { ContentManagerDashboard } from './features/content-manager/pages/ContentManagerDashboard'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
@@ -92,6 +94,34 @@ function App() {
                 fallback="/app/login"
               >
                 <FileManagementPage />
+              </ProtectedRoute>
+            </Box>
+          }
+        />
+
+        <Route
+          path="/app/parent/story-builder"
+          element={
+            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <ProtectedRoute 
+                userType={UserRole.PARENT} 
+                fallback="/app/login"
+              >
+                <StoryBuilderDashboard />
+              </ProtectedRoute>
+            </Box>
+          }
+        />
+
+        <Route
+          path="/app/parent/story-builder/editor/:draftId"
+          element={
+            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <ProtectedRoute 
+                userType={UserRole.PARENT} 
+                fallback="/app/login"
+              >
+                <StoryEditor />
               </ProtectedRoute>
             </Box>
           }

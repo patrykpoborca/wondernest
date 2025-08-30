@@ -85,7 +85,12 @@ export const apiSlice = createApi({
     'Bookmark',
     'Child',
     'Family',
-    'File'
+    'File',
+    'StoryDraft',
+    'PublishedStory',
+    'Asset',
+    'StoryTemplate',
+    'StoryAnalytics'
   ],
   endpoints: (builder) => ({
     // Admin Authentication
@@ -208,7 +213,7 @@ export const apiSlice = createApi({
     
     getFile: builder.query<any, string>({
       query: (fileId) => `/files/${fileId}`,
-      providesTags: (result, error, fileId) => [{ type: 'File', id: fileId }],
+      providesTags: (_, __, fileId) => [{ type: 'File', id: fileId }],
     }),
     
     deleteFile: builder.mutation<any, string>({
@@ -216,7 +221,7 @@ export const apiSlice = createApi({
         url: `/files/${fileId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, fileId) => [{ type: 'File', id: fileId }, 'File'],
+      invalidatesTags: (_, __, fileId) => [{ type: 'File', id: fileId }, 'File'],
     }),
     
     listUserFiles: builder.query<any, { category?: string; childId?: string; limit?: number; offset?: number }>({

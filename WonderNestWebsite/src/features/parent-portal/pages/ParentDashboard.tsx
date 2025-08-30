@@ -16,7 +16,8 @@ import {
   Folder,
   Settings,
   PlayCircle,
-  Assessment
+  Assessment,
+  AutoStories
 } from '@mui/icons-material'
 
 import { useAuth } from '@/hooks/useAuth'
@@ -173,6 +174,15 @@ export const ParentDashboard: React.FC = () => {
                   sx={{ justifyContent: 'flex-start' }}
                 >
                   Manage Files
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<AutoStories />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/story-builder')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Story Builder
                 </Button>
                 <Button
                   variant="outlined"

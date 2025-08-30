@@ -3,11 +3,13 @@ import { setupListeners } from '@reduxjs/toolkit/query'
 
 import { authSlice } from './slices/authSlice'
 import { apiSlice } from './api/apiSlice'
+import storyBuilderReducer from './slices/storyBuilderSlice'
 
 export const store = configureStore({
   reducer: {
     auth: authSlice.reducer,
     api: apiSlice.reducer,
+    storyBuilder: storyBuilderReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
