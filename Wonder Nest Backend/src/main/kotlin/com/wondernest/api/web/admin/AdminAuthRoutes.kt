@@ -63,7 +63,7 @@ fun Route.adminAuthRoutes() {
                 // Get client information
                 val ipAddress = call.request.headers["X-Forwarded-For"] 
                     ?: call.request.headers["X-Real-IP"]
-                    ?: call.request.origin.remoteHost
+                    ?: call.request.local.remoteHost
                 val userAgent = call.request.headers["User-Agent"]
                 
                 logger.info { "Admin login attempt: ${request.email} from $ipAddress" }

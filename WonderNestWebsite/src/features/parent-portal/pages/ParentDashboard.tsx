@@ -12,13 +12,20 @@ import {
   ChildCare,
   Schedule,
   TrendingUp,
-  Bookmark
+  Bookmark,
+  Folder,
+  Settings,
+  PlayCircle,
+  Assessment
 } from '@mui/icons-material'
 
 import { useAuth } from '@/hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
+import { Button, Stack } from '@mui/material'
 
 export const ParentDashboard: React.FC = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   return (
     <Box sx={{ p: 3 }}>
@@ -157,18 +164,53 @@ export const ParentDashboard: React.FC = () => {
               <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
                 Quick Actions
               </Typography>
-              <Box sx={{ 
-                height: 300, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                bgcolor: 'grey.50',
-                borderRadius: 1
-              }}>
-                <Typography color="textSecondary">
-                  Quick action buttons for managing bookmarks, settings, etc.
-                </Typography>
-              </Box>
+              <Stack spacing={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Folder />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/files')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Manage Files
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<PlayCircle />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/games')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Browse Games
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Assessment />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/analytics')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  View Analytics
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Bookmark />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/bookmarks')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Manage Bookmarks
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Settings />}
+                  fullWidth
+                  onClick={() => navigate('/app/parent/settings')}
+                  sx={{ justifyContent: 'flex-start' }}
+                >
+                  Family Settings
+                </Button>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>

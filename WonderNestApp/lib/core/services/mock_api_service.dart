@@ -640,6 +640,215 @@ class MockApiService {
   }
 
   // =============================================================================
+  // FILE UPLOAD ENDPOINTS
+  // =============================================================================
+
+  // Simulated file storage
+  static final Map<String, Map<String, dynamic>> _uploadedFiles = {};
+  static int _fileIdCounter = 1;
+
+  Future<Response> uploadFile({
+    required FormData formData,
+    Map<String, dynamic>? queryParams,
+    Function(double)? onProgress,
+  }) async {
+    await Future.delayed(const Duration(seconds: 1)); // Simulate upload time
+    
+    // Simulate progress callbacks
+    if (onProgress != null) {
+      for (double progress = 0.0; progress <= 1.0; progress += 0.1) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        onProgress(progress);
+      }
+    }
+    
+    // Generate file ID
+    final fileId = 'file_${_fileIdCounter++}_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Extract query parameters
+    final category = queryParams?['category'] ?? 'content';
+    final childId = queryParams?['childId'];
+    final isPublic = queryParams?['isPublic'] == 'true';
+    
+    // Create mock file record
+    final uploadedFile = {
+      'id': fileId,
+      'originalName': 'mock_file.jpg',
+      'mimeType': 'image/jpeg',
+      'fileSize': 1024 * 100, // 100KB
+      'category': category,
+      'url': 'https://mock.storage.com/files/$fileId',
+      'uploadedAt': DateTime.now().toIso8601String(),
+      'metadata': {
+        'childId': childId,
+        'isPublic': isPublic,
+      },
+    };
+    
+    _uploadedFiles[fileId] = uploadedFile;
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/api/v1/files/upload'),
+      statusCode: 201,
+      data: {
+        'success': true,
+        'data': uploadedFile,
+      },
+    );
+  }
+
+  Future<Response> getFile(String fileId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    final file = _uploadedFiles[fileId];
+    if (file == null) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+          statusCode: 404,
+          data: {
+            'success': false,
+            'error': {
+              'code': 'FILE_NOT_FOUND',
+              'message': 'File not found',
+            },
+          },
+        ),
+      );
+    }
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': file,
+      },
+    );
+  }
+
+  Future<Response> downloadFile({
+    required String fileId,
+    required String savePath,
+    Function(double)? onProgress,
+  }) async {
+    await Future.delayed(const Duration(seconds: 1)); // Simulate download time
+    
+    final file = _uploadedFiles[fileId];
+    if (file == null) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/api/v1/files/$fileId/download'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/v1/files/$fileId/download'),
+          statusCode: 404,
+          data: {
+            'success': false,
+            'error': {
+              'code': 'FILE_NOT_FOUND',
+              'message': 'File not found',
+            },
+          },
+        ),
+      );
+    }
+    
+    // Simulate progress callbacks
+    if (onProgress != null) {
+      for (double progress = 0.0; progress <= 1.0; progress += 0.1) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        onProgress(progress);
+      }
+    }
+    
+    // In a real scenario, this would save the file to the specified path
+    // For mock, we just return success
+    return Response(
+      requestOptions: RequestOptions(path: '/api/v1/files/$fileId/download'),
+      statusCode: 200,
+      data: 'Mock file content'.codeUnits, // Simulate file data
+    );
+  }
+
+  Future<Response> deleteFile(String fileId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    final file = _uploadedFiles[fileId];
+    if (file == null) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+          statusCode: 404,
+          data: {
+            'success': false,
+            'error': {
+              'code': 'FILE_NOT_FOUND',
+              'message': 'File not found',
+            },
+          },
+        ),
+      );
+    }
+    
+    // Mark as deleted (soft delete)
+    file['deletedAt'] = DateTime.now().toIso8601String();
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/api/v1/files/$fileId'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'message': 'File deleted successfully',
+      },
+    );
+  }
+
+  Future<Response> listUserFiles({
+    Map<String, dynamic>? queryParams,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Extract query parameters
+    final category = queryParams?['category'];
+    final childId = queryParams?['childId'];
+    final limit = int.tryParse(queryParams?['limit'] ?? '100') ?? 100;
+    final offset = int.tryParse(queryParams?['offset'] ?? '0') ?? 0;
+    
+    // Filter files
+    var files = _uploadedFiles.values.where((file) {
+      // Exclude deleted files
+      if (file['deletedAt'] != null) return false;
+      
+      // Filter by category
+      if (category != null && file['category'] != category) return false;
+      
+      // Filter by childId
+      if (childId != null && file['metadata']?['childId'] != childId) return false;
+      
+      return true;
+    }).toList();
+    
+    // Apply pagination
+    final totalCount = files.length;
+    files = files.skip(offset).take(limit).toList();
+    
+    return Response(
+      requestOptions: RequestOptions(path: '/api/v1/files'),
+      statusCode: 200,
+      data: {
+        'success': true,
+        'data': files,
+        'metadata': {
+          'totalCount': totalCount,
+          'limit': limit,
+          'offset': offset,
+        },
+      },
+    );
+  }
+
+  // =============================================================================
   // GAME DATA PERSISTENCE
   // =============================================================================
 

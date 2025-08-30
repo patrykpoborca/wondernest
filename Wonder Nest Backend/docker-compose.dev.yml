@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Development API with hot reload
+  api-dev:
+    image: gradle:8.5-jdk17
+    container_name: wondernest-api-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src
+      - ./build.gradle.kts:/app/build.gradle.kts
+      - ./settings.gradle.kts:/app/settings.gradle.kts
+      - ./gradle.properties:/app/gradle.properties
+      # Cache gradle dependencies
+      - gradle-cache:/home/gradle/.gradle
+    working_dir: /app
+    command: gradle run --continuous
+    environment:
+      # Database
+      DB_HOST: host.docker.internal
+      DB_PORT: 5433
+      DB_NAME: wondernest_prod
+      DB_USERNAME: wondernest_app
+      DB_PASSWORD: wondernest_secure_password_dev
+      
+      # Redis
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 6379
+      
+      # JWT
+      JWT_SECRET: "development-jwt-secret-change-in-production"
+      
+      # Application
+      KTOR_ENV: development
+      KTOR_DEVELOPMENT: "true"
+      KTOR_DEPLOYMENT_WATCH: "true"
+      
+    networks:
+      - wondernest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  wondernest:
+    driver: bridge
+
+volumes:
+  gradle-cache:

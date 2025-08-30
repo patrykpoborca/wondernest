@@ -94,7 +94,19 @@ fun Route.authRoutes() {
             // Parent-specific login (Flutter expects this endpoint)  
             post("/parent/login") {
                 try {
-                    val rawRequest = call.receive<LoginRequest>()
+                    // Get the raw request body
+                    val rawBody = call.receiveText()
+                    
+                    // Fix incorrectly escaped special characters from web client
+                    // The web client is incorrectly escaping the exclamation mark as \!
+                    val fixedBody = rawBody.replace("\\!", "!")
+                    
+                    // Parse the JSON with lenient settings
+                    val json = kotlinx.serialization.json.Json { 
+                        ignoreUnknownKeys = true
+                        isLenient = true
+                    }
+                    val rawRequest = json.decodeFromString<LoginRequest>(fixedBody)
                     call.application.environment.log.info("Received parent login request: email=${rawRequest.email}")
                     
                     // Validate request

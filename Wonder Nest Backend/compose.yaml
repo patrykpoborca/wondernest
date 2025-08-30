@@ -1,0 +1,45 @@
+# Docker Compose with watch mode support for Docker Desktop
+# Use: docker compose watch
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Database
+      DB_HOST: host.docker.internal
+      DB_PORT: 5433
+      DB_NAME: wondernest_prod
+      DB_USERNAME: wondernest_app
+      DB_PASSWORD: wondernest_secure_password_dev
+      
+      # Redis  
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 6379
+      
+      # JWT
+      JWT_SECRET: "development-jwt-secret-change-in-production"
+      
+      # Application
+      KTOR_ENV: development
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    # Docker Desktop Watch Mode Configuration
+    develop:
+      watch:
+        # Rebuild container when source files change
+        - path: ./src
+          action: rebuild
+        - path: ./build.gradle.kts
+          action: rebuild
+        - path: ./settings.gradle.kts
+          action: rebuild
+        # Sync these files without rebuilding
+        - path: ./src/main/resources
+          target: /app/src/main/resources
+          action: sync

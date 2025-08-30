@@ -695,6 +695,85 @@ class ApiService {
     return _dio.post('/analytics/events', data: analyticsEvent);
   }
 
+  // File upload methods
+  Future<Response> uploadFile({
+    required FormData formData,
+    Map<String, dynamic>? queryParams,
+    Function(double)? onProgress,
+  }) {
+    if (_useMockService) {
+      return _mockService.uploadFile(
+        formData: formData,
+        queryParams: queryParams,
+        onProgress: onProgress,
+      );
+    }
+    
+    return _dio.post(
+      '/files/upload',
+      data: formData,
+      queryParameters: queryParams,
+      onSendProgress: onProgress != null 
+        ? (sent, total) => onProgress(sent / total) 
+        : null,
+      options: Options(
+        contentType: 'multipart/form-data',
+      ),
+    );
+  }
+  
+  Future<Response> getFile(String fileId) {
+    if (_useMockService) {
+      return _mockService.getFile(fileId);
+    }
+    
+    return _dio.get('/files/$fileId');
+  }
+  
+  Future<Response> downloadFile({
+    required String fileId,
+    required String savePath,
+    Function(double)? onProgress,
+  }) {
+    if (_useMockService) {
+      return _mockService.downloadFile(
+        fileId: fileId,
+        savePath: savePath,
+        onProgress: onProgress,
+      );
+    }
+    
+    return _dio.download(
+      '/files/$fileId/download',
+      savePath,
+      onReceiveProgress: onProgress != null 
+        ? (received, total) => onProgress(received / total) 
+        : null,
+    );
+  }
+  
+  Future<Response> deleteFile(String fileId) {
+    if (_useMockService) {
+      return _mockService.deleteFile(fileId);
+    }
+    
+    return _dio.delete('/files/$fileId');
+  }
+  
+  Future<Response> listUserFiles({
+    Map<String, dynamic>? queryParams,
+  }) {
+    if (_useMockService) {
+      return _mockService.listUserFiles(queryParams: queryParams);
+    }
+    
+    // Get current user ID from storage
+    return _dio.get(
+      '/files/user/me', // Will be handled by backend to use authenticated user
+      queryParameters: queryParams,
+    );
+  }
+
   Future<Response> updateVirtualCurrency({
     required String childId,
     required int balance,

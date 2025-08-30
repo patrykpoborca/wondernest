@@ -161,6 +161,18 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// Configure Java compatibility to match Docker container
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 // =============================================================================
 // Flyway Configuration for Database Migrations
 // =============================================================================

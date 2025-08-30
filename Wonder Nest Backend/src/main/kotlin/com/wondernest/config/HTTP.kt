@@ -12,6 +12,8 @@ import io.ktor.server.plugins.forwardedheaders.*
 fun Application.configureHTTP() {
     install(CORS) {
         allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
@@ -19,27 +21,9 @@ fun Application.configureHTTP() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader("X-Requested-With")
         
-        // Allow specific origins in production
-        val allowedOrigins = this@configureHTTP.environment.config.propertyOrNull("cors.allowed_origins")?.getString()?.split(",") ?: listOf("*")
-        if (allowedOrigins.contains("*")) {
-            anyHost()
-        } else {
-            allowedOrigins.forEach { origin ->
-                val trimmedOrigin = origin.trim()
-                // Parse the origin to extract host and port
-                if (trimmedOrigin.startsWith("http://") || trimmedOrigin.startsWith("https://")) {
-                    val url = Url(trimmedOrigin)
-                    if (url.port != DEFAULT_PORT) {
-                        allowHost(url.host, listOf(url.protocol.name), listOf(url.port.toString()))
-                    } else {
-                        allowHost(url.host, listOf(url.protocol.name))
-                    }
-                } else {
-                    // Fallback for simple hostnames
-                    allowHost(trimmedOrigin)
-                }
-            }
-        }
+        // Temporarily allow any host to debug the issue
+        anyHost()
+        this@configureHTTP.environment.log.info("CORS: Allowing any host (temporary for debugging)")
         
         allowCredentials = true
         maxAgeInSeconds = 86400 // 24 hours

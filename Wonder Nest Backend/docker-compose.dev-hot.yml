@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Development API with hot reload - mounts local JAR
+  api-hot:
+    image: eclipse-temurin:17-jre
+    container_name: wondernest-api-hot
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount the built JAR file
+      - ./build/libs:/app/libs:ro
+      # Mount resources for config changes
+      - ./src/main/resources:/app/resources:ro
+    working_dir: /app
+    command: >
+      sh -c "
+      while true; do
+        echo 'Starting server...'
+        java -jar /app/libs/*-all.jar
+        echo 'Server stopped. Restarting in 2 seconds...'
+        sleep 2
+      done
+      "
+    environment:
+      # Database
+      DB_HOST: host.docker.internal
+      DB_PORT: 5433
+      DB_NAME: wondernest_prod
+      DB_USERNAME: wondernest_app
+      DB_PASSWORD: wondernest_secure_password_dev
+      
+      # Redis
+      REDIS_HOST: host.docker.internal
+      REDIS_PORT: 6379
+      
+      # JWT
+      JWT_SECRET: "development-jwt-secret-change-in-production"
+      
+      # Application
+      KTOR_ENV: development
+      KTOR_DEVELOPMENT: "true"
+      KTOR_DEPLOYMENT_WATCH: "true"
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

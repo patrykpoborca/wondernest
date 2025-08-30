@@ -12,7 +12,7 @@ import com.wondernest.services.email.EmailService
 import com.wondernest.services.family.FamilyService
 // import com.wondernest.services.games.*
 import com.wondernest.services.notification.NotificationService
-import com.wondernest.services.storage.StorageService
+// import com.wondernest.services.storage.StorageService
 import io.ktor.server.application.*
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -38,6 +38,14 @@ val databaseModule = module {
 val repositoryModule = module {
     single<UserRepository> { UserRepositoryImpl() }
     single<FamilyRepository> { FamilyRepositoryImpl() }
+    
+    // Web admin repositories
+    single<com.wondernest.data.database.repository.web.AdminUserRepository> { 
+        com.wondernest.data.database.repository.web.AdminUserRepositoryImpl() 
+    }
+    single<com.wondernest.data.database.repository.web.AdminSessionRepository> { 
+        com.wondernest.data.database.repository.web.AdminSessionRepositoryImpl() 
+    }
     
     // Game repositories - temporarily disabled
     // single<GameRegistryRepository> { GameRegistryRepositoryImpl() }
@@ -73,7 +81,17 @@ val serviceModule = module {
     single { FamilyService(get()) } // familyRepository
     single { EmailService() }
     single { NotificationService() }
-    single { StorageService() }
+    // single { StorageService() }
+    
+    // File upload services
+    single<com.wondernest.services.storage.StorageProvider> { 
+        com.wondernest.services.storage.LocalStorageProvider() 
+    }
+    single { com.wondernest.services.storage.FileValidationService(get<Application>()) }
+    single { com.wondernest.services.storage.FileUploadService(get(), get()) }
+    
+    // Web admin services
+    single { com.wondernest.services.web.admin.AdminAuthService(get(), get(), get()) } // adminUserRepo, adminSessionRepo, jwtService
     
     // Game services - temporarily disabled
     // single<GameService> { GameServiceImpl(get(), get(), get(), get()) } // gameRegistryRepo, instanceRepo, dataRepo, sessionRepo

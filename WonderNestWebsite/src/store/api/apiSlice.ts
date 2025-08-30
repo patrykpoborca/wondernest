@@ -84,7 +84,8 @@ export const apiSlice = createApi({
     'Content',
     'Bookmark',
     'Child',
-    'Family'
+    'Family',
+    'File'
   ],
   endpoints: (builder) => ({
     // Admin Authentication
@@ -193,6 +194,38 @@ export const apiSlice = createApi({
       query: () => '/admin/auth/sessions',
       providesTags: ['Session'],
     }),
+    
+    // File Upload Endpoints
+    uploadFile: builder.mutation<any, FormData>({
+      query: (formData) => ({
+        url: '/files/upload',
+        method: 'POST',
+        body: formData,
+        formData: true,
+      }),
+      invalidatesTags: ['File'],
+    }),
+    
+    getFile: builder.query<any, string>({
+      query: (fileId) => `/files/${fileId}`,
+      providesTags: (result, error, fileId) => [{ type: 'File', id: fileId }],
+    }),
+    
+    deleteFile: builder.mutation<any, string>({
+      query: (fileId) => ({
+        url: `/files/${fileId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, fileId) => [{ type: 'File', id: fileId }, 'File'],
+    }),
+    
+    listUserFiles: builder.query<any, { category?: string; childId?: string; limit?: number; offset?: number }>({
+      query: (params) => ({
+        url: '/files',
+        params,
+      }),
+      providesTags: ['File'],
+    }),
   }),
 })
 
@@ -206,4 +239,8 @@ export const {
   useLogoutMutation,
   useGetCurrentUserQuery,
   useGetSessionsQuery,
+  useUploadFileMutation,
+  useGetFileQuery,
+  useDeleteFileMutation,
+  useListUserFilesQuery,
 } = apiSlice
