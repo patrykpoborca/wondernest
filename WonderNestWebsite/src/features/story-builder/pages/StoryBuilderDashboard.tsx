@@ -32,6 +32,7 @@ import {
   Publish as PublishIcon,
   MoreVert as MoreIcon,
   AutoStories as BookIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
@@ -42,6 +43,7 @@ import {
   useDeleteStoryDraftMutation 
 } from '../api/storyGameDataApi'
 import { StoryDraft } from '../types/story'
+import { LogoutButton } from '@/components/common/LogoutButton'
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -292,6 +294,12 @@ export const StoryBuilderDashboard: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <IconButton 
+          onClick={() => navigate('/app/parent')}
+          sx={{ mr: 1 }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
         <BookIcon sx={{ fontSize: 32, color: 'primary.main' }} />
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h4" component="h1" gutterBottom>
@@ -301,6 +309,7 @@ export const StoryBuilderDashboard: React.FC = () => {
             Create interactive stories for your children to enjoy and learn from
           </Typography>
         </Box>
+        <LogoutButton variant="icon" />
         <Button
           variant="contained"
           size="large"

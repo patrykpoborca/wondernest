@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
-import { Box, Container, Typography, Tab, Tabs, Paper } from '@mui/material'
+import { Box, Container, Typography, Tab, Tabs, Paper, IconButton } from '@mui/material'
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import FileManager from '@/components/common/FileManager'
+import { LogoutButton } from '@/components/common/LogoutButton'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -26,6 +29,7 @@ function TabPanel(props: TabPanelProps) {
 
 export const FileManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0)
+  const navigate = useNavigate()
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue)
@@ -43,9 +47,20 @@ export const FileManagementPage: React.FC = () => {
   return (
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          File Management
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <IconButton 
+            onClick={() => navigate('/app/parent')}
+            sx={{ mr: 1 }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              File Management
+            </Typography>
+          </Box>
+          <LogoutButton variant="icon" />
+        </Box>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           Upload and manage files for your family. Files can be categorized and associated with specific children.
         </Typography>

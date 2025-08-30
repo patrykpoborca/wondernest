@@ -23,6 +23,7 @@ import {
   Settings as SettingsIcon,
   CloudDone as SavedIcon,
   Warning as UnsavedIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -47,6 +48,7 @@ import { RootState } from '../../../store'
 import { StoryPage, StoryContent } from '../types/story'
 import { PageNavigator } from '../components/PageNavigator'
 import { StoryCanvas } from '../components/StoryCanvas'
+import { LogoutButton } from '@/components/common/LogoutButton'
 
 const EditorContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -334,6 +336,7 @@ export const StoryEditor: React.FC = () => {
               Publish
             </Button>
 
+            <LogoutButton variant="icon" />
             <IconButton
               onClick={(e) => setMenuAnchor(e.currentTarget)}
               color="inherit"

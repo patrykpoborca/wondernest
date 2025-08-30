@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { Button, Stack } from '@mui/material'
+import { LogoutButton } from '@/components/common/LogoutButton'
 
 export const ParentDashboard: React.FC = () => {
   const { user } = useAuth()
@@ -41,6 +42,7 @@ export const ParentDashboard: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <LogoutButton variant="icon" />
           <Chip 
             label="Parent Account" 
             color="primary" 
