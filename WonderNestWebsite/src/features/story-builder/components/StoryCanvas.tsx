@@ -265,15 +265,19 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
         {!isReadOnly && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Undo">
-              <IconButton size="small" disabled>
-                <UndoIcon />
-              </IconButton>
+              <span>
+                <IconButton size="small" disabled>
+                  <UndoIcon />
+                </IconButton>
+              </span>
             </Tooltip>
 
             <Tooltip title="Redo">
-              <IconButton size="small" disabled>
-                <RedoIcon />
-              </IconButton>
+              <span>
+                <IconButton size="small" disabled>
+                  <RedoIcon />
+                </IconButton>
+              </span>
             </Tooltip>
 
             <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />

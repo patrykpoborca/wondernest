@@ -52,6 +52,7 @@ import { LogoutButton } from '@/components/common/LogoutButton'
 
 const EditorContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
+  flexDirection: 'column',
   height: '100vh',
   backgroundColor: theme.palette.grey[50],
 }))
@@ -245,18 +246,6 @@ export const StoryEditor: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <Typography variant="h6" color="text.secondary">
             Loading story...
-          </Typography>
-        </Box>
-      </EditorContainer>
-    )
-  }
-
-  if (draftError) {
-    return (
-      <EditorContainer>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <Typography variant="h6" color="error">
-            Failed to load story. Please try again.
           </Typography>
         </Box>
       </EditorContainer>
