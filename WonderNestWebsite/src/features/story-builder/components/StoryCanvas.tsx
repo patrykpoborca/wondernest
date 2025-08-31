@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 
-import { StoryPage, TextBlock, PopupImage } from '../types/story'
+import { StoryPage, TextBlock, PopupImage, TextVariant, VariantMetadata } from '../types/story'
 import { PageEditor } from './PageEditor'
 import { ImageLibrary } from './ImageLibrary'
 
@@ -96,6 +96,8 @@ interface StoryCanvasProps {
   onPageUpdate: (page: StoryPage) => void
   isReadOnly?: boolean
   showPageInfo?: boolean
+  onTextBlockSelect?: (textBlock: TextBlock | null) => void
+  selectedTextBlockId?: string | null
 }
 
 export const StoryCanvas: React.FC<StoryCanvasProps> = ({
@@ -103,6 +105,8 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
   onPageUpdate,
   isReadOnly = false,
   showPageInfo = true,
+  onTextBlockSelect,
+  selectedTextBlockId = null,
 }) => {
   const [zoom, setZoom] = useState(0.75)
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null)
@@ -142,15 +146,84 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
   const handleAddText = useCallback(() => {
     if (!page || isReadOnly) return
 
+    const defaultVariants: TextVariant[] = [
+      {
+        id: `variant_easy_${Date.now()}`,
+        content: 'Click to edit text',
+        metadata: {
+          difficulty: 'easy',
+          ageRange: [3, 5],
+          vocabularyLevel: 1,
+          readingTime: 2,
+          wordCount: 4,
+          characterCount: 17,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: false,
+      },
+      {
+        id: `variant_medium_${Date.now()}`,
+        content: 'Click to edit text',
+        metadata: {
+          difficulty: 'medium',
+          ageRange: [6, 8],
+          vocabularyLevel: 5,
+          readingTime: 2,
+          wordCount: 4,
+          characterCount: 17,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: true,
+      },
+      {
+        id: `variant_hard_${Date.now()}`,
+        content: 'Click to edit text',
+        metadata: {
+          difficulty: 'hard',
+          ageRange: [9, 12],
+          vocabularyLevel: 8,
+          readingTime: 2,
+          wordCount: 4,
+          characterCount: 17,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isDefault: false,
+      },
+    ]
+
     const newTextBlock: TextBlock = {
       id: `text_${Date.now()}`,
       position: { x: 100, y: 100 },
-      variants: {
-        easy: 'Click to edit text',
-        medium: 'Click to edit text',
-        hard: 'Click to edit text',
+      size: { width: 200, height: 60 },
+      variants: defaultVariants,
+      activeVariantId: defaultVariants[1].id, // medium as default
+      style: {
+        background: {
+          type: 'solid',
+          color: '#ffffff',
+          opacity: 0.9,
+          padding: { top: 8, right: 12, bottom: 8, left: 12 },
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 4, bottomRight: 4 },
+        },
+        text: {
+          color: '#000000',
+          fontSize: 16,
+          fontWeight: 400,
+          textAlign: 'left',
+          lineHeight: 1.4,
+        },
+      },
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: 'user',
+        validationStatus: 'valid',
       },
       vocabularyWords: [],
+      interactions: [],
     }
 
     const updatedPage = {
@@ -388,6 +461,8 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
             onImageDelete={handleImageDelete}
             isReadOnly={isReadOnly}
             zoom={zoom}
+            onTextBlockSelect={onTextBlockSelect}
+            selectedTextBlockId={selectedTextBlockId}
           />
 
           {/* Quick Add Button for Empty Pages */}

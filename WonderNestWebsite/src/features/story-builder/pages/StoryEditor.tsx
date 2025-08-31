@@ -23,6 +23,9 @@ import {
   Settings as SettingsIcon,
   CloudDone as SavedIcon,
   Warning as UnsavedIcon,
+  ChevronLeft as CollapseIcon,
+  ChevronRight as ExpandIcon,
+  FormatPaint as StyleIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -42,11 +45,14 @@ import {
   clearError,
   setSavingLoading,
   setLastAutoSave,
+  updateTextBlockStyle,
+  updateTextBlockVariants,
 } from '../../../store/slices/storyBuilderSlice'
 import { RootState } from '../../../store'
-import { StoryPage, StoryContent } from '../types/story'
+import { StoryPage, StoryContent, TextBlock, TextBlockStyle, TextVariant } from '../types/story'
 import { PageNavigator } from '../components/PageNavigator'
 import { StoryCanvas } from '../components/StoryCanvas'
+import { TextStyleEditor } from '../components/TextStyleEditor'
 import { LogoutButton } from '@/components/common/LogoutButton'
 
 const EditorContainer = styled(Box)(({ theme }) => ({
@@ -72,6 +78,46 @@ const SaveStatusIndicator = styled(Box, {
   fontSize: '0.875rem',
 }))
 
+const StyleSidebar = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'collapsed',
+})<{ collapsed: boolean }>(({ theme, collapsed }) => ({
+  width: collapsed ? 0 : 320,
+  minWidth: collapsed ? 0 : 320,
+  maxWidth: collapsed ? 0 : 320,
+  height: '100%',
+  backgroundColor: theme.palette.background.paper,
+  borderLeft: `1px solid ${theme.palette.divider}`,
+  transition: 'width 0.3s ease',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+}))
+
+const SidebarHeader = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(1, 2),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  minHeight: 56,
+}))
+
+const SidebarToggle = styled(IconButton)(({ theme }) => ({
+  position: 'absolute',
+  right: -12,
+  top: '50%',
+  transform: 'translateY(-50%)',
+  backgroundColor: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
+  width: 24,
+  height: 48,
+  borderRadius: '12px 0 0 12px',
+  zIndex: 10,
+  '&:hover': {
+    backgroundColor: theme.palette.grey[50],
+  },
+}))
+
 const AUTO_SAVE_DELAY = 2000 // 2 seconds
 
 export const StoryEditor: React.FC = () => {
@@ -93,6 +139,8 @@ export const StoryEditor: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const [selectedTextBlock, setSelectedTextBlock] = useState<TextBlock | null>(null)
   
   const autoSaveTimeoutRef = useRef<number | null>(null)
   const lastSavedContentRef = useRef<string>('')
@@ -242,6 +290,39 @@ export const StoryEditor: React.FC = () => {
 
     dispatch(updateCurrentDraftContent(updatedContent))
   }, [currentDraft, currentPageIndex, dispatch])
+
+  const handleTextBlockSelect = useCallback((textBlock: TextBlock | null) => {
+    setSelectedTextBlock(textBlock)
+    if (textBlock && sidebarCollapsed) {
+      setSidebarCollapsed(false)
+    }
+  }, [sidebarCollapsed])
+
+  const handleTextBlockStyleChange = useCallback((style: TextBlockStyle) => {
+    if (selectedTextBlock && currentDraft) {
+      dispatch(updateTextBlockStyle({
+        pageNumber: currentPageIndex + 1,
+        textBlockId: selectedTextBlock.id,
+        style,
+      }))
+      
+      // Update local selected text block
+      setSelectedTextBlock(prev => prev ? { ...prev, style } : null)
+    }
+  }, [selectedTextBlock, currentDraft, currentPageIndex, dispatch])
+
+  const handleTextBlockVariantsChange = useCallback((variants: TextVariant[]) => {
+    if (selectedTextBlock && currentDraft) {
+      dispatch(updateTextBlockVariants({
+        pageNumber: currentPageIndex + 1,
+        textBlockId: selectedTextBlock.id,
+        variants,
+      }))
+      
+      // Update local selected text block
+      setSelectedTextBlock(prev => prev ? { ...prev, variants } : null)
+    }
+  }, [selectedTextBlock, currentDraft, currentPageIndex, dispatch])
 
   const handlePreview = () => {
     // TODO: Implement preview functionality
@@ -402,7 +483,58 @@ export const StoryEditor: React.FC = () => {
         <StoryCanvas
           page={currentPage}
           onPageUpdate={handlePageUpdate}
+          onTextBlockSelect={handleTextBlockSelect}
+          selectedTextBlockId={selectedTextBlock?.id || null}
         />
+
+        {/* Style Sidebar */}
+        <StyleSidebar collapsed={sidebarCollapsed}>
+          <SidebarToggle
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            size="small"
+          >
+            {sidebarCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+          </SidebarToggle>
+
+          <SidebarHeader>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StyleIcon />
+              <Typography variant="h6">Text Styling</Typography>
+            </Box>
+          </SidebarHeader>
+
+          <Box sx={{ flex: 1, overflow: 'hidden' }}>
+            {selectedTextBlock ? (
+              <TextStyleEditor
+                textBlock={selectedTextBlock}
+                onStyleChange={handleTextBlockStyleChange}
+                onVariantChange={handleTextBlockVariantsChange}
+                allowCustomStyles={true}
+              />
+            ) : (
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '50%',
+                  flexDirection: 'column',
+                  gap: 2,
+                  p: 3,
+                  textAlign: 'center',
+                }}
+              >
+                <StyleIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                <Typography variant="body1" color="text.secondary">
+                  Select a text block to edit its style and variants
+                </Typography>
+                <Typography variant="body2" color="text.disabled">
+                  Click on any text element in the canvas to get started
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </StyleSidebar>
       </Box>
 
       {/* More Options Menu */}

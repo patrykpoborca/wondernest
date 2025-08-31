@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Box,
   Paper,
@@ -29,38 +29,12 @@ import {
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 
-import { StoryPage, TextBlock, PopupImage } from '../types/story'
+import { StoryPage, TextBlock, PopupImage, TextVariant } from '../types/story'
 import { DraggableImage } from './DraggableImage'
+import { StyledTextBlock } from './StyledTextBlock'
+import { TextStyleEditor } from './TextStyleEditor'
 
-const DraggableTextBlock = styled(Paper)<{ 
-  selected?: boolean 
-  zoom?: number 
-}>(({ theme, selected, zoom = 1 }) => ({
-  position: 'absolute',
-  minWidth: 120,
-  minHeight: 60,
-  padding: theme.spacing(1),
-  cursor: 'move',
-  border: selected ? `2px solid ${theme.palette.primary.main}` : `1px dashed ${theme.palette.grey[400]}`,
-  backgroundColor: selected ? theme.palette.primary.light : theme.palette.background.paper,
-  transition: 'all 0.2s ease-in-out',
-  transform: `scale(${1 / zoom})`,
-  transformOrigin: 'top left',
-  '&:hover': {
-    boxShadow: theme.shadows[4],
-    borderColor: selected ? theme.palette.primary.main : theme.palette.primary.light,
-  },
-  '& .drag-handle': {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    opacity: 0,
-    transition: 'opacity 0.2s',
-  },
-  '&:hover .drag-handle': {
-    opacity: 1,
-  },
-}))
+// Using StyledTextBlock component instead of DraggableTextBlock
 
 const PopupImageMarker = styled(Box)<{ zoom?: number }>(({ theme, zoom = 1 }) => ({
   position: 'absolute',
@@ -107,17 +81,51 @@ const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ textBlock, onUpdate, 
   const [newVocabWord, setNewVocabWord] = useState('')
 
   const handleSave = () => {
-    onUpdate(editedBlock)
+    onUpdate({
+      ...editedBlock,
+      metadata: {
+        ...editedBlock.metadata,
+        createdAt: editedBlock.metadata?.createdAt || new Date().toISOString(),
+        createdBy: editedBlock.metadata?.createdBy || 'user',
+        updatedAt: new Date().toISOString(),
+        validationStatus: 'valid' as const,
+      },
+    })
     onClose()
   }
 
-  const handleVariantChange = (difficulty: 'easy' | 'medium' | 'hard', text: string) => {
+  const handleVariantChange = (variantId: string, content: string) => {
     setEditedBlock(prev => ({
       ...prev,
-      variants: {
-        ...prev.variants,
-        [difficulty]: text,
-      },
+      variants: prev.variants.map(v => 
+        v.id === variantId 
+          ? {
+              ...v,
+              content,
+              metadata: {
+                ...v.metadata,
+                wordCount: content.split(' ').filter(Boolean).length,
+                characterCount: content.length,
+                readingTime: Math.ceil(content.split(' ').filter(Boolean).length / 200 * 60),
+              },
+              updatedAt: new Date().toISOString(),
+            }
+          : v
+      ),
+    }))
+  }
+
+  const handleStyleChange = (style: any) => {
+    setEditedBlock(prev => ({
+      ...prev,
+      style,
+    }))
+  }
+
+  const handleVariantsChange = (variants: TextVariant[]) => {
+    setEditedBlock(prev => ({
+      ...prev,
+      variants,
     }))
   }
 
@@ -139,7 +147,7 @@ const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ textBlock, onUpdate, 
   }
 
   return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         Edit Text Block
         <IconButton
@@ -155,41 +163,66 @@ const TextBlockEditor: React.FC<TextBlockEditorProps> = ({ textBlock, onUpdate, 
           <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
             <Tab label="Text Variants" />
             <Tab label="Vocabulary" />
+            <Tab label="Styling" />
           </Tabs>
         </Box>
 
         <TabPanel value={activeTab} index={0}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Easy (Ages 3-5)"
-              value={editedBlock.variants.easy}
-              onChange={(e) => handleVariantChange('easy', e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-              helperText="Use simple words and short sentences"
-            />
-            
-            <TextField
-              label="Medium (Ages 6-8)"
-              value={editedBlock.variants.medium}
-              onChange={(e) => handleVariantChange('medium', e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-              helperText="Use moderate vocabulary and longer sentences"
-            />
-            
-            <TextField
-              label="Hard (Ages 9-12)"
-              value={editedBlock.variants.hard}
-              onChange={(e) => handleVariantChange('hard', e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-              helperText="Use advanced vocabulary and complex sentences"
-            />
+            {editedBlock.variants.map((variant) => (
+              <Paper key={variant.id} variant="outlined" sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip
+                      label={`${variant.metadata.difficulty} (${variant.metadata.ageRange[0]}-${variant.metadata.ageRange[1]} years)`}
+                      size="small"
+                      color={
+                        variant.metadata.difficulty === 'easy'
+                          ? 'success'
+                          : variant.metadata.difficulty === 'medium'
+                          ? 'warning'
+                          : 'error'
+                      }
+                    />
+                    {variant.isDefault && (
+                      <Chip label="Default" size="small" color="primary" />
+                    )}
+                  </Box>
+
+                  <TextField
+                    multiline
+                    rows={3}
+                    fullWidth
+                    value={variant.content}
+                    onChange={(e) => handleVariantChange(variant.id, e.target.value)}
+                    placeholder="Enter text variant..."
+                    variant="outlined"
+                  />
+
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Words: {variant.metadata.wordCount}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Characters: {variant.metadata.characterCount}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Reading time: {variant.metadata.readingTime}s
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            ))}
           </Box>
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={2}>
+          <TextStyleEditor
+            textBlock={editedBlock}
+            onStyleChange={handleStyleChange}
+            onVariantChange={handleVariantsChange}
+            allowCustomStyles={true}
+          />
         </TabPanel>
 
         <TabPanel value={activeTab} index={1}>
@@ -258,6 +291,8 @@ interface PageEditorProps {
   onImageDelete?: (imageId: string) => void
   isReadOnly?: boolean
   zoom?: number
+  onTextBlockSelect?: (textBlock: TextBlock | null) => void
+  selectedTextBlockId?: string | null
 }
 
 export const PageEditor: React.FC<PageEditorProps> = ({
@@ -268,32 +303,35 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   onImageDelete,
   isReadOnly = false,
   zoom = 1,
+  onTextBlockSelect,
+  selectedTextBlockId = null,
 }) => {
-  const [selectedTextBlock, setSelectedTextBlock] = useState<string | null>(null)
+  const [selectedTextBlock, setSelectedTextBlock] = useState<string | null>(selectedTextBlockId)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [editingTextBlock, setEditingTextBlock] = useState<TextBlock | null>(null)
+
+  // Sync local selection state with external state
+  useEffect(() => {
+    setSelectedTextBlock(selectedTextBlockId)
+  }, [selectedTextBlockId])
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
     mouseY: number
     textBlockId: string
   } | null>(null)
   
-  const dragRef = useRef<{
-    isDragging: boolean
-    startPosition: { x: number; y: number }
-    elementPosition: { x: number; y: number }
-    textBlockId: string | null
-  }>({
-    isDragging: false,
-    startPosition: { x: 0, y: 0 },
-    elementPosition: { x: 0, y: 0 },
-    textBlockId: null,
-  })
+  // Removed dragRef since StyledTextBlock handles its own dragging
 
   const handleTextBlockClick = useCallback((textBlockId: string) => {
     if (isReadOnly) return
     setSelectedTextBlock(textBlockId)
-  }, [isReadOnly])
+    
+    // Notify parent component about selection
+    if (onTextBlockSelect) {
+      const textBlock = page.textBlocks.find(tb => tb.id === textBlockId)
+      onTextBlockSelect(textBlock || null)
+    }
+  }, [isReadOnly, onTextBlockSelect, page.textBlocks])
 
   const handleTextBlockDoubleClick = useCallback((textBlock: TextBlock) => {
     if (isReadOnly) return
@@ -338,73 +376,16 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     handleContextMenuClose()
   }, [contextMenu, selectedTextBlock, onTextBlockDelete])
 
-  const handleMouseDown = useCallback((
-    event: React.MouseEvent,
-    textBlockId: string,
-    textBlock: TextBlock
-  ) => {
-    if (isReadOnly) return
-
-    dragRef.current = {
-      isDragging: false,
-      startPosition: { x: event.clientX, y: event.clientY },
-      elementPosition: { x: textBlock.position.x, y: textBlock.position.y },
-      textBlockId,
-    }
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!dragRef.current.isDragging && (
-        Math.abs(moveEvent.clientX - dragRef.current.startPosition.x) > 5 ||
-        Math.abs(moveEvent.clientY - dragRef.current.startPosition.y) > 5
-      )) {
-        dragRef.current.isDragging = true
-      }
-
-      if (dragRef.current.isDragging) {
-        const deltaX = (moveEvent.clientX - dragRef.current.startPosition.x) / zoom
-        const deltaY = (moveEvent.clientY - dragRef.current.startPosition.y) / zoom
-
-        const newPosition = {
-          x: Math.max(0, Math.min(800 - 120, dragRef.current.elementPosition.x + deltaX)),
-          y: Math.max(0, Math.min(600 - 60, dragRef.current.elementPosition.y + deltaY)),
-        }
-
-        const updatedTextBlock = {
-          ...textBlock,
-          position: newPosition,
-        }
-
-        onTextBlockUpdate(updatedTextBlock)
-      }
-    }
-
-    const handleMouseUp = () => {
-      if (!dragRef.current.isDragging) {
-        handleTextBlockClick(textBlockId)
-      }
-      
-      dragRef.current = {
-        isDragging: false,
-        startPosition: { x: 0, y: 0 },
-        elementPosition: { x: 0, y: 0 },
-        textBlockId: null,
-      }
-
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [isReadOnly, zoom, onTextBlockUpdate, handleTextBlockClick])
+  // Mouse handling now done by StyledTextBlock component
 
   // Handle clicking outside to deselect
   const handleCanvasClick = useCallback((event: React.MouseEvent) => {
     if (event.target === event.currentTarget) {
       setSelectedTextBlock(null)
       setSelectedImage(null)
+      onTextBlockSelect?.(null)
     }
-  }, [])
+  }, [onTextBlockSelect])
 
   // Image handlers
   const handleImageUpdate = useCallback((id: string, updates: {
@@ -451,60 +432,80 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     >
       {/* Text Blocks */}
       {page.textBlocks.map((textBlock) => (
-        <DraggableTextBlock
+        <StyledTextBlock
           key={textBlock.id}
-          selected={selectedTextBlock === textBlock.id}
-          zoom={zoom}
+          textBlock={textBlock}
+          isEditing={!isReadOnly}
+          isSelected={selectedTextBlock === textBlock.id}
+          onSelect={() => handleTextBlockClick(textBlock.id)}
+          onPositionChange={(position) => {
+            const updatedTextBlock = { ...textBlock, position }
+            onTextBlockUpdate(updatedTextBlock)
+          }}
+          onContentChange={(content) => {
+            // Update the active variant's content
+            const activeVariant = textBlock.variants.find(v => v.id === textBlock.activeVariantId) || textBlock.variants[0]
+            if (activeVariant) {
+              const updatedVariants = textBlock.variants.map(v =>
+                v.id === activeVariant.id
+                  ? {
+                      ...v,
+                      content,
+                      metadata: {
+                        ...v.metadata,
+                        wordCount: content.split(' ').filter(Boolean).length,
+                        characterCount: content.length,
+                        readingTime: Math.ceil(content.split(' ').filter(Boolean).length / 200 * 60),
+                      },
+                      updatedAt: new Date().toISOString(),
+                    }
+                  : v
+              )
+              const updatedTextBlock = {
+                ...textBlock,
+                variants: updatedVariants,
+                metadata: {
+                  createdAt: textBlock.metadata?.createdAt || new Date().toISOString(),
+                  createdBy: textBlock.metadata?.createdBy || 'user',
+                  ...textBlock.metadata,
+                  updatedAt: new Date().toISOString(),
+                  validationStatus: 'valid' as const,
+                },
+              }
+              onTextBlockUpdate(updatedTextBlock)
+            }
+          }}
+          viewMode="desktop"
+          difficulty="medium"
+          childAge={7}
+        />
+      ))}
+
+      {/* Legacy mouse handlers for backward compatibility */}
+      {page.textBlocks.map((textBlock) => (
+        <Box
+          key={`handler-${textBlock.id}`}
           sx={{
+            position: 'absolute',
             left: textBlock.position.x,
             top: textBlock.position.y,
+            width: textBlock.size?.width || 200,
+            height: textBlock.size?.height || 60,
+            pointerEvents: 'none',
+            zIndex: selectedTextBlock === textBlock.id ? 10 : 1,
           }}
-          onMouseDown={(e) => handleMouseDown(e, textBlock.id, textBlock)}
-          onDoubleClick={() => handleTextBlockDoubleClick(textBlock)}
-          onContextMenu={(e) => handleTextBlockRightClick(e, textBlock.id)}
-        >
-          {/* Drag Handle */}
-          <IconButton
-            className="drag-handle"
-            size="small"
-            sx={{ 
-              width: 20, 
-              height: 20,
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
-              '&:hover': {
-                backgroundColor: 'primary.dark',
-              },
-            }}
-          >
-            <DragIcon sx={{ fontSize: 12 }} />
-          </IconButton>
-
-          {/* Text Content */}
-          <Typography
-            variant="body2"
-            sx={{
-              lineHeight: 1.4,
-              wordBreak: 'break-word',
-              userSelect: 'none',
-              cursor: isReadOnly ? 'default' : 'text',
-            }}
-          >
-            {textBlock.variants.medium || 'Empty text block'}
-          </Typography>
-
-          {/* Vocabulary indicator */}
-          {textBlock.vocabularyWords.length > 0 && (
-            <Box sx={{ mt: 0.5 }}>
-              <Chip
-                label={`${textBlock.vocabularyWords.length} vocab`}
-                size="small"
-                color="secondary"
-                sx={{ fontSize: '0.7rem', height: 18 }}
-              />
-            </Box>
-          )}
-        </DraggableTextBlock>
+          onContextMenu={(e) => {
+            e.preventDefault()
+            if (!isReadOnly) {
+              setContextMenu({
+                mouseX: e.clientX - 2,
+                mouseY: e.clientY - 4,
+                textBlockId: textBlock.id,
+              })
+            }
+          }}
+          onDoubleClick={() => !isReadOnly && handleTextBlockDoubleClick(textBlock)}
+        />
       ))}
 
       {/* Popup Images */}

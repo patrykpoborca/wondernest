@@ -5,15 +5,179 @@ export interface StoryPage {
   popupImages: PopupImage[]
 }
 
+// Enhanced TextBlock with styling support
 export interface TextBlock {
   id: string
   position: { x: number; y: number }
-  variants: {
-    easy: string
-    medium: string
-    hard: string
-  }
+  size?: { width: number; height: number }
+  variants: TextVariant[]
+  activeVariantId?: string
+  style?: TextBlockStyle
+  metadata?: TextBlockMetadata
   vocabularyWords: string[]
+  interactions?: TextInteraction[]
+}
+
+// Text variant with metadata for intelligent selection
+export interface TextVariant {
+  id: string
+  content: string
+  metadata: VariantMetadata
+  createdAt: string
+  updatedAt: string
+  isDefault?: boolean
+  tags?: string[]
+}
+
+export interface VariantMetadata {
+  difficulty: 'easy' | 'medium' | 'hard' | 'advanced'
+  ageRange: [number, number] // [min, max]
+  vocabularyLevel: number // 1-10 scale
+  readingTime: number // estimated seconds
+  wordCount: number
+  characterCount: number
+  sentenceComplexity?: number // Flesch-Kincaid score
+  educationalTags?: string[]
+  languageCode?: string // for multi-language support
+}
+
+// Text styling configuration
+export interface TextBlockStyle {
+  background?: BackgroundStyle
+  text?: TextStyle
+  effects?: TextEffects
+  animation?: TextAnimation
+  responsive?: ResponsiveStyle
+  presetId?: string
+}
+
+export interface BackgroundStyle {
+  type: 'solid' | 'gradient' | 'image' | 'pattern'
+  color?: string // hex, rgb, rgba
+  opacity?: number // 0-1
+  gradient?: GradientStyle
+  image?: BackgroundImage
+  padding?: BoxSpacing
+  borderRadius?: BorderRadius
+  blur?: number // 0-20px backdrop blur
+  mixBlendMode?: string
+}
+
+export interface GradientStyle {
+  type: 'linear' | 'radial' | 'conic'
+  colors: GradientStop[]
+  angle?: number // for linear gradients
+  center?: { x: number; y: number } // for radial
+}
+
+export interface GradientStop {
+  color: string
+  position: number // 0-100%
+  opacity?: number
+}
+
+export interface BackgroundImage {
+  url: string
+  size?: 'cover' | 'contain' | 'auto' | string
+  position?: string
+  repeat?: 'repeat' | 'repeat-x' | 'repeat-y' | 'no-repeat'
+}
+
+export interface BoxSpacing {
+  top?: number
+  right?: number
+  bottom?: number
+  left?: number
+}
+
+export interface BorderRadius {
+  topLeft?: number
+  topRight?: number
+  bottomLeft?: number
+  bottomRight?: number
+}
+
+export interface TextStyle {
+  color?: string
+  fontSize?: number | 'responsive'
+  fontWeight?: number | string
+  fontFamily?: string
+  lineHeight?: number
+  letterSpacing?: number
+  textAlign?: 'left' | 'center' | 'right' | 'justify'
+  textDecoration?: string
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+  wordSpacing?: number
+}
+
+export interface TextEffects {
+  shadow?: ShadowEffect[]
+  glow?: GlowEffect
+  outline?: OutlineEffect
+  stroke?: StrokeEffect
+  filter?: string // CSS filter
+}
+
+export interface ShadowEffect {
+  x: number
+  y: number
+  blur: number
+  spread?: number
+  color: string
+  inset?: boolean
+}
+
+export interface GlowEffect {
+  color: string
+  radius: number
+  intensity: number
+}
+
+export interface OutlineEffect {
+  width: number
+  color: string
+  style: 'solid' | 'dashed' | 'dotted'
+}
+
+export interface StrokeEffect {
+  width: number
+  color: string
+}
+
+export interface TextAnimation {
+  type: 'none' | 'pulse' | 'glow' | 'shimmer' | 'bounce' | 'fade' | 'slide' | 'typewriter'
+  duration?: number // milliseconds
+  delay?: number
+  iteration?: number | 'infinite'
+  easing?: string
+  customKeyframes?: AnimationKeyframe[]
+}
+
+export interface AnimationKeyframe {
+  offset: number // 0-1
+  properties: Record<string, any>
+}
+
+export interface ResponsiveStyle {
+  mobile?: Partial<TextBlockStyle>
+  tablet?: Partial<TextBlockStyle>
+  desktop?: Partial<TextBlockStyle>
+}
+
+export interface TextBlockMetadata {
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  lockedForEditing?: boolean
+  aiGenerated?: boolean
+  validationStatus?: 'valid' | 'warning' | 'error'
+  validationMessages?: string[]
+}
+
+export interface TextInteraction {
+  type: 'click' | 'hover' | 'focus'
+  action: 'showDefinition' | 'playSound' | 'highlight' | 'navigate'
+  payload?: any
 }
 
 export interface PopupImage {
@@ -171,4 +335,39 @@ export interface StoryBuilderState {
   error: string | null
   autoSaveEnabled: boolean
   lastAutoSave?: string
+}
+
+// Style Preset System
+export interface StylePreset {
+  id: string
+  name: string
+  description?: string
+  category: PresetCategory
+  style: TextBlockStyle
+  thumbnail?: string
+  tags: string[]
+  isCustom: boolean
+  isGlobal: boolean
+  createdAt: string
+  updatedAt: string
+  usageCount: number
+}
+
+export type PresetCategory = 
+  | 'emphasis'
+  | 'vocabulary'
+  | 'dialogue'
+  | 'narration'
+  | 'title'
+  | 'caption'
+  | 'interactive'
+  | 'seasonal'
+  | 'custom'
+
+export interface StyleLibrary {
+  presets: StylePreset[]
+  categories: PresetCategory[]
+  recentlyUsed: string[] // preset IDs
+  favorites: string[] // preset IDs
+  custom: StylePreset[]
 }

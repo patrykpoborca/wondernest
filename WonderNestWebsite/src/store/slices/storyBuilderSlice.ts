@@ -1,5 +1,74 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { StoryBuilderState, StoryDraft, Asset, StoryTemplate, StoryContent, StoryMetadata } from '../../features/story-builder/types/story'
+import { StoryBuilderState, StoryDraft, Asset, StoryTemplate, StoryContent, StoryMetadata, TextBlock, TextBlockStyle, TextVariant } from '../../features/story-builder/types/story'
+
+// Helper function to normalize variants from old format to new format
+const normalizeTextBlockVariants = (textBlock: TextBlock): TextBlock => {
+  // If variants is already an array, return as-is
+  if (Array.isArray(textBlock.variants)) {
+    return textBlock
+  }
+
+  // Convert old format (object with easy/medium/hard) to new format
+  const oldVariants = textBlock.variants as any
+  const variants: TextVariant[] = []
+
+  if (oldVariants?.easy) {
+    variants.push({
+      id: 'variant-easy',
+      content: oldVariants.easy,
+      metadata: {
+        difficulty: 'easy',
+        ageRange: [3, 6],
+        vocabularyLevel: 3,
+        readingTime: Math.ceil((oldVariants.easy || '').split(' ').filter(Boolean).length / 200 * 60),
+        wordCount: (oldVariants.easy || '').split(' ').filter(Boolean).length,
+        characterCount: (oldVariants.easy || '').length,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isDefault: true,
+    })
+  }
+
+  if (oldVariants?.medium) {
+    variants.push({
+      id: 'variant-medium',
+      content: oldVariants.medium,
+      metadata: {
+        difficulty: 'medium',
+        ageRange: [5, 8],
+        vocabularyLevel: 5,
+        readingTime: Math.ceil((oldVariants.medium || '').split(' ').filter(Boolean).length / 200 * 60),
+        wordCount: (oldVariants.medium || '').split(' ').filter(Boolean).length,
+        characterCount: (oldVariants.medium || '').length,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  if (oldVariants?.hard) {
+    variants.push({
+      id: 'variant-hard',
+      content: oldVariants.hard,
+      metadata: {
+        difficulty: 'hard',
+        ageRange: [7, 10],
+        vocabularyLevel: 7,
+        readingTime: Math.ceil((oldVariants.hard || '').split(' ').filter(Boolean).length / 200 * 60),
+        wordCount: (oldVariants.hard || '').split(' ').filter(Boolean).length,
+        characterCount: (oldVariants.hard || '').length,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  return {
+    ...textBlock,
+    variants
+  }
+}
 
 const initialState: StoryBuilderState = {
   drafts: [],
@@ -24,7 +93,22 @@ export const storyBuilderSlice = createSlice({
   reducers: {
     // Draft management
     setCurrentDraft: (state, action: PayloadAction<StoryDraft | null>) => {
-      state.currentDraft = action.payload
+      // Normalize any old-format text blocks when loading a draft
+      if (action.payload) {
+        const normalizedDraft = {
+          ...action.payload,
+          content: {
+            ...action.payload.content,
+            pages: action.payload.content.pages.map(page => ({
+              ...page,
+              textBlocks: page.textBlocks.map(normalizeTextBlockVariants)
+            }))
+          }
+        }
+        state.currentDraft = normalizedDraft
+      } else {
+        state.currentDraft = action.payload
+      }
       state.error = null
     },
 
@@ -192,6 +276,77 @@ export const storyBuilderSlice = createSlice({
       state.currentDraft = null
       state.error = null
     },
+
+    // Text Block Operations
+    updateTextBlock: (state, action: PayloadAction<{ pageNumber: number; textBlock: TextBlock }>) => {
+      if (state.currentDraft) {
+        const { pageNumber, textBlock } = action.payload
+        const pageIndex = pageNumber - 1
+        const page = state.currentDraft.content.pages[pageIndex]
+        
+        if (page) {
+          const textBlockIndex = page.textBlocks.findIndex(tb => tb.id === textBlock.id)
+          if (textBlockIndex !== -1) {
+            page.textBlocks[textBlockIndex] = textBlock
+          }
+          state.currentDraft.lastModified = new Date().toISOString()
+        }
+      }
+    },
+
+    updateTextBlockStyle: (state, action: PayloadAction<{ pageNumber: number; textBlockId: string; style: TextBlockStyle }>) => {
+      if (state.currentDraft) {
+        const { pageNumber, textBlockId, style } = action.payload
+        const pageIndex = pageNumber - 1
+        const page = state.currentDraft.content.pages[pageIndex]
+        
+        if (page) {
+          const textBlockIndex = page.textBlocks.findIndex(tb => tb.id === textBlockId)
+          if (textBlockIndex !== -1) {
+            page.textBlocks[textBlockIndex].style = style
+            if (page.textBlocks[textBlockIndex].metadata) {
+              page.textBlocks[textBlockIndex].metadata!.updatedAt = new Date().toISOString()
+            }
+          }
+          state.currentDraft.lastModified = new Date().toISOString()
+        }
+      }
+    },
+
+    updateTextBlockVariants: (state, action: PayloadAction<{ pageNumber: number; textBlockId: string; variants: TextVariant[] }>) => {
+      if (state.currentDraft) {
+        const { pageNumber, textBlockId, variants } = action.payload
+        const pageIndex = pageNumber - 1
+        const page = state.currentDraft.content.pages[pageIndex]
+        
+        if (page) {
+          const textBlockIndex = page.textBlocks.findIndex(tb => tb.id === textBlockId)
+          if (textBlockIndex !== -1) {
+            page.textBlocks[textBlockIndex].variants = variants
+            if (page.textBlocks[textBlockIndex].metadata) {
+              page.textBlocks[textBlockIndex].metadata!.updatedAt = new Date().toISOString()
+            }
+          }
+          state.currentDraft.lastModified = new Date().toISOString()
+        }
+      }
+    },
+
+    setTextBlockActiveVariant: (state, action: PayloadAction<{ pageNumber: number; textBlockId: string; variantId: string }>) => {
+      if (state.currentDraft) {
+        const { pageNumber, textBlockId, variantId } = action.payload
+        const pageIndex = pageNumber - 1
+        const page = state.currentDraft.content.pages[pageIndex]
+        
+        if (page) {
+          const textBlockIndex = page.textBlocks.findIndex(tb => tb.id === textBlockId)
+          if (textBlockIndex !== -1) {
+            page.textBlocks[textBlockIndex].activeVariantId = variantId
+          }
+          state.currentDraft.lastModified = new Date().toISOString()
+        }
+      }
+    },
   },
 })
 
@@ -222,6 +377,10 @@ export const {
   setLastAutoSave,
   resetStoryBuilder,
   clearCurrentDraft,
+  updateTextBlock,
+  updateTextBlockStyle,
+  updateTextBlockVariants,
+  setTextBlockActiveVariant,
 } = storyBuilderSlice.actions
 
 export default storyBuilderSlice.reducer
