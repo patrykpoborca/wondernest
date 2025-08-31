@@ -20,7 +20,9 @@ export interface PopupImage {
   id: string
   triggerWord: string
   imageUrl: string
-  animation: 'fadeIn' | 'slideIn' | 'bounce' | 'none'
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+  animation?: 'fadeIn' | 'slideIn' | 'bounce' | 'none'
 }
 
 export interface StoryContent {

@@ -29,7 +29,8 @@ import {
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 
-import { StoryPage, TextBlock } from '../types/story'
+import { StoryPage, TextBlock, PopupImage } from '../types/story'
+import { DraggableImage } from './DraggableImage'
 
 const DraggableTextBlock = styled(Paper)<{ 
   selected?: boolean 
@@ -253,6 +254,8 @@ interface PageEditorProps {
   page: StoryPage
   onTextBlockUpdate: (textBlock: TextBlock) => void
   onTextBlockDelete: (textBlockId: string) => void
+  onImageUpdate?: (image: PopupImage) => void
+  onImageDelete?: (imageId: string) => void
   isReadOnly?: boolean
   zoom?: number
 }
@@ -261,10 +264,13 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   page,
   onTextBlockUpdate,
   onTextBlockDelete,
+  onImageUpdate,
+  onImageDelete,
   isReadOnly = false,
   zoom = 1,
 }) => {
   const [selectedTextBlock, setSelectedTextBlock] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [editingTextBlock, setEditingTextBlock] = useState<TextBlock | null>(null)
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
@@ -396,7 +402,36 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   const handleCanvasClick = useCallback((event: React.MouseEvent) => {
     if (event.target === event.currentTarget) {
       setSelectedTextBlock(null)
+      setSelectedImage(null)
     }
+  }, [])
+
+  // Image handlers
+  const handleImageUpdate = useCallback((id: string, position: { x: number; y: number }, size: { width: number; height: number }) => {
+    if (!onImageUpdate) return
+    
+    const image = page.popupImages.find(img => img.id === id)
+    if (image) {
+      onImageUpdate({
+        ...image,
+        position,
+        size,
+      })
+    }
+  }, [page.popupImages, onImageUpdate])
+
+  const handleImageDelete = useCallback((id: string) => {
+    if (onImageDelete) {
+      onImageDelete(id)
+      if (selectedImage === id) {
+        setSelectedImage(null)
+      }
+    }
+  }, [selectedImage, onImageDelete])
+
+  const handleImageSelect = useCallback((id: string) => {
+    setSelectedImage(id)
+    setSelectedTextBlock(null)
   }, [])
 
   return (
@@ -467,20 +502,22 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         </DraggableTextBlock>
       ))}
 
-      {/* Popup Image Markers */}
-      {page.popupImages.map((popupImage, index) => (
-        <PopupImageMarker
+      {/* Popup Images */}
+      {page.popupImages.map((popupImage) => (
+        <DraggableImage
           key={popupImage.id}
+          id={popupImage.id}
+          imageUrl={popupImage.imageUrl}
+          position={popupImage.position || { x: 100, y: 100 }}
+          size={popupImage.size || { width: 150, height: 150 }}
+          selected={selectedImage === popupImage.id}
           zoom={zoom}
-          sx={{
-            // For now, position them in a simple grid
-            // In a real implementation, this would be positioned based on trigger word location
-            left: 50 + (index * 30),
-            top: 50 + (index * 30),
-          }}
-        >
-          📷
-        </PopupImageMarker>
+          onUpdate={handleImageUpdate}
+          onDelete={handleImageDelete}
+          onSelect={handleImageSelect}
+          isReadOnly={isReadOnly}
+          canvasSize={{ width: 800, height: 600 }}
+        />
       ))}
 
       {/* Context Menu */}

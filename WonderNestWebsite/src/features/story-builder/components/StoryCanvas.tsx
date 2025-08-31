@@ -200,6 +200,30 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
     onPageUpdate(updatedPage)
   }, [page, onPageUpdate])
 
+  const handleImageUpdate = useCallback((updatedImage: PopupImage) => {
+    if (!page) return
+
+    const updatedPage = {
+      ...page,
+      popupImages: page.popupImages.map(img =>
+        img.id === updatedImage.id ? updatedImage : img
+      ),
+    }
+
+    onPageUpdate(updatedPage)
+  }, [page, onPageUpdate])
+
+  const handleImageDelete = useCallback((imageId: string) => {
+    if (!page) return
+
+    const updatedPage = {
+      ...page,
+      popupImages: page.popupImages.filter(img => img.id !== imageId),
+    }
+
+    onPageUpdate(updatedPage)
+  }, [page, onPageUpdate])
+
   const handleImageSelect = useCallback((imageUrl: string) => {
     if (!page) return
 
@@ -357,6 +381,8 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
             page={page}
             onTextBlockUpdate={handleTextBlockUpdate}
             onTextBlockDelete={handleTextBlockDelete}
+            onImageUpdate={handleImageUpdate}
+            onImageDelete={handleImageDelete}
             isReadOnly={isReadOnly}
             zoom={zoom}
           />
