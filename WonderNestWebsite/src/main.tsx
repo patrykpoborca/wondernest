@@ -8,8 +8,11 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App'
 import { store } from './store'
 import { marketingTheme } from './theme/marketingTheme'
-import { loginSuccess } from './store/slices/authSlice'
+import { loginSuccess, restoreSession } from './store/slices/authSlice'
 import { UserRole, Permission } from './types/auth'
+
+// Restore session from localStorage on app start
+store.dispatch(restoreSession())
 
 // Development-only mock authentication with query parameter
 // Use by adding ?mock=true to the URL (e.g., http://localhost:3004?mock=true)

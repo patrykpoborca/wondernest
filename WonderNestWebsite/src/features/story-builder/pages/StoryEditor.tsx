@@ -23,7 +23,6 @@ import {
   Settings as SettingsIcon,
   CloudDone as SavedIcon,
   Warning as UnsavedIcon,
-  Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -106,6 +105,35 @@ export const StoryEditor: React.FC = () => {
     }
   }, [backendDraft, currentDraft, dispatch])
 
+  // Handle browser refresh/close with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        const message = 'You have unsaved changes. Are you sure you want to leave?'
+        e.preventDefault()
+        e.returnValue = message
+        return message
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Custom navigation handler with unsaved changes check
+  const handleNavigateWithCheck = useCallback((path: string) => {
+    if (hasUnsavedChanges) {
+      const confirm = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave?'
+      )
+      if (confirm) {
+        navigate(path)
+      }
+    } else {
+      navigate(path)
+    }
+  }, [hasUnsavedChanges, navigate])
+
   // Log error for debugging
   useEffect(() => {
     if (draftError) {
@@ -127,9 +155,6 @@ export const StoryEditor: React.FC = () => {
           description: currentDraft.description,
           content: currentDraft.content,
           metadata: currentDraft.metadata,
-          collaborators: currentDraft.collaborators,
-          version: currentDraft.version,
-          thumbnail: currentDraft.thumbnail,
         }
       }).unwrap()
 
@@ -175,14 +200,7 @@ export const StoryEditor: React.FC = () => {
   }
 
   const handleBack = () => {
-    if (hasUnsavedChanges) {
-      const confirm = window.confirm(
-        'You have unsaved changes. Are you sure you want to leave?'
-      )
-      if (!confirm) return
-    }
-    
-    navigate('/app/parent/story-builder')
+    handleNavigateWithCheck('/app/parent/story-builder')
   }
 
   const handlePageSelect = (pageIndex: number) => {
@@ -262,7 +280,7 @@ export const StoryEditor: React.FC = () => {
           <Typography variant="body2" color="text.secondary">
             {(draftError as any)?.data?.message || 'Story not found or you don\'t have permission to edit it.'}
           </Typography>
-          <Button variant="contained" onClick={() => navigate('/app/parent/story-builder')}>
+          <Button variant="contained" onClick={() => handleNavigateWithCheck('/app/parent/story-builder')}>
             Back to Stories
           </Button>
         </Box>
@@ -277,7 +295,7 @@ export const StoryEditor: React.FC = () => {
           <Typography variant="h6" color="text.secondary">
             Story not found
           </Typography>
-          <Button variant="contained" onClick={() => navigate('/app/parent/story-builder')}>
+          <Button variant="contained" onClick={() => handleNavigateWithCheck('/app/parent/story-builder')}>
             Back to Stories
           </Button>
         </Box>

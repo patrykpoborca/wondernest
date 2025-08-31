@@ -407,15 +407,20 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   }, [])
 
   // Image handlers
-  const handleImageUpdate = useCallback((id: string, position: { x: number; y: number }, size: { width: number; height: number }) => {
+  const handleImageUpdate = useCallback((id: string, updates: {
+    position?: { x: number; y: number }
+    size?: { width: number; height: number }
+    rotation?: number
+    flipHorizontal?: boolean
+    flipVertical?: boolean
+  }) => {
     if (!onImageUpdate) return
     
     const image = page.popupImages.find(img => img.id === id)
     if (image) {
       onImageUpdate({
         ...image,
-        position,
-        size,
+        ...updates,
       })
     }
   }, [page.popupImages, onImageUpdate])
@@ -510,6 +515,9 @@ export const PageEditor: React.FC<PageEditorProps> = ({
           imageUrl={popupImage.imageUrl}
           position={popupImage.position || { x: 100, y: 100 }}
           size={popupImage.size || { width: 150, height: 150 }}
+          rotation={popupImage.rotation || 0}
+          flipHorizontal={popupImage.flipHorizontal || false}
+          flipVertical={popupImage.flipVertical || false}
           selected={selectedImage === popupImage.id}
           zoom={zoom}
           onUpdate={handleImageUpdate}

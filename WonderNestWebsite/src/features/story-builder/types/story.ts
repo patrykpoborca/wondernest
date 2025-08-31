@@ -22,6 +22,9 @@ export interface PopupImage {
   imageUrl: string
   position: { x: number; y: number }
   size: { width: number; height: number }
+  rotation?: number // Rotation in degrees
+  flipHorizontal?: boolean
+  flipVertical?: boolean
   animation?: 'fadeIn' | 'slideIn' | 'bounce' | 'none'
 }
 

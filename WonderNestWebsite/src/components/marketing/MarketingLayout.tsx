@@ -26,6 +26,7 @@ import {
   FamilyRestroom as FamilyIcon,
 } from '@mui/icons-material'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 
 interface MarketingLayoutProps {
   children: React.ReactNode
@@ -35,6 +36,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'))
   const location = useLocation()
+  const { isAuthenticated, user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -68,6 +70,22 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen)
+  }
+
+  const getDashboardRoute = () => {
+    if (!user) return '/app/login'
+    
+    switch (user.userType) {
+      case 'parent':
+        return '/app/parent'
+      case 'admin':
+      case 'super_admin':
+        return '/app/admin'
+      case 'content_manager':
+        return '/app/content'
+      default:
+        return '/app/login'
+    }
   }
 
   return (
@@ -129,24 +147,38 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
             <Stack direction="row" spacing={1} alignItems="center">
               {!isMobile && (
                 <>
-                  <Button
-                    component={Link}
-                    to="/app/login"
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                  >
-                    Sign In
-                  </Button>
-                  <Button
-                    component={Link}
-                    to="/app/signup"
-                    color="primary"
-                    variant="contained"
-                    size="small"
-                  >
-                    Start Free Trial
-                  </Button>
+                  {isAuthenticated ? (
+                    <Button
+                      component={Link}
+                      to={getDashboardRoute()}
+                      color="primary"
+                      variant="contained"
+                      size="small"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        component={Link}
+                        to="/app/login"
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      >
+                        Sign In
+                      </Button>
+                      <Button
+                        component={Link}
+                        to="/app/signup"
+                        color="primary"
+                        variant="contained"
+                        size="small"
+                      >
+                        Start Free Trial
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
 
@@ -203,26 +235,41 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
         <Divider />
         <Box sx={{ p: 2 }}>
           <Stack spacing={2}>
-            <Button
-              component={Link}
-              to="/app/login"
-              color="primary"
-              variant="outlined"
-              fullWidth
-              onClick={handleMobileMenuToggle}
-            >
-              Sign In
-            </Button>
-            <Button
-              component={Link}
-              to="/app/signup"
-              color="primary"
-              variant="contained"
-              fullWidth
-              onClick={handleMobileMenuToggle}
-            >
-              Start Free Trial
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                component={Link}
+                to={getDashboardRoute()}
+                color="primary"
+                variant="contained"
+                fullWidth
+                onClick={handleMobileMenuToggle}
+              >
+                Go to Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button
+                  component={Link}
+                  to="/app/login"
+                  color="primary"
+                  variant="outlined"
+                  fullWidth
+                  onClick={handleMobileMenuToggle}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  to="/app/signup"
+                  color="primary"
+                  variant="contained"
+                  fullWidth
+                  onClick={handleMobileMenuToggle}
+                >
+                  Start Free Trial
+                </Button>
+              </>
+            )}
           </Stack>
         </Box>
       </Drawer>

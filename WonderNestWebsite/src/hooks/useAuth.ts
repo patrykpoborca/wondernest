@@ -1,8 +1,6 @@
-import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState, AppDispatch } from '@/store'
 import { 
-  restoreSession, 
   loginStart, 
   loginSuccess, 
   loginFailure, 
@@ -23,12 +21,7 @@ export const useAuth = () => {
   const [parentLogin] = useParentLoginMutation()
   const [logoutMutation] = useLogoutMutation()
   
-  // Restore session on hook initialization
-  useEffect(() => {
-    if (!authState.isAuthenticated && !authState.isLoading) {
-      dispatch(restoreSession())
-    }
-  }, [dispatch, authState.isAuthenticated, authState.isLoading])
+  // Session restoration is handled in main.tsx on app start
   
   const login = async (credentials: LoginCredentials, userType: 'admin' | 'parent' = 'admin') => {
     dispatch(loginStart())

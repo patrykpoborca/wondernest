@@ -242,6 +242,9 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
         triggerWord: 'click here',
         position: { x: 200, y: 200 },
         size: { width: 150, height: 150 },
+        rotation: 0,
+        flipHorizontal: false,
+        flipVertical: false,
       }
       
       const updatedPage = {
