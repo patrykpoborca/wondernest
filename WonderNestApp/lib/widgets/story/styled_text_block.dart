@@ -38,18 +38,7 @@ class StyledTextBlock extends StatelessWidget {
       textWidget = _applyEffects(textWidget, textBlock.style!.effects!);
     }
 
-    // Position the text block absolutely if position is specified
-    if (textBlock.position != null) {
-      textWidget = Positioned(
-        left: textBlock.position.x,
-        top: textBlock.position.y,
-        width: textBlock.size?.width,
-        height: textBlock.size?.height,
-        child: textWidget,
-      );
-    }
-
-    // Add tap handler if provided
+    // Add tap handler if provided (before positioning)
     if (onTap != null) {
       textWidget = GestureDetector(
         onTap: onTap,
@@ -57,10 +46,21 @@ class StyledTextBlock extends StatelessWidget {
       );
     }
 
-    // Add vocabulary tooltip if enabled and vocabulary words exist
+    // Add vocabulary tooltip if enabled and vocabulary words exist (before positioning)
     if (showVocabularyHints && textBlock.vocabularyWords.isNotEmpty) {
       textWidget = Tooltip(
         message: 'Vocabulary: ${textBlock.vocabularyWords.join(', ')}',
+        child: textWidget,
+      );
+    }
+
+    // Position the text block absolutely if position is specified (must be last)
+    if (textBlock.position != null) {
+      textWidget = Positioned(
+        left: textBlock.position.x,
+        top: textBlock.position.y,
+        width: textBlock.size?.width,
+        height: textBlock.size?.height,
         child: textWidget,
       );
     }
@@ -429,12 +429,12 @@ class ScaledStoryPageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Background image if specified
+        // Background image if specified - now covers the entire scaled area
         if (page.background != null)
           Positioned.fill(
             child: Image.network(
               page.background!,
-              fit: BoxFit.cover,
+              fit: BoxFit.cover, // Cover the entire scaled container
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey[200],
@@ -446,7 +446,7 @@ class ScaledStoryPageWidget extends StatelessWidget {
             ),
           ),
 
-        // Text blocks with scaling applied
+        // Text blocks with scaling applied to positions and sizes
         ...page.textBlocks.map((textBlock) {
           return ScaledTextBlock(
             textBlock: textBlock,
@@ -462,13 +462,13 @@ class ScaledStoryPageWidget extends StatelessWidget {
           );
         }),
 
-        // Popup images with scaling applied
+        // Popup images with scaling applied to positions and sizes
         ...page.popupImages.map((image) {
           return Positioned(
-            left: image.position.x,
-            top: image.position.y,
-            width: image.size.width,
-            height: image.size.height,
+            left: image.position.x * scaleFactor,
+            top: image.position.y * scaleFactor,
+            width: image.size.width * scaleFactor,
+            height: image.size.height * scaleFactor,
             child: Transform.rotate(
               angle: (image.rotation ?? 0) * 3.14159 / 180,
               child: Transform(
@@ -535,18 +535,7 @@ class ScaledTextBlock extends StatelessWidget {
       textWidget = _applyEffects(textWidget, textBlock.style!.effects!);
     }
 
-    // Position the text block absolutely with scaling applied to positions and sizes
-    if (textBlock.position != null) {
-      textWidget = Positioned(
-        left: textBlock.position.x,
-        top: textBlock.position.y,
-        width: textBlock.size?.width,
-        height: textBlock.size?.height,
-        child: textWidget,
-      );
-    }
-
-    // Add tap handler if provided
+    // Add tap handler if provided (before positioning)
     if (onTap != null) {
       textWidget = GestureDetector(
         onTap: onTap,
@@ -554,10 +543,21 @@ class ScaledTextBlock extends StatelessWidget {
       );
     }
 
-    // Add vocabulary tooltip if enabled and vocabulary words exist
+    // Add vocabulary tooltip if enabled and vocabulary words exist (before positioning)
     if (showVocabularyHints && textBlock.vocabularyWords.isNotEmpty) {
       textWidget = Tooltip(
         message: 'Vocabulary: ${textBlock.vocabularyWords.join(', ')}',
+        child: textWidget,
+      );
+    }
+
+    // Position the text block absolutely with scaling applied to positions and sizes (must be last)
+    if (textBlock.position != null) {
+      textWidget = Positioned(
+        left: textBlock.position.x * scaleFactor,
+        top: textBlock.position.y * scaleFactor,
+        width: textBlock.size?.width != null ? textBlock.size!.width * scaleFactor : null,
+        height: textBlock.size?.height != null ? textBlock.size!.height * scaleFactor : null,
         child: textWidget,
       );
     }
@@ -573,17 +573,17 @@ class ScaledTextBlock extends StatelessWidget {
       color: textConfig?.color != null 
           ? _parseColor(textConfig!.color!) 
           : Colors.black,
-      fontSize: (textConfig?.fontSize ?? 16.0),  // Font size already handled by Transform.scale
+      fontSize: (textConfig?.fontSize ?? 16.0) * scaleFactor,  // Scale font size appropriately
       fontWeight: textConfig?.fontWeight != null 
           ? _parseFontWeight(textConfig!.fontWeight!) 
           : FontWeight.normal,
       fontFamily: textConfig?.fontFamily,
       height: textConfig?.lineHeight,
-      letterSpacing: textConfig?.letterSpacing,
+      letterSpacing: textConfig?.letterSpacing != null ? textConfig!.letterSpacing! * scaleFactor : null,
       decoration: textConfig?.textDecoration != null 
           ? _parseTextDecoration(textConfig!.textDecoration!) 
           : TextDecoration.none,
-      wordSpacing: textConfig?.wordSpacing,
+      wordSpacing: textConfig?.wordSpacing != null ? textConfig!.wordSpacing! * scaleFactor : null,
     );
 
     // Apply text transform if specified

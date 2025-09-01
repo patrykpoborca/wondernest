@@ -141,18 +141,6 @@ class _EnhancedStoryReaderScreenState
     _transformationController.value = Matrix4.identity();
   }
   
-  /// Calculate scale factor to fit story content to screen
-  double _calculateScaleFactor(BoxConstraints constraints) {
-    final screenWidth = constraints.maxWidth;
-    final screenHeight = constraints.maxHeight;
-    
-    final scaleX = screenWidth / _defaultStoryWidth;
-    final scaleY = screenHeight / _defaultStoryHeight;
-    
-    // Use the larger scale to fill the screen completely (like BoxFit.cover)
-    // This ensures no white space, content may be cropped but fills edge-to-edge
-    return scaleX > scaleY ? scaleX : scaleY;
-  }
 
   void _completeStory() {
     Timber.i('Story completed: ${widget.story.title}');
@@ -269,8 +257,6 @@ class _EnhancedStoryReaderScreenState
   Widget _buildStoryContent({required bool isFullscreen}) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scaleFactor = _calculateScaleFactor(constraints);
-        
         return PageView.builder(
           controller: _pageController,
           onPageChanged: _handlePageChange,
@@ -278,16 +264,45 @@ class _EnhancedStoryReaderScreenState
           itemBuilder: (context, index) {
             final page = widget.story.content.pages[index];
             
+            // Calculate cover scale to fill screen edge-to-edge
+            final scaleX = constraints.maxWidth / _defaultStoryWidth;
+            final scaleY = constraints.maxHeight / _defaultStoryHeight;
+            final coverScale = scaleX > scaleY ? scaleX : scaleY;
+            
+            // Calculate the actual size of the content at cover scale
+            final scaledContentWidth = _defaultStoryWidth * coverScale;
+            final scaledContentHeight = _defaultStoryHeight * coverScale;
+            
+            // Calculate how much content extends beyond screen in each direction
+            final overflowX = (scaledContentWidth - constraints.maxWidth) / 2;
+            final overflowY = (scaledContentHeight - constraints.maxHeight) / 2;
+            
+            // Boundary margins should allow panning to see all the overflowing content
+            // We need at least the overflow amount plus a small buffer for smooth panning
+            final horizontalMargin = overflowX > 0 ? overflowX + 10.0 : 10.0;
+            final verticalMargin = overflowY > 0 ? overflowY + 10.0 : 10.0;
+            
+            Timber.d('Story viewer - Screen: ${constraints.maxWidth}x${constraints.maxHeight}, '
+                    'Story: $_defaultStoryWidth x $_defaultStoryHeight, '
+                    'Cover scale: $coverScale, '
+                    'Scaled content: ${scaledContentWidth}x$scaledContentHeight, '
+                    'Overflow: ${overflowX}x$overflowY, '
+                    'Margins: ${horizontalMargin}x$verticalMargin');
+            
             return InteractiveViewer(
               transformationController: _transformationController,
-              boundaryMargin: const EdgeInsets.all(20.0),
-              minScale: 0.3, // Allow zooming out to see more of the story
+              // Boundary margins allow panning to see all content that would be cropped
+              boundaryMargin: EdgeInsets.symmetric(
+                horizontal: horizontalMargin,
+                vertical: verticalMargin,
+              ),
+              minScale: 0.5, // Allow zooming out to see more of the story
               maxScale: 3.0, // Child-friendly max zoom - not too extreme
-              constrained: false,
+              constrained: false, // Allow content to be larger than viewport
               panEnabled: true,
               scaleEnabled: true,
-              // Child-friendly interaction behavior
-              clipBehavior: Clip.hardEdge,
+              // Allow content to be visible outside viewport when panning
+              clipBehavior: Clip.none,
               onInteractionStart: (details) {
                 // Provide haptic feedback for touch interaction
                 HapticFeedback.lightImpact();
@@ -299,23 +314,14 @@ class _EnhancedStoryReaderScreenState
                   HapticFeedback.mediumImpact();
                 },
                 child: Container(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  child: Center(
-                    child: Transform.scale(
-                      scale: scaleFactor,
-                      child: SizedBox(
-                        width: _defaultStoryWidth,
-                        height: _defaultStoryHeight,
-                        child: ScaledStoryPageWidget(
-                          page: page,
-                          childAge: widget.childAge,
-                          onVocabularyTap: _handleVocabularyTap,
-                          showVocabularyHints: _showVocabularyHints,
-                          scaleFactor: scaleFactor,
-                        ),
-                      ),
-                    ),
+                  width: scaledContentWidth,
+                  height: scaledContentHeight,
+                  child: ScaledStoryPageWidget(
+                    page: page,
+                    childAge: widget.childAge,
+                    onVocabularyTap: _handleVocabularyTap,
+                    showVocabularyHints: _showVocabularyHints,
+                    scaleFactor: coverScale,
                   ),
                 ),
               ),
