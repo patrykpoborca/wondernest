@@ -1463,7 +1463,7 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
       }
       
       // If save failed to sync, show additional info
-      if ((_savedProjectsService?.pendingSyncCount ?? 0) > 0) {
+      if ((_savedProjectsService.pendingSyncCount) > 0) {
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1623,8 +1623,8 @@ class _StickerBookGameState extends ConsumerState<StickerBookGame>
   
   /// Build sync status indicator
   Widget _buildSyncStatusIndicator() {
-    final isSyncing = _savedProjectsService?.isSyncing ?? false;
-    final pendingCount = _savedProjectsService?.pendingSyncCount ?? 0;
+    final isSyncing = _savedProjectsService.isSyncing;
+    final pendingCount = _savedProjectsService.pendingSyncCount;
     
     if (!isSyncing && pendingCount == 0) {
       // All synced - show subtle check icon

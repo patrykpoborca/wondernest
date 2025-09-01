@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:wondernest/core/services/api_service.dart';
-import 'package:wondernest/models/uploaded_file.dart';
-import 'package:timber/timber.dart';
+import 'package:wonder_nest/core/services/api_service.dart';
+import 'package:wonder_nest/models/uploaded_file.dart';
+import 'package:wonder_nest/core/services/timber_wrapper.dart';
 
 /// Service for handling file uploads
 class FileUploadService {
@@ -22,13 +21,13 @@ class FileUploadService {
       if (source == ImageSource.camera) {
         final status = await Permission.camera.request();
         if (!status.isGranted) {
-          Timber.w('Camera permission denied');
+          Timber.i('Camera permission denied');
           return null;
         }
       } else {
         final status = await Permission.photos.request();
         if (!status.isGranted) {
-          Timber.w('Photo library permission denied');
+          Timber.i('Photo library permission denied');
           return null;
         }
       }

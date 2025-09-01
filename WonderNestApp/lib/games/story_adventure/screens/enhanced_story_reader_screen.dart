@@ -34,9 +34,9 @@ class _EnhancedStoryReaderScreenState
   final Set<String> _encounteredVocabulary = {};
   DateTime? _startTime;
   
-  // Default story dimensions (assumed from web builder)
-  static const double _defaultStoryWidth = 1200.0;
-  static const double _defaultStoryHeight = 800.0;
+  // Default story dimensions (from web builder canvas)
+  static const double _defaultStoryWidth = 800.0;
+  static const double _defaultStoryHeight = 600.0;
 
   @override
   void initState() {
@@ -187,9 +187,6 @@ class _EnhancedStoryReaderScreenState
   Widget build(BuildContext context) {
     return OrientationBuilder(
       builder: (context, orientation) {
-        // Track orientation for potential future features
-        final isLandscape = orientation == Orientation.landscape;
-        
         return Scaffold(
           backgroundColor: Colors.black,
           body: _isFullscreen ? _buildFullscreenView() : _buildNormalView(),
@@ -285,7 +282,7 @@ class _EnhancedStoryReaderScreenState
             final minScale = 0.8; // Allow slight zoom out from initial view
             
             // Calculate boundary margins that allow full panning of the zoomed content
-            // We need to ensure the user can pan to see all edges of the 1200x800 canvas
+            // We need to ensure the user can pan to see all edges of the 800x600 canvas
             final maxContentWidth = _defaultStoryWidth * initialScale * maxScale;
             final maxContentHeight = _defaultStoryHeight * initialScale * maxScale;
             
@@ -314,7 +311,7 @@ class _EnhancedStoryReaderScreenState
                 constrained: false, // Allow content to extend beyond screen bounds
                 panEnabled: true,
                 scaleEnabled: true,
-                clipBehavior: Clip.hardEdge,
+                clipBehavior: Clip.none, // Don't clip content to prevent text clipping
                 onInteractionStart: (details) {
                   HapticFeedback.lightImpact();
                 },
@@ -379,11 +376,11 @@ class _EnhancedStoryReaderScreenState
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(isLarge ? 28 : 20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -430,11 +427,11 @@ class _EnhancedStoryReaderScreenState
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -479,7 +476,7 @@ class _EnhancedStoryReaderScreenState
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.6),
+              Colors.black.withValues(alpha: 0.6),
               Colors.transparent,
             ],
           ),
@@ -522,7 +519,7 @@ class _EnhancedStoryReaderScreenState
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -560,7 +557,7 @@ class _EnhancedStoryReaderScreenState
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [
-              Colors.black.withOpacity(0.6),
+              Colors.black.withValues(alpha: 0.6),
               Colors.transparent,
             ],
           ),
@@ -581,7 +578,7 @@ class _EnhancedStoryReaderScreenState
                 height: 4,
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: FractionallySizedBox(

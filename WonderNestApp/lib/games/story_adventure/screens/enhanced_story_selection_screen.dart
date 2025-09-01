@@ -239,11 +239,11 @@ class _EnhancedStorySelectionScreenState
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: isDraft
-            ? Border.all(color: Colors.orange.withOpacity(0.3), width: 2)
+            ? Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 2)
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -264,7 +264,7 @@ class _EnhancedStorySelectionScreenState
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: AppColors.primaryBlue.withOpacity(0.1),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
                   ),
                   child: story.thumbnail != null
                       ? ClipRRect(

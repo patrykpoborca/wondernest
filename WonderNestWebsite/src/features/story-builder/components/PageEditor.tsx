@@ -478,6 +478,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
           viewMode="desktop"
           difficulty="medium"
           childAge={7}
+          zoom={zoom}
+          canvasSize={{ width: 800, height: 600 }}
         />
       ))}
 

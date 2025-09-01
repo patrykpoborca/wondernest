@@ -259,10 +259,10 @@ class _ImageFirstStoryViewerState extends ConsumerState<ImageFirstStoryViewer>
                 vertical: isSmallScreen ? 8 : 12,
               ),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -349,7 +349,7 @@ class _ImageFirstStoryViewerState extends ConsumerState<ImageFirstStoryViewer>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -397,7 +397,7 @@ class _ImageFirstStoryViewerState extends ConsumerState<ImageFirstStoryViewer>
             decoration: BoxDecoration(
               color: index == widget.currentPage
                   ? Colors.white
-                  : Colors.white.withOpacity(0.4),
+                  : Colors.white.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -422,12 +422,12 @@ class _ImageFirstStoryViewerState extends ConsumerState<ImageFirstStoryViewer>
                   margin: const EdgeInsets.only(left: 10),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.arrow_back_ios,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     size: 16,
                   ),
                 ),
@@ -453,12 +453,12 @@ class _ImageFirstStoryViewerState extends ConsumerState<ImageFirstStoryViewer>
                   margin: const EdgeInsets.only(right: 10),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.arrow_forward_ios,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     size: 16,
                   ),
                 ),
@@ -537,11 +537,11 @@ class _SpeechBubble extends StatelessWidget {
       ),
       padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.95),
+        color: color.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -596,8 +596,6 @@ class StoryBackgroundPainter extends CustomPainter {
   
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-    
     // Draw decorative clouds
     _drawClouds(canvas, size);
     
@@ -609,7 +607,7 @@ class StoryBackgroundPainter extends CustomPainter {
   
   void _drawClouds(Canvas canvas, Size size) {
     final cloudPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
+      ..color = Colors.white.withValues(alpha: 0.2)
       ..style = PaintingStyle.fill;
     
     for (int i = 0; i < 3; i++) {
@@ -624,7 +622,7 @@ class StoryBackgroundPainter extends CustomPainter {
   
   void _drawStars(Canvas canvas, Size size) {
     final starPaint = Paint()
-      ..color = Colors.yellow.withOpacity(0.6)
+      ..color = Colors.yellow.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
     
     final random = math.Random(pageNumber);

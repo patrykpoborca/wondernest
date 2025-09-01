@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math' as math;
 import '../../../core/services/timber_wrapper.dart';
 import '../../../models/child_profile.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/story_models.dart';
 import '../story_adventure_plugin.dart';
 import '../widgets/image_first_story_viewer.dart';
-import '../widgets/story_interaction_settings.dart';
 
 /// Story reader screen - displays story content with interactive features
 class StoryReaderScreen extends ConsumerStatefulWidget {
@@ -136,7 +134,7 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen>
         color: AppColors.primaryBlue,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -315,8 +313,8 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.primaryBlue.withOpacity(0.1),
-                      AppColors.primaryBlue.withOpacity(0.05),
+                      AppColors.primaryBlue.withValues(alpha: 0.1),
+                      AppColors.primaryBlue.withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -325,7 +323,7 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen>
                   child: Icon(
                     Icons.auto_stories,
                     size: 80,
-                    color: AppColors.primaryBlue.withOpacity(0.3),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -405,7 +403,7 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),

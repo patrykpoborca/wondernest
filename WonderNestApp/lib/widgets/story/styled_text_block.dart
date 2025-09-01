@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:wonder_nest/models/story/enhanced_story_models.dart' as story_models;
+import 'package:wonder_nest/core/services/timber_wrapper.dart';
 
 /// Widget that renders a styled text block from the story builder
 class StyledTextBlock extends StatelessWidget {
@@ -125,6 +126,8 @@ class StyledTextBlock extends StatelessWidget {
       displayText,
       style: textStyle,
       textAlign: textAlign,
+      overflow: TextOverflow.visible, // Allow text to be visible even if it extends beyond bounds
+      softWrap: true, // Allow text to wrap to multiple lines
     );
   }
 
@@ -428,6 +431,7 @@ class ScaledStoryPageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      clipBehavior: Clip.none, // Allow text to extend beyond stack bounds to prevent clipping
       children: [
         // Background image if specified - now covers the entire scaled area
         if (page.background != null)
@@ -553,12 +557,38 @@ class ScaledTextBlock extends StatelessWidget {
 
     // Position the text block absolutely with scaling applied to positions and sizes (must be last)
     if (textBlock.position != null) {
+      final scaledX = textBlock.position.x * scaleFactor;
+      final scaledY = textBlock.position.y * scaleFactor;
+      final scaledWidth = textBlock.size?.width != null ? textBlock.size!.width * scaleFactor : null;
+      
+      // Log text block positioning for debugging
+      Timber.d('ScaledTextBlock positioning: id=${textBlock.id}, '
+          'original=(${textBlock.position.x}, ${textBlock.position.y}, ${textBlock.size?.width}x${textBlock.size?.height}), '
+          'scaled=($scaledX, $scaledY, ${scaledWidth}x?), scaleFactor=$scaleFactor');
+      
+      // Wrap in a LayoutBuilder to be responsive to available space
       textWidget = Positioned(
-        left: textBlock.position.x * scaleFactor,
-        top: textBlock.position.y * scaleFactor,
-        width: textBlock.size?.width != null ? textBlock.size!.width * scaleFactor : null,
-        height: textBlock.size?.height != null ? textBlock.size!.height * scaleFactor : null,
-        child: textWidget,
+        left: scaledX,
+        top: scaledY,
+        width: scaledWidth,
+        // Remove fixed height constraint to prevent text clipping
+        // Let text expand naturally based on content
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Wrap text in a Container with flexible sizing
+            return Container(
+              constraints: BoxConstraints(
+                // Set minimum height to 0 to allow natural text sizing
+                minHeight: 0,
+                // Set maximum width if specified, otherwise let it be flexible
+                maxWidth: constraints.maxWidth.isFinite 
+                    ? constraints.maxWidth 
+                    : double.infinity,
+              ),
+              child: textWidget,
+            );
+          },
+        ),
       );
     }
 
@@ -622,6 +652,8 @@ class ScaledTextBlock extends StatelessWidget {
       displayText,
       style: textStyle,
       textAlign: textAlign,
+      overflow: TextOverflow.visible, // Allow text to be visible even if it extends beyond bounds
+      softWrap: true, // Allow text to wrap to multiple lines
     );
   }
 

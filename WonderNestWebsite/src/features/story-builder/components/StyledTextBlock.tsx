@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Box, Typography, Tooltip, ClickAwayListener } from '@mui/material'
 import { styled } from '@mui/material/styles'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -16,13 +16,15 @@ interface StyledTextBlockProps {
   viewMode?: 'desktop' | 'tablet' | 'mobile'
   difficulty?: 'easy' | 'medium' | 'hard' | 'advanced'
   childAge?: number
+  zoom?: number
+  canvasSize?: { width: number; height: number }
 }
 
 const TextContainer = styled(Box, {
-  shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isEditing',
-})<{ isSelected?: boolean; isEditing?: boolean }>(({ theme, isSelected, isEditing }) => ({
+  shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isEditing' && prop !== 'isDragging',
+})<{ isSelected?: boolean; isEditing?: boolean; isDragging?: boolean }>(({ theme, isSelected, isEditing, isDragging }) => ({
   position: 'absolute',
-  cursor: isEditing ? 'move' : 'pointer',
+  cursor: isDragging ? 'grabbing' : (isEditing ? 'grab' : 'pointer'),
   userSelect: isEditing ? 'none' : 'text',
   // Only show subtle outline when selected and editing
   outline: isSelected && isEditing ? `1px solid ${theme.palette.primary.main}40` : 'none',
@@ -67,11 +69,18 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
   viewMode = 'desktop',
   difficulty = 'medium',
   childAge = 6,
+  zoom = 1,
+  canvasSize = { width: 800, height: 600 },
 }) => {
   const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [showTooltip, setShowTooltip] = useState(false)
   const [editableContent, setEditableContent] = useState('')
+  const dragRef = useRef<{
+    startX: number
+    startY: number
+    startPosX: number
+    startPosY: number
+  } | null>(null)
 
   // Convert old format to new format if needed
   const normalizedVariants = useMemo(() => {
@@ -219,40 +228,49 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
     minHeight: 40,
   }), [styleCSS, animationCSS, textBlock.position, textBlock.size])
 
-  // Handle drag start
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Handle drag start and move
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isEditing || !onPositionChange) return
     
     e.preventDefault()
+    e.stopPropagation()
+    
+    // Store initial mouse position and element position
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startPosX: textBlock.position.x,
+      startPosY: textBlock.position.y,
+    }
     setIsDragging(true)
-    setDragStart({
-      x: e.clientX - textBlock.position.x,
-      y: e.clientY - textBlock.position.y,
-    })
-  }
 
-  // Handle drag move
-  useEffect(() => {
-    if (!isDragging) return
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!dragRef.current) return
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const newX = Math.max(0, e.clientX - dragStart.x)
-      const newY = Math.max(0, e.clientY - dragStart.y)
-      onPositionChange?.({ x: newX, y: newY })
+      // Calculate delta from initial mouse position
+      const deltaX = (moveEvent.clientX - dragRef.current.startX) / zoom
+      const deltaY = (moveEvent.clientY - dragRef.current.startY) / zoom
+
+      // Calculate new position from initial position + delta
+      const textWidth = textBlock.size?.width || 100
+      const textHeight = textBlock.size?.height || 40
+      
+      const newX = Math.max(0, Math.min(canvasSize.width - textWidth, dragRef.current.startPosX + deltaX))
+      const newY = Math.max(0, Math.min(canvasSize.height - textHeight, dragRef.current.startPosY + deltaY))
+      
+      onPositionChange({ x: newX, y: newY })
     }
 
     const handleMouseUp = () => {
       setIsDragging(false)
+      dragRef.current = null
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
     }
 
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging, dragStart, onPositionChange])
+  }, [isEditing, onPositionChange, textBlock.position, textBlock.size, zoom, canvasSize])
 
   // Handle content editing
   const handleContentEdit = (e: React.FocusEvent<HTMLDivElement>) => {
@@ -311,6 +329,7 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
     <TextContainer
       isSelected={isSelected}
       isEditing={isEditing}
+      isDragging={isDragging}
       style={combinedStyles}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
