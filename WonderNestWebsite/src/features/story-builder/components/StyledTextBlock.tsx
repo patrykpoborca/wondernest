@@ -24,16 +24,18 @@ const TextContainer = styled(Box, {
   position: 'absolute',
   cursor: isEditing ? 'move' : 'pointer',
   userSelect: isEditing ? 'none' : 'text',
-  outline: isSelected ? `2px solid ${theme.palette.primary.main}` : 'none',
+  // Only show subtle outline when selected and editing
+  outline: isSelected && isEditing ? `1px solid ${theme.palette.primary.main}40` : 'none',
   outlineOffset: 2,
   transition: 'all 0.2s ease',
   
   '&:hover': {
-    outline: isEditing ? `2px dashed ${theme.palette.primary.light}` : 'none',
+    // Only show hover effect when editing
+    outline: isEditing ? `1px dashed ${theme.palette.primary.light}40` : 'none',
   },
   
-  // Add resize handles when selected
-  ...(isSelected && {
+  // Add subtle resize handle only when selected and editing
+  ...(isSelected && isEditing && {
     '&::after': {
       content: '""',
       position: 'absolute',
@@ -44,6 +46,7 @@ const TextContainer = styled(Box, {
       backgroundColor: theme.palette.primary.main,
       borderRadius: '50%',
       cursor: 'se-resize',
+      opacity: 0.5,
     },
   }),
 }))
@@ -85,52 +88,60 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
     const oldVariants = textBlock.variants as any
     const variants: TextVariant[] = []
 
-    if (oldVariants.easy) {
+    // Create primary variant from easy or medium content
+    const primaryContent = oldVariants?.easy || oldVariants?.medium || ''
+    if (primaryContent) {
       variants.push({
-        id: 'variant-easy',
-        content: oldVariants.easy,
+        id: 'variant-primary',
+        content: primaryContent,
+        type: 'primary',
         metadata: {
-          difficulty: 'easy',
-          ageRange: [3, 6],
+          targetAge: 5,
+          ageRange: [3, 7],
+          vocabularyDifficulty: 'simple',
           vocabularyLevel: 3,
-          readingTime: Math.ceil(oldVariants.easy.split(' ').filter(Boolean).length / 200 * 60),
-          wordCount: oldVariants.easy.split(' ').filter(Boolean).length,
-          characterCount: oldVariants.easy.length,
+          readingTime: Math.ceil((primaryContent || '').split(' ').filter(Boolean).length / 200 * 60),
+          wordCount: (primaryContent || '').split(' ').filter(Boolean).length,
+          characterCount: (primaryContent || '').length,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        isDefault: true,
       })
     }
 
-    if (oldVariants.medium) {
+    // Create alternate variants
+    if (oldVariants?.medium && oldVariants.medium !== primaryContent) {
       variants.push({
-        id: 'variant-medium',
+        id: 'variant-alternate-1',
         content: oldVariants.medium,
+        type: 'alternate',
         metadata: {
-          difficulty: 'medium',
-          ageRange: [5, 8],
+          targetAge: 7,
+          ageRange: [5, 9],
+          vocabularyDifficulty: 'moderate',
           vocabularyLevel: 5,
-          readingTime: Math.ceil(oldVariants.medium.split(' ').filter(Boolean).length / 200 * 60),
-          wordCount: oldVariants.medium.split(' ').filter(Boolean).length,
-          characterCount: oldVariants.medium.length,
+          readingTime: Math.ceil((oldVariants.medium || '').split(' ').filter(Boolean).length / 200 * 60),
+          wordCount: (oldVariants.medium || '').split(' ').filter(Boolean).length,
+          characterCount: (oldVariants.medium || '').length,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
     }
 
-    if (oldVariants.hard) {
+    if (oldVariants?.hard) {
       variants.push({
-        id: 'variant-hard',
+        id: 'variant-alternate-2',
         content: oldVariants.hard,
+        type: 'alternate',
         metadata: {
-          difficulty: 'hard',
-          ageRange: [7, 10],
+          targetAge: 9,
+          ageRange: [7, 12],
+          vocabularyDifficulty: 'advanced',
           vocabularyLevel: 7,
-          readingTime: Math.ceil(oldVariants.hard.split(' ').filter(Boolean).length / 200 * 60),
-          wordCount: oldVariants.hard.split(' ').filter(Boolean).length,
-          characterCount: oldVariants.hard.length,
+          readingTime: Math.ceil((oldVariants.hard || '').split(' ').filter(Boolean).length / 200 * 60),
+          wordCount: (oldVariants.hard || '').split(' ').filter(Boolean).length,
+          characterCount: (oldVariants.hard || '').length,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -140,39 +151,49 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
     return variants
   }, [textBlock.variants])
 
-  // Select the appropriate variant based on difficulty and age
+  // Select the appropriate variant
   const selectedVariant = useMemo(() => {
     if (!normalizedVariants || normalizedVariants.length === 0) {
       return null
     }
 
-    // If there's an active variant, use it
+    // During editing, always show the primary variant for consistent preview
+    if (isEditing) {
+      const primaryVariant = normalizedVariants.find(v => v.type === 'primary')
+      return primaryVariant || normalizedVariants[0]
+    }
+
+    // If there's an active variant set, use it
     if (textBlock.activeVariantId) {
       return normalizedVariants.find(v => v.id === textBlock.activeVariantId) || normalizedVariants[0]
     }
 
-    // Otherwise, select based on difficulty and age
-    const matchingVariants = normalizedVariants.filter(v => {
-      const metadata = v.metadata
-      const difficultyMatch = metadata.difficulty === difficulty
-      const ageMatch = childAge >= metadata.ageRange[0] && childAge <= metadata.ageRange[1]
-      return difficultyMatch && ageMatch
-    })
+    // In view mode, select based on child age if provided
+    if (childAge) {
+      // Find the best matching variant based on target age
+      const bestMatch = normalizedVariants.reduce((best, current) => {
+        const currentAgeDiff = Math.abs(current.metadata.targetAge - childAge)
+        const bestAgeDiff = best ? Math.abs(best.metadata.targetAge - childAge) : Infinity
+        
+        // Also check if childAge is within the age range
+        const currentInRange = childAge >= current.metadata.ageRange[0] && childAge <= current.metadata.ageRange[1]
+        const bestInRange = best ? (childAge >= best.metadata.ageRange[0] && childAge <= best.metadata.ageRange[1]) : false
+        
+        // Prefer variants where child age is in range, then closest target age
+        if (currentInRange && !bestInRange) return current
+        if (!currentInRange && bestInRange) return best
+        if (currentAgeDiff < bestAgeDiff) return current
+        
+        return best
+      }, null as TextVariant | null)
 
-    // If we have matching variants, pick the first one
-    if (matchingVariants.length > 0) {
-      return matchingVariants[0]
+      if (bestMatch) return bestMatch
     }
 
-    // Otherwise, try to find a variant that matches just the difficulty
-    const difficultyVariant = normalizedVariants.find(v => v.metadata.difficulty === difficulty)
-    if (difficultyVariant) {
-      return difficultyVariant
-    }
-
-    // Fall back to the first variant or the default one
-    return normalizedVariants.find(v => v.isDefault) || normalizedVariants[0]
-  }, [normalizedVariants, textBlock.activeVariantId, difficulty, childAge])
+    // Default to primary variant
+    const primaryVariant = normalizedVariants.find(v => v.type === 'primary')
+    return primaryVariant || normalizedVariants[0]
+  }, [normalizedVariants, textBlock.activeVariantId, childAge, isEditing])
 
   // Generate CSS styles
   const styleCSS = useMemo(() => {
@@ -357,58 +378,7 @@ export const StyledTextBlock: React.FC<StyledTextBlockProps> = ({
             {textContent}
           </Typography>
 
-          {/* Variant indicator (only in edit mode) */}
-          {isEditing && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -20,
-                right: 0,
-                fontSize: 11,
-                backgroundColor: 'primary.main',
-                color: 'white',
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                opacity: 0.8,
-              }}
-            >
-              {selectedVariant.metadata.difficulty} | Age {selectedVariant.metadata.ageRange[0]}-{selectedVariant.metadata.ageRange[1]}
-            </Box>
-          )}
-
-          {/* Interaction indicators */}
-          {textBlock.interactions && textBlock.interactions.length > 0 && (
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -20,
-                left: 0,
-                display: 'flex',
-                gap: 0.5,
-              }}
-            >
-              {textBlock.interactions.map((interaction, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    backgroundColor: 'secondary.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 10,
-                    color: 'white',
-                  }}
-                  title={`${interaction.type}: ${interaction.action}`}
-                >
-                  {index + 1}
-                </Box>
-              ))}
-            </Box>
-          )}
+          {/* Removed variant indicator and interaction indicators - these should only show in the side panel */}
         </AnimatedText>
       </AnimatePresence>
     </TextContainer>

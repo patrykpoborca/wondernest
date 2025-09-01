@@ -27,6 +27,7 @@ import {
   FormLabel,
   ToggleButtonGroup,
   ToggleButton,
+  Divider,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -67,16 +68,27 @@ const VariantCard = styled(Paper)(({ theme }) => ({
   },
 }))
 
-const DifficultyChip = ({ difficulty }: { difficulty: string }) => {
+const VariantTypeChip = ({ type }: { type: 'primary' | 'alternate' }) => {
+  return (
+    <Chip 
+      label={type} 
+      size="small" 
+      color={type === 'primary' ? 'primary' : 'secondary'}
+      variant={type === 'primary' ? 'filled' : 'outlined'}
+    />
+  )
+}
+
+const VocabularyChip = ({ difficulty }: { difficulty: string }) => {
   const getColor = () => {
     switch (difficulty) {
-      case 'easy':
+      case 'simple':
         return 'success'
-      case 'medium':
+      case 'moderate':
         return 'warning'
-      case 'hard':
-        return 'error'
       case 'advanced':
+        return 'error'
+      case 'complex':
         return 'secondary'
       default:
         return 'default'
@@ -105,12 +117,18 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
       return
     }
 
+    // Determine if this should be primary or alternate
+    const hasPrimary = variants.some(v => v.type === 'primary')
+    const variantType = hasPrimary ? 'alternate' : 'primary'
+
     const newVariant: TextVariant = {
       id: `variant-${Date.now()}`,
       content: '',
+      type: variantType,
       metadata: {
-        difficulty: 'medium',
-        ageRange: [5, 8],
+        targetAge: 6,
+        ageRange: [4, 8],
+        vocabularyDifficulty: 'moderate',
         vocabularyLevel: 5,
         readingTime: 0,
         wordCount: 0,
@@ -118,7 +136,6 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isDefault: variants.length === 0,
     }
 
     onVariantsChange([...variants, newVariant])
@@ -203,17 +220,23 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
     
     // Apply filter
     if (filterDifficulty !== 'all') {
-      filtered = filtered.filter((v) => v.metadata.difficulty === filterDifficulty)
+      if (filterDifficulty === 'primary') {
+        filtered = filtered.filter((v) => v.type === 'primary')
+      } else if (filterDifficulty === 'alternate') {
+        filtered = filtered.filter((v) => v.type === 'alternate')
+      } else {
+        filtered = filtered.filter((v) => v.metadata.vocabularyDifficulty === filterDifficulty)
+      }
     }
     
     // Apply sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'difficulty':
-          const diffOrder = { easy: 0, medium: 1, hard: 2, advanced: 3 }
-          return (diffOrder[a.metadata.difficulty] || 0) - (diffOrder[b.metadata.difficulty] || 0)
+          const diffOrder = { simple: 0, moderate: 1, advanced: 2, complex: 3 }
+          return (diffOrder[a.metadata.vocabularyDifficulty] || 0) - (diffOrder[b.metadata.vocabularyDifficulty] || 0)
         case 'age':
-          return a.metadata.ageRange[0] - b.metadata.ageRange[0]
+          return a.metadata.targetAge - b.metadata.targetAge
         case 'vocabulary':
           return a.metadata.vocabularyLevel - b.metadata.vocabularyLevel
         default:
@@ -267,11 +290,14 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
               onChange={(e) => setFilterDifficulty(e.target.value)}
               label="Filter"
             >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="easy">Easy</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="hard">Hard</MenuItem>
-              <MenuItem value="advanced">Advanced</MenuItem>
+              <MenuItem value="all">All Variants</MenuItem>
+              <MenuItem value="primary">Primary Only</MenuItem>
+              <MenuItem value="alternate">Alternates Only</MenuItem>
+              <Divider />
+              <MenuItem value="simple">Simple Vocabulary</MenuItem>
+              <MenuItem value="moderate">Moderate Vocabulary</MenuItem>
+              <MenuItem value="advanced">Advanced Vocabulary</MenuItem>
+              <MenuItem value="complex">Complex Vocabulary</MenuItem>
             </Select>
           </FormControl>
 
@@ -303,10 +329,8 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                 {/* Header */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <DifficultyChip difficulty={variant.metadata.difficulty} />
-                    {variant.isDefault && (
-                      <Chip label="Default" size="small" color="primary" variant="outlined" />
-                    )}
+                    <VariantTypeChip type={variant.type} />
+                    <VocabularyChip difficulty={variant.metadata.vocabularyDifficulty} />
                     {activeVariantId === variant.id && (
                       <Chip label="Active" size="small" color="primary" />
                     )}
@@ -365,13 +389,23 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                 </Typography>
 
                 {/* Metadata */}
-                <Stack direction="row" spacing={2}>
+                <Stack direction="row" spacing={2} flexWrap="wrap">
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <EducationIcon fontSize="small" color="action" />
                     <Typography variant="caption" color="text.secondary">
-                      Age {variant.metadata.ageRange[0]}-{variant.metadata.ageRange[1]}
+                      Age {variant.metadata.targetAge} (Range: {variant.metadata.ageRange[0]}-{variant.metadata.ageRange[1]})
                     </Typography>
                   </Stack>
+                  <Chip 
+                    size="small" 
+                    label={variant.metadata.vocabularyDifficulty}
+                    color={
+                      variant.metadata.vocabularyDifficulty === 'simple' ? 'success' :
+                      variant.metadata.vocabularyDifficulty === 'moderate' ? 'info' :
+                      variant.metadata.vocabularyDifficulty === 'advanced' ? 'warning' : 'error'
+                    }
+                    variant="outlined"
+                  />
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <SpeedIcon fontSize="small" color="action" />
                     <Typography variant="caption" color="text.secondary">
@@ -456,24 +490,43 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Difficulty</InputLabel>
+                    <InputLabel>Variant Type</InputLabel>
                     <Select
-                      value={editingVariant.metadata.difficulty}
+                      value={editingVariant.type}
+                      onChange={(e) =>
+                        setEditingVariant({
+                          ...editingVariant,
+                          type: e.target.value as 'primary' | 'alternate',
+                        })
+                      }
+                      label="Variant Type"
+                    >
+                      <MenuItem value="primary">Primary</MenuItem>
+                      <MenuItem value="alternate">Alternate</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Vocabulary Difficulty</InputLabel>
+                    <Select
+                      value={editingVariant.metadata.vocabularyDifficulty}
                       onChange={(e) =>
                         setEditingVariant({
                           ...editingVariant,
                           metadata: {
                             ...editingVariant.metadata,
-                            difficulty: e.target.value as any,
+                            vocabularyDifficulty: e.target.value as any,
                           },
                         })
                       }
-                      label="Difficulty"
+                      label="Vocabulary Difficulty"
                     >
-                      <MenuItem value="easy">Easy</MenuItem>
-                      <MenuItem value="medium">Medium</MenuItem>
-                      <MenuItem value="hard">Hard</MenuItem>
+                      <MenuItem value="simple">Simple</MenuItem>
+                      <MenuItem value="moderate">Moderate</MenuItem>
                       <MenuItem value="advanced">Advanced</MenuItem>
+                      <MenuItem value="complex">Complex</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -500,21 +553,52 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                   </Box>
                 </Grid>
 
+                <Grid item xs={6}>
+                  <Box>
+                    <FormLabel>Target Age</FormLabel>
+                    <Slider
+                      value={editingVariant.metadata.targetAge}
+                      onChange={(_, value) => {
+                        const targetAge = value as number
+                        // Automatically adjust age range based on target age
+                        const minAge = Math.max(3, targetAge - 2)
+                        const maxAge = Math.min(12, targetAge + 2)
+                        setEditingVariant({
+                          ...editingVariant,
+                          metadata: {
+                            ...editingVariant.metadata,
+                            targetAge,
+                            ageRange: [minAge, maxAge],
+                          },
+                        })
+                      }}
+                      min={3}
+                      max={12}
+                      marks
+                      valueLabelDisplay="auto"
+                    />
+                  </Box>
+                </Grid>
+
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Age Range
+                    Suitable Age Range
                   </Typography>
                   <Slider
                     value={editingVariant.metadata.ageRange}
-                    onChange={(_, value) =>
+                    onChange={(_, value) => {
+                      const ageRange = value as [number, number]
+                      // Update target age to be middle of range
+                      const targetAge = Math.round((ageRange[0] + ageRange[1]) / 2)
                       setEditingVariant({
                         ...editingVariant,
                         metadata: {
                           ...editingVariant.metadata,
-                          ageRange: value as [number, number],
+                          ageRange,
+                          targetAge,
                         },
                       })
-                    }
+                    }}
                     min={3}
                     max={12}
                     marks

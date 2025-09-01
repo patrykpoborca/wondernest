@@ -3,40 +3,69 @@ import { StoryBuilderState, StoryDraft, Asset, StoryTemplate, StoryContent, Stor
 
 // Helper function to normalize variants from old format to new format
 const normalizeTextBlockVariants = (textBlock: TextBlock): TextBlock => {
-  // If variants is already an array, return as-is
+  // If variants is already an array, check if it needs updating
   if (Array.isArray(textBlock.variants)) {
-    return textBlock
+    // Check if variants have the new 'type' field
+    const needsUpdate = textBlock.variants.some(v => !v.type)
+    if (!needsUpdate) {
+      return textBlock
+    }
+    
+    // Update existing array variants to new format
+    const updatedVariants = textBlock.variants.map((v, index) => ({
+      ...v,
+      type: index === 0 ? 'primary' : 'alternate' as 'primary' | 'alternate',
+      metadata: {
+        ...v.metadata,
+        targetAge: v.metadata.ageRange ? Math.floor((v.metadata.ageRange[0] + v.metadata.ageRange[1]) / 2) : 6,
+        vocabularyDifficulty: 
+          v.metadata.vocabularyLevel <= 3 ? 'simple' :
+          v.metadata.vocabularyLevel <= 5 ? 'moderate' :
+          v.metadata.vocabularyLevel <= 7 ? 'advanced' : 'complex' as any,
+      }
+    }))
+    
+    return {
+      ...textBlock,
+      variants: updatedVariants
+    }
   }
 
   // Convert old format (object with easy/medium/hard) to new format
   const oldVariants = textBlock.variants as any
   const variants: TextVariant[] = []
 
-  if (oldVariants?.easy) {
+  // Create primary variant from easy or medium content
+  const primaryContent = oldVariants?.easy || oldVariants?.medium || ''
+  if (primaryContent) {
     variants.push({
-      id: 'variant-easy',
-      content: oldVariants.easy,
+      id: 'variant-primary',
+      content: primaryContent,
+      type: 'primary',
       metadata: {
-        difficulty: 'easy',
-        ageRange: [3, 6],
+        targetAge: 5,
+        ageRange: [3, 7],
+        vocabularyDifficulty: 'simple',
         vocabularyLevel: 3,
-        readingTime: Math.ceil((oldVariants.easy || '').split(' ').filter(Boolean).length / 200 * 60),
-        wordCount: (oldVariants.easy || '').split(' ').filter(Boolean).length,
-        characterCount: (oldVariants.easy || '').length,
+        readingTime: Math.ceil((primaryContent || '').split(' ').filter(Boolean).length / 200 * 60),
+        wordCount: (primaryContent || '').split(' ').filter(Boolean).length,
+        characterCount: (primaryContent || '').length,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isDefault: true,
     })
   }
 
-  if (oldVariants?.medium) {
+  // Create alternate variants from medium and hard content
+  if (oldVariants?.medium && oldVariants.medium !== primaryContent) {
     variants.push({
-      id: 'variant-medium',
+      id: 'variant-alternate-1',
       content: oldVariants.medium,
+      type: 'alternate',
       metadata: {
-        difficulty: 'medium',
-        ageRange: [5, 8],
+        targetAge: 7,
+        ageRange: [5, 9],
+        vocabularyDifficulty: 'moderate',
         vocabularyLevel: 5,
         readingTime: Math.ceil((oldVariants.medium || '').split(' ').filter(Boolean).length / 200 * 60),
         wordCount: (oldVariants.medium || '').split(' ').filter(Boolean).length,
@@ -49,11 +78,13 @@ const normalizeTextBlockVariants = (textBlock: TextBlock): TextBlock => {
 
   if (oldVariants?.hard) {
     variants.push({
-      id: 'variant-hard',
+      id: 'variant-alternate-2',
       content: oldVariants.hard,
+      type: 'alternate',
       metadata: {
-        difficulty: 'hard',
-        ageRange: [7, 10],
+        targetAge: 9,
+        ageRange: [7, 12],
+        vocabularyDifficulty: 'advanced',
         vocabularyLevel: 7,
         readingTime: Math.ceil((oldVariants.hard || '').split(' ').filter(Boolean).length / 200 * 60),
         wordCount: (oldVariants.hard || '').split(' ').filter(Boolean).length,

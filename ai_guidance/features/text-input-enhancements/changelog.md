@@ -1,5 +1,47 @@
 # Changelog: Text Input Enhancements
 
+## [2025-08-31 19:40] - Type: REFACTOR
+
+### Summary
+Refactored text variant system from difficulty-based to primary/alternate structure per user requirements
+
+### Changes Made
+- ✅ Changed variant type from difficulty-based (easy/medium/hard) to primary/alternate
+- ✅ Added targetAge field to VariantMetadata for precise age targeting
+- ✅ Updated vocabularyDifficulty to use descriptive terms (simple/moderate/advanced/complex)
+- ✅ Modified VariantManager UI to support new primary/alternate structure
+- ✅ Added target age slider with automatic age range adjustment
+- ✅ Enhanced variant display with color-coded difficulty chips
+- ✅ Updated StoryCanvas to create text blocks with primary variant by default
+- ✅ Implemented backward compatibility for old variant format
+
+### Files Modified
+| File | Change Type | Description |
+|------|------------|-------------|
+| `/src/features/story-builder/types/story.ts` | MODIFY | Updated TextVariant interface with type field |
+| `/src/features/story-builder/components/VariantManager.tsx` | MODIFY | Refactored UI for primary/alternate system |
+| `/src/features/story-builder/components/StyledTextBlock.tsx` | MODIFY | Updated variant selection logic for target age |
+| `/src/store/slices/storyBuilderSlice.ts` | MODIFY | Added backward compatibility helper |
+| `/src/features/story-builder/components/StoryCanvas.tsx` | MODIFY | Updated text block creation with primary variant |
+
+### Testing
+- Tested: New text blocks created with primary variant
+- Tested: Variant Manager shows primary/alternate types correctly
+- Tested: Target age slider updates age range automatically
+- Tested: Backward compatibility with old variant format
+- Result: All refactoring complete and functional
+
+### User Requirements Met
+- ✅ Text variants are now "primary" and "alternate" instead of difficulty levels
+- ✅ Each variant has customizable target age
+- ✅ Each variant has customizable vocabulary difficulty
+- ✅ Authors can set these parameters individually per variant
+
+### Next Steps
+- Create alternate variants automatically based on primary content
+- Implement AI-assisted variant generation
+- Add vocabulary analysis for automatic difficulty detection
+
 ## [2024-12-31 06:15] - Type: INTEGRATION
 
 ### Summary

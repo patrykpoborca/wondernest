@@ -22,17 +22,18 @@ export interface TextBlock {
 export interface TextVariant {
   id: string
   content: string
+  type: 'primary' | 'alternate'
   metadata: VariantMetadata
   createdAt: string
   updatedAt: string
-  isDefault?: boolean
   tags?: string[]
 }
 
 export interface VariantMetadata {
-  difficulty: 'easy' | 'medium' | 'hard' | 'advanced'
-  ageRange: [number, number] // [min, max]
-  vocabularyLevel: number // 1-10 scale
+  targetAge: number // Single age target (e.g., 5 for 5-year-olds)
+  ageRange: [number, number] // Suitable age range [min, max]
+  vocabularyDifficulty: 'simple' | 'moderate' | 'advanced' | 'complex' // Vocabulary complexity
+  vocabularyLevel: number // 1-10 scale for fine-tuning
   readingTime: number // estimated seconds
   wordCount: number
   characterCount: number

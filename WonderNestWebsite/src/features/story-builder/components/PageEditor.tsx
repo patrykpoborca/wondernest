@@ -443,11 +443,11 @@ export const PageEditor: React.FC<PageEditorProps> = ({
             onTextBlockUpdate(updatedTextBlock)
           }}
           onContentChange={(content) => {
-            // Update the active variant's content
-            const activeVariant = textBlock.variants.find(v => v.id === textBlock.activeVariantId) || textBlock.variants[0]
-            if (activeVariant) {
+            // During editing, always update the primary variant
+            const primaryVariant = textBlock.variants.find(v => v.type === 'primary') || textBlock.variants[0]
+            if (primaryVariant) {
               const updatedVariants = textBlock.variants.map(v =>
-                v.id === activeVariant.id
+                v.id === primaryVariant.id
                   ? {
                       ...v,
                       content,

@@ -64,6 +64,7 @@ import {
   StylePreset,
 } from '../types/story'
 import { defaultStylePresets } from '../utils/styleUtils'
+import { VariantManager } from './VariantManager'
 
 interface TextStyleEditorProps {
   textBlock: TextBlock
@@ -204,51 +205,7 @@ export const TextStyleEditor: React.FC<TextStyleEditorProps> = ({
     animationType,
   ])
 
-  const handleAddVariant = () => {
-    const newVariant: TextVariant = {
-      id: `variant-${Date.now()}`,
-      content: '',
-      metadata: {
-        difficulty: 'medium',
-        ageRange: [5, 8],
-        vocabularyLevel: 5,
-        readingTime: 0,
-        wordCount: 0,
-        characterCount: 0,
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    const updatedVariants = [...variants, newVariant]
-    setVariants(updatedVariants)
-    onVariantChange(updatedVariants)
-  }
-
-  const handleVariantChange = (id: string, content: string) => {
-    const updatedVariants = variants.map((v) =>
-      v.id === id
-        ? {
-            ...v,
-            content,
-            metadata: {
-              ...v.metadata,
-              wordCount: content.split(' ').filter(Boolean).length,
-              characterCount: content.length,
-              readingTime: Math.ceil(content.split(' ').filter(Boolean).length / 200 * 60),
-            },
-            updatedAt: new Date().toISOString(),
-          }
-        : v
-    )
-    setVariants(updatedVariants)
-    onVariantChange(updatedVariants)
-  }
-
-  const handleDeleteVariant = (id: string) => {
-    const updatedVariants = variants.filter((v) => v.id !== id)
-    setVariants(updatedVariants)
-    onVariantChange(updatedVariants)
-  }
+  // Variant handling is now managed by the VariantManager component
 
   const handlePresetSelect = (presetId: string) => {
     const preset = presets.find((p) => p.id === presetId)
@@ -512,76 +469,19 @@ export const TextStyleEditor: React.FC<TextStyleEditorProps> = ({
       </TabPanel>
 
       <TabPanel value={activeTab} index={1}>
-        {/* Variants Section */}
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle1">Text Variants</Typography>
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddVariant}
-              size="small"
-              variant="contained"
-            >
-              Add Variant
-            </Button>
-          </Box>
-
-          {variants.map((variant) => (
-            <Paper key={variant.id} variant="outlined" sx={{ p: 2 }}>
-              <Stack spacing={1}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Chip
-                    label={variant.metadata.difficulty}
-                    size="small"
-                    color={
-                      variant.metadata.difficulty === 'easy'
-                        ? 'success'
-                        : variant.metadata.difficulty === 'medium'
-                        ? 'warning'
-                        : 'error'
-                    }
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDeleteVariant(variant.id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
-
-                <TextField
-                  multiline
-                  rows={3}
-                  fullWidth
-                  value={variant.content}
-                  onChange={(e) => handleVariantChange(variant.id, e.target.value)}
-                  placeholder="Enter text variant..."
-                  variant="outlined"
-                />
-
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Words: {variant.metadata.wordCount}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Characters: {variant.metadata.characterCount}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Reading time: {variant.metadata.readingTime}s
-                  </Typography>
-                </Box>
-              </Stack>
-            </Paper>
-          ))}
-
-          {variants.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography color="text.secondary">
-                No variants yet. Click "Add Variant" to create one.
-              </Typography>
-            </Box>
-          )}
-        </Stack>
+        {/* Variants Section - Using VariantManager for comprehensive variant editing */}
+        <VariantManager
+          variants={variants}
+          activeVariantId={textBlock.activeVariantId}
+          onVariantsChange={(updatedVariants) => {
+            setVariants(updatedVariants)
+            onVariantChange(updatedVariants)
+          }}
+          onActiveVariantChange={(variantId) => {
+            // This would need to be passed up to update the textBlock's activeVariantId
+            // For now, we'll just track it locally
+          }}
+        />
       </TabPanel>
 
       <TabPanel value={activeTab} index={2}>

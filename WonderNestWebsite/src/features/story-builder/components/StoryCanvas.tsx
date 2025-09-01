@@ -146,60 +146,32 @@ export const StoryCanvas: React.FC<StoryCanvasProps> = ({
   const handleAddText = useCallback(() => {
     if (!page || isReadOnly) return
 
+    const timestamp = Date.now()
     const defaultVariants: TextVariant[] = [
       {
-        id: `variant_easy_${Date.now()}`,
+        id: `variant_primary_${timestamp}`,
         content: 'Click to edit text',
+        type: 'primary',
         metadata: {
-          difficulty: 'easy',
-          ageRange: [3, 5],
-          vocabularyLevel: 1,
+          targetAge: 6,
+          ageRange: [4, 8],
+          vocabularyDifficulty: 'simple',
+          vocabularyLevel: 3,
           readingTime: 2,
           wordCount: 4,
           characterCount: 17,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        isDefault: false,
-      },
-      {
-        id: `variant_medium_${Date.now()}`,
-        content: 'Click to edit text',
-        metadata: {
-          difficulty: 'medium',
-          ageRange: [6, 8],
-          vocabularyLevel: 5,
-          readingTime: 2,
-          wordCount: 4,
-          characterCount: 17,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isDefault: true,
-      },
-      {
-        id: `variant_hard_${Date.now()}`,
-        content: 'Click to edit text',
-        metadata: {
-          difficulty: 'hard',
-          ageRange: [9, 12],
-          vocabularyLevel: 8,
-          readingTime: 2,
-          wordCount: 4,
-          characterCount: 17,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isDefault: false,
       },
     ]
 
     const newTextBlock: TextBlock = {
-      id: `text_${Date.now()}`,
+      id: `text_${timestamp}`,
       position: { x: 100, y: 100 },
       size: { width: 200, height: 60 },
       variants: defaultVariants,
-      activeVariantId: defaultVariants[1].id, // medium as default
+      activeVariantId: defaultVariants[0].id, // primary as default
       style: {
         background: {
           type: 'solid',
