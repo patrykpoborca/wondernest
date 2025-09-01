@@ -139,6 +139,7 @@ class _EnhancedStoryReaderScreenState
   
   void _resetZoom() {
     _transformationController.value = Matrix4.identity();
+    Timber.d('Zoom reset to identity matrix (letterboxed view)');
   }
   
 
@@ -264,84 +265,101 @@ class _EnhancedStoryReaderScreenState
           itemBuilder: (context, index) {
             final page = widget.story.content.pages[index];
             
-            // Calculate contain scale to show full image (may have letterboxing)
+            // Calculate scaling options
             final scaleX = constraints.maxWidth / _defaultStoryWidth;
             final scaleY = constraints.maxHeight / _defaultStoryHeight;
-            final containScale = scaleX < scaleY ? scaleX : scaleY; // Use smaller scale to fit
+            final containScale = scaleX < scaleY ? scaleX : scaleY; // Fit entire image (may letterbox)
+            final coverScale = scaleX > scaleY ? scaleX : scaleY;   // Fill entire screen edge-to-edge
             
-            // Also calculate cover scale (what would fill edge-to-edge)
-            final coverScale = scaleX > scaleY ? scaleX : scaleY;
-            
-            // Start with contain scale so full image is visible initially
+            // Start with contain scale to show full image initially
             final initialScale = containScale;
             
-            // Calculate the actual size of the content at initial scale
-            final scaledContentWidth = _defaultStoryWidth * initialScale;
-            final scaledContentHeight = _defaultStoryHeight * initialScale;
+            // Calculate dimensions at various scales
+            final initialWidth = _defaultStoryWidth * initialScale;
+            final initialHeight = _defaultStoryHeight * initialScale;
+            final coverWidth = _defaultStoryWidth * coverScale;
+            final coverHeight = _defaultStoryHeight * coverScale;
             
-            // Calculate how much content extends beyond screen in each direction
-            final overflowX = (scaledContentWidth - constraints.maxWidth) / 2;
-            final overflowY = (scaledContentHeight - constraints.maxHeight) / 2;
+            // Max scale should allow zooming well beyond cover scale for detailed viewing
+            final maxScale = (coverScale / initialScale) * 2.0; // 2x beyond cover scale
+            final minScale = 0.8; // Allow slight zoom out from initial view
             
-            // Since we start with contain scale, we might have letterboxing
-            // Allow enough margin to pan when zoomed in
-            final maxScale = coverScale / initialScale * 1.5; // Can zoom beyond cover scale
-            final horizontalMargin = _defaultStoryWidth * maxScale * initialScale / 2;
-            final verticalMargin = _defaultStoryHeight * maxScale * initialScale / 2;
+            // Calculate boundary margins that allow full panning of the zoomed content
+            // We need to ensure the user can pan to see all edges of the 1200x800 canvas
+            final maxContentWidth = _defaultStoryWidth * initialScale * maxScale;
+            final maxContentHeight = _defaultStoryHeight * initialScale * maxScale;
             
-            Timber.d('Story viewer - Screen: ${constraints.maxWidth}x${constraints.maxHeight}, '
-                    'Story: $_defaultStoryWidth x $_defaultStoryHeight, '
-                    'Initial scale: $initialScale, Cover scale: $coverScale, '
-                    'Scaled content: ${scaledContentWidth}x$scaledContentHeight');
+            // Margins should allow the content to be positioned so that any edge can be at the screen edge
+            final horizontalMargin = (maxContentWidth - constraints.maxWidth) / 2 + constraints.maxWidth * 0.1;
+            final verticalMargin = (maxContentHeight - constraints.maxHeight) / 2 + constraints.maxHeight * 0.1;
             
-            return Center(
-              child: Container(
-                color: Colors.black, // Background color for letterboxing
-                child: InteractiveViewer(
-                  transformationController: _transformationController,
-                  // Boundary margins for panning when zoomed
-                  boundaryMargin: EdgeInsets.symmetric(
-                    horizontal: horizontalMargin,
-                    vertical: verticalMargin,
-                  ),
-                  minScale: 0.8, // Can zoom out slightly from initial view
-                  maxScale: maxScale, // Can zoom in to fill and beyond
-                  constrained: true, // Keep constrained for proper centering
-                  panEnabled: true,
-                  scaleEnabled: true,
-                  clipBehavior: Clip.hardEdge,
-                  onInteractionStart: (details) {
-                    // Provide haptic feedback for touch interaction
-                    HapticFeedback.lightImpact();
+            Timber.d('Story viewer enhanced - Screen: ${constraints.maxWidth.toInt()}x${constraints.maxHeight.toInt()}, '
+                    'Content: ${_defaultStoryWidth.toInt()}x${_defaultStoryHeight.toInt()}, '
+                    'Contain scale: ${containScale.toStringAsFixed(2)}, Cover scale: ${coverScale.toStringAsFixed(2)}, '
+                    'Initial size: ${initialWidth.toInt()}x${initialHeight.toInt()}, '
+                    'Cover size: ${coverWidth.toInt()}x${coverHeight.toInt()}, '
+                    'Max scale: ${maxScale.toStringAsFixed(2)}');
+            
+            return Container(
+              color: Colors.black, // Black background
+              child: InteractiveViewer(
+                transformationController: _transformationController,
+                // Set boundary margins to allow full panning of zoomed content
+                boundaryMargin: EdgeInsets.symmetric(
+                  horizontal: horizontalMargin,
+                  vertical: verticalMargin,
+                ),
+                minScale: minScale,
+                maxScale: maxScale,
+                constrained: false, // Allow content to extend beyond screen bounds
+                panEnabled: true,
+                scaleEnabled: true,
+                clipBehavior: Clip.hardEdge,
+                onInteractionStart: (details) {
+                  HapticFeedback.lightImpact();
+                },
+                onInteractionEnd: (details) {
+                  // Log final transformation for debugging
+                  final transform = _transformationController.value;
+                  final scale = transform.getMaxScaleOnAxis();
+                  Timber.d('Interaction ended - Scale: ${scale.toStringAsFixed(2)}');
+                },
+                child: GestureDetector(
+                  onDoubleTap: () {
+                    // Double tap cycles through: contain -> cover -> contain
+                    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+                    
+                    if (currentScale <= minScale * 1.1) {
+                      // Currently at minimum, zoom to cover (edge-to-edge)
+                      final targetScale = coverScale / initialScale;
+                      
+                      // Calculate centering offset
+                      final offsetX = (constraints.maxWidth - coverWidth) / 2;
+                      final offsetY = (constraints.maxHeight - coverHeight) / 2;
+                      
+                      _transformationController.value = Matrix4.identity()
+                        ..translate(offsetX, offsetY)
+                        ..scale(targetScale);
+                      
+                      Timber.d('Double tap: zoomed to cover scale (${targetScale.toStringAsFixed(2)})');
+                    } else {
+                      // Reset to initial contain view
+                      _resetZoom();
+                      Timber.d('Double tap: reset to contain scale');
+                    }
+                    
+                    HapticFeedback.mediumImpact();
                   },
-                  child: GestureDetector(
-                    onDoubleTap: () {
-                      // Double tap to toggle between fit and fill
-                      if (_transformationController.value == Matrix4.identity()) {
-                        // Zoom to fill screen (cover scale)
-                        final zoomLevel = coverScale / initialScale;
-                        _transformationController.value = Matrix4.identity()
-                          ..translate(
-                            -(_defaultStoryWidth * initialScale * (zoomLevel - 1)) / 2,
-                            -(_defaultStoryHeight * initialScale * (zoomLevel - 1)) / 2,
-                          )
-                          ..scale(zoomLevel);
-                      } else {
-                        // Reset to fit view
-                        _resetZoom();
-                      }
-                      HapticFeedback.mediumImpact();
-                    },
-                    child: Container(
-                      width: scaledContentWidth,
-                      height: scaledContentHeight,
-                      child: ScaledStoryPageWidget(
-                        page: page,
-                        childAge: widget.childAge,
-                        onVocabularyTap: _handleVocabularyTap,
-                        showVocabularyHints: _showVocabularyHints,
-                        scaleFactor: initialScale,
-                      ),
+                  child: SizedBox(
+                    // Use exact story dimensions scaled to initial size
+                    width: initialWidth,
+                    height: initialHeight,
+                    child: ScaledStoryPageWidget(
+                      page: page,
+                      childAge: widget.childAge,
+                      onVocabularyTap: _handleVocabularyTap,
+                      showVocabularyHints: _showVocabularyHints,
+                      scaleFactor: initialScale,
                     ),
                   ),
                 ),
