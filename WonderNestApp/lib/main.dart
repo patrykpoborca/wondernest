@@ -44,10 +44,12 @@ void main() async {
   // Initialize Hive for local storage
   await Hive.initFlutter();
   
-  // Set preferred orientations
+  // Set preferred orientations - support all orientations for story reading
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
   
   // Set system UI overlay style

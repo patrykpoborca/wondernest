@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wonder_nest/models/story/enhanced_story_models.dart' as story_models;
 import 'package:wonder_nest/widgets/story/styled_text_block.dart';
@@ -25,15 +26,23 @@ class EnhancedStoryReaderScreen extends ConsumerStatefulWidget {
 class _EnhancedStoryReaderScreenState
     extends ConsumerState<EnhancedStoryReaderScreen> {
   late PageController _pageController;
+  late TransformationController _transformationController;
   int _currentPage = 0;
   bool _showVocabularyHints = true;
+  bool _isFullscreen = false;
+  // bool _isLandscape = false; // Currently not used but kept for potential future features
   final Set<String> _encounteredVocabulary = {};
   DateTime? _startTime;
+  
+  // Default story dimensions (assumed from web builder)
+  static const double _defaultStoryWidth = 1200.0;
+  static const double _defaultStoryHeight = 800.0;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _transformationController = TransformationController();
     _startTime = DateTime.now();
     Timber.i('Starting story: ${widget.story.title}');
   }
@@ -41,6 +50,13 @@ class _EnhancedStoryReaderScreenState
   @override
   void dispose() {
     _pageController.dispose();
+    _transformationController.dispose();
+    
+    // Restore system UI if it was hidden
+    if (_isFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    
     _trackReadingSession();
     super.dispose();
   }
@@ -105,6 +121,39 @@ class _EnhancedStoryReaderScreenState
     }
   }
 
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullscreen = !_isFullscreen;
+    });
+    
+    if (_isFullscreen) {
+      // Hide system UI for fullscreen experience
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    } else {
+      // Restore system UI
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    
+    Timber.d('Fullscreen toggled: $_isFullscreen');
+  }
+  
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
+  }
+  
+  /// Calculate scale factor to fit story content to screen
+  double _calculateScaleFactor(BoxConstraints constraints) {
+    final screenWidth = constraints.maxWidth;
+    final screenHeight = constraints.maxHeight;
+    
+    final scaleX = screenWidth / _defaultStoryWidth;
+    final scaleY = screenHeight / _defaultStoryHeight;
+    
+    // Use the larger scale to fill the screen completely (like BoxFit.cover)
+    // This ensures no white space, content may be cropped but fills edge-to-edge
+    return scaleX > scaleY ? scaleX : scaleY;
+  }
+
   void _completeStory() {
     Timber.i('Story completed: ${widget.story.title}');
     
@@ -147,146 +196,371 @@ class _EnhancedStoryReaderScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Story pages
-            PageView.builder(
-              controller: _pageController,
-              onPageChanged: _handlePageChange,
-              itemCount: widget.story.pageCount,
-              itemBuilder: (context, index) {
-                final page = widget.story.content.pages[index];
-                return Container(
-                  color: Colors.white,
-                  child: StoryPageWidget(
-                    page: page,
-                    childAge: widget.childAge,
-                    onVocabularyTap: _handleVocabularyTap,
-                    showVocabularyHints: _showVocabularyHints,
-                  ),
-                );
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        // Track orientation for potential future features
+        final isLandscape = orientation == Orientation.landscape;
+        
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: _isFullscreen ? _buildFullscreenView() : _buildNormalView(),
+        );
+      },
+    );
+  }
+  
+  Widget _buildFullscreenView() {
+    return Stack(
+      children: [
+        // Fullscreen story content
+        _buildStoryContent(isFullscreen: true),
+        
+        // Minimal controls overlay
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          right: 16,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildControlButton(
+                icon: Icons.refresh,
+                onPressed: _resetZoom,
+                tooltip: 'Reset zoom',
+              ),
+              const SizedBox(width: 8),
+              _buildControlButton(
+                icon: Icons.fullscreen_exit,
+                onPressed: _toggleFullscreen,
+                tooltip: 'Exit fullscreen',
+              ),
+              const SizedBox(width: 8),
+              _buildControlButton(
+                icon: Icons.close,
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+        ),
+        
+        // Page navigation in fullscreen
+        _buildFullscreenNavigation(),
+      ],
+    );
+  }
+  
+  Widget _buildNormalView() {
+    return SafeArea(
+      child: Stack(
+        children: [
+          // Story content with controls
+          _buildStoryContent(isFullscreen: false),
+          
+          // Top navigation bar
+          _buildTopNavigationBar(),
+          
+          // Bottom navigation controls
+          _buildBottomNavigationBar(),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStoryContent({required bool isFullscreen}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaleFactor = _calculateScaleFactor(constraints);
+        
+        return PageView.builder(
+          controller: _pageController,
+          onPageChanged: _handlePageChange,
+          itemCount: widget.story.pageCount,
+          itemBuilder: (context, index) {
+            final page = widget.story.content.pages[index];
+            
+            return InteractiveViewer(
+              transformationController: _transformationController,
+              boundaryMargin: const EdgeInsets.all(20.0),
+              minScale: 0.3, // Allow zooming out to see more of the story
+              maxScale: 3.0, // Child-friendly max zoom - not too extreme
+              constrained: false,
+              panEnabled: true,
+              scaleEnabled: true,
+              // Child-friendly interaction behavior
+              clipBehavior: Clip.hardEdge,
+              onInteractionStart: (details) {
+                // Provide haptic feedback for touch interaction
+                HapticFeedback.lightImpact();
               },
-            ),
-
-            // Top navigation bar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.6),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Back button
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-
-                    // Page indicator
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${_currentPage + 1} / ${widget.story.pageCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
+              child: GestureDetector(
+                onDoubleTap: () {
+                  // Double tap to reset zoom - intuitive for children
+                  _resetZoom();
+                  HapticFeedback.mediumImpact();
+                },
+                child: Container(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  child: Center(
+                    child: Transform.scale(
+                      scale: scaleFactor,
+                      child: SizedBox(
+                        width: _defaultStoryWidth,
+                        height: _defaultStoryHeight,
+                        child: ScaledStoryPageWidget(
+                          page: page,
+                          childAge: widget.childAge,
+                          onVocabularyTap: _handleVocabularyTap,
+                          showVocabularyHints: _showVocabularyHints,
+                          scaleFactor: scaleFactor,
                         ),
                       ),
                     ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+    bool isLarge = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(isLarge ? 28 : 20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(isLarge ? 28 : 20),
+          onTap: () {
+            HapticFeedback.lightImpact(); // Haptic feedback for children
+            onPressed();
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isLarge ? 16 : 12),
+            child: Icon(
+              icon, 
+              color: Colors.white, 
+              size: isLarge ? 28 : 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildFullscreenNavigation() {
+    return Positioned(
+      bottom: 20,
+      left: 20,
+      right: 20,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Previous button - larger for fullscreen
+          _buildControlButton(
+            icon: Icons.arrow_back_ios,
+            onPressed: _currentPage > 0 ? _goToPreviousPage : () {},
+            tooltip: 'Previous page',
+            isLarge: true,
+          ),
+          
+          // Page indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              '${_currentPage + 1} / ${widget.story.pageCount}',
+              style: const TextStyle(
+                color: Colors.white, 
+                fontSize: 18, 
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          
+          // Next button - larger for fullscreen
+          _buildControlButton(
+            icon: _currentPage < widget.story.pageCount - 1
+                ? Icons.arrow_forward_ios
+                : Icons.check_circle,
+            onPressed: _goToNextPage,
+            tooltip: _currentPage < widget.story.pageCount - 1 
+                ? 'Next page' 
+                : 'Complete story',
+            isLarge: true,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTopNavigationBar() {
+    if (_isFullscreen) return const SizedBox.shrink();
+    
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.6),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Back button
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
 
-                    // Settings button
-                    IconButton(
-                      icon: const Icon(Icons.settings, color: Colors.white),
-                      onPressed: _showSettings,
+            // Page indicator and controls
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Reset zoom button
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _resetZoom,
+                  tooltip: 'Reset zoom',
+                ),
+                
+                // Fullscreen toggle
+                IconButton(
+                  icon: Icon(
+                    _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                    color: Colors.white,
+                  ),
+                  onPressed: _toggleFullscreen,
+                  tooltip: _isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen',
+                ),
+                
+                // Page indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_currentPage + 1} / ${widget.story.pageCount}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Settings button
+            IconButton(
+              icon: const Icon(Icons.settings, color: Colors.white),
+              onPressed: _showSettings,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildBottomNavigationBar() {
+    if (_isFullscreen) return const SizedBox.shrink();
+    
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              Colors.black.withOpacity(0.6),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Previous button
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              onPressed: _currentPage > 0 ? _goToPreviousPage : null,
+            ),
+
+            // Progress indicator
+            Expanded(
+              child: Container(
+                height: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: (_currentPage + 1) / widget.story.pageCount,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
               ),
             ),
 
-            // Bottom navigation controls
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.6),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Previous button
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                      onPressed: _currentPage > 0 ? _goToPreviousPage : null,
-                    ),
-
-                    // Progress indicator
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: (_currentPage + 1) / widget.story.pageCount,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Next button
-                    IconButton(
-                      icon: Icon(
-                        _currentPage < widget.story.pageCount - 1
-                            ? Icons.arrow_forward_ios
-                            : Icons.check,
-                        color: Colors.white,
-                      ),
-                      onPressed: _goToNextPage,
-                    ),
-                  ],
-                ),
+            // Next button
+            IconButton(
+              icon: Icon(
+                _currentPage < widget.story.pageCount - 1
+                    ? Icons.arrow_forward_ios
+                    : Icons.check,
+                color: Colors.white,
               ),
+              onPressed: _goToNextPage,
             ),
           ],
         ),
@@ -317,6 +591,32 @@ class _EnhancedStoryReaderScreenState
                 });
                 Navigator.of(context).pop();
               },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              title: const Text('Fullscreen Mode'),
+              subtitle: const Text('Immersive reading experience'),
+              value: _isFullscreen,
+              onChanged: (value) {
+                _toggleFullscreen();
+                Navigator.of(context).pop();
+              },
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.refresh),
+              title: const Text('Reset Zoom'),
+              subtitle: const Text('Return to original size or double-tap the story'),
+              onTap: () {
+                _resetZoom();
+                Navigator.of(context).pop();
+              },
+            ),
+            const Divider(),
+            const ListTile(
+              leading: Icon(Icons.touch_app, color: Colors.blue),
+              title: Text('How to Read'),
+              subtitle: Text('• Pinch to zoom in/out\\n• Drag to move around\\n• Double-tap to reset zoom\\n• Swipe or use arrows to change pages'),
             ),
             const SizedBox(height: 8),
             ListTile(
