@@ -7,6 +7,7 @@ import '../../models/child_profile.dart';
 import 'models/story_models.dart';
 import 'services/story_adventure_service.dart';
 import 'screens/story_selection_screen.dart';
+import 'screens/enhanced_story_selection_screen.dart';
 
 /// Story Adventure Plugin - Interactive storytelling for vocabulary and reading development
 class StoryAdventurePlugin extends GamePlugin {
@@ -70,7 +71,8 @@ class StoryAdventurePlugin extends GamePlugin {
   }) {
     Timber.d('Creating Story Adventure game widget for child: ${child.id}');
     
-    return StorySelectionScreen(
+    // Use the enhanced story selection screen to show web-created stories
+    return EnhancedStorySelectionScreen(
       childProfile: child,
       gameSession: session,
     );
