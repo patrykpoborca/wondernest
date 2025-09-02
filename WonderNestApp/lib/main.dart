@@ -27,6 +27,9 @@ import 'screens/child/child_home.dart';
 import 'screens/child/child_selection_screen.dart';
 import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
+import 'screens/ai_story/ai_story_creator_screen.dart';
+import 'screens/ai_story/story_viewer_screen.dart';
+import 'models/ai_story.dart';
 import 'screens/games/mini_game_framework.dart';
 import 'screens/games/game_plugin_framework.dart';
 import 'screens/family/family_overview_screen.dart';
@@ -202,6 +205,23 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
             
             // Return the ChildHome widget directly
             return const ChildHome();
+          },
+        ),
+        
+        // AI Story Generation Routes
+        GoRoute(
+          path: '/ai-story-creator',
+          builder: (context, state) => const AIStoryCreatorScreen(),
+        ),
+        GoRoute(
+          path: '/story-viewer',
+          builder: (context, state) {
+            final story = state.extra as AIStory?;
+            if (story == null) {
+              // Redirect to creator if no story provided
+              return const AIStoryCreatorScreen();
+            }
+            return StoryViewerScreen(story: story);
           },
         ),
         

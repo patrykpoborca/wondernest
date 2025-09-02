@@ -53,6 +53,11 @@ val repositoryModule = module {
         com.wondernest.data.database.repository.web.AdminSessionRepositoryImpl() 
     }
     
+    // Marketplace repositories
+    single<com.wondernest.data.database.repository.marketplace.MarketplaceRepository> {
+        com.wondernest.data.database.repository.marketplace.MarketplaceRepositoryImpl()
+    }
+    
     // Game repositories - temporarily disabled
     // single<GameRegistryRepository> { GameRegistryRepositoryImpl() }
     // single<ChildGameInstanceRepository> { ChildGameInstanceRepositoryImpl() }
@@ -98,6 +103,10 @@ val serviceModule = module {
     
     // Web admin services
     single { com.wondernest.services.web.admin.AdminAuthService(get(), get(), get()) } // adminUserRepo, adminSessionRepo, jwtService
+    
+    // Marketplace services
+    single { com.wondernest.services.marketplace.MarketplaceService(get()) }
+    single { com.wondernest.services.marketplace.CreatorService() }
     
     // Game services - temporarily disabled
     // single<GameService> { GameServiceImpl(get(), get(), get(), get()) } // gameRegistryRepo, instanceRepo, dataRepo, sessionRepo

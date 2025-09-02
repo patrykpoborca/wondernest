@@ -101,6 +101,16 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
         description: 'Interactive stories where you decide what happens next!',
       ),
       ActivityItem(
+        id: 'ai_story_creator',
+        title: 'Story Creator',
+        subtitle: 'Make magical stories!',
+        emoji: '✨',
+        color: AppColors.primaryBlue,
+        type: ActivityType.creative,
+        progress: 0.0,
+        description: 'Create personalized stories with AI magic!',
+      ),
+      ActivityItem(
         id: 'puzzle_game',
         title: 'Puzzle Fun',
         subtitle: 'Solve colorful puzzles!',
@@ -779,6 +789,12 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       _launchStoryAdventureGame();
       return;
     }
+    
+    // Handle AI story creator
+    if (activity.id == 'ai_story_creator') {
+      _launchAIStoryCreator();
+      return;
+    }
 
     // For other activities, show the dialog
     showDialog(
@@ -897,6 +913,21 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       'childId': activeChild.id,
       'childName': activeChild.name,
     });
+  }
+
+  void _launchAIStoryCreator() {
+    final appModeState = ref.read(appModeProvider);
+    final activeChild = appModeState.activeChild;
+    
+    if (activeChild == null) {
+      Timber.e('[ERROR] Cannot launch AI story creator - no active child');
+      return;
+    }
+
+    Timber.d('[AI] Launching AI story creator for child: ${activeChild.name}');
+    
+    // Navigate to the AI story creator
+    context.push('/ai-story-creator');
   }
 
   void _startActivity(ActivityItem activity) {

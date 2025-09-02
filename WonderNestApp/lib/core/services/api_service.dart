@@ -874,5 +874,111 @@ class ApiService {
     // Route: DELETE /api/v2/games/children/{childId}/data/{gameKey}/{dataKey}
     return _dioV2.delete('/games/children/$childId/data/$gameKey/$dataKey');
   }
+  
+  // ============================================================================
+  // AI Story Generation Methods
+  // ============================================================================
+  
+  /// Generate an AI story
+  Future<Map<String, dynamic>?> generateAIStory({
+    required String prompt,
+    String? title,
+    List<String>? imageIds,
+    String? childId,
+    String? targetAge,
+    List<String>? educationalGoals,
+  }) async {
+    if (_useMockService) {
+      return _mockService.generateAIStory(
+        prompt: prompt,
+        title: title,
+        imageIds: imageIds,
+        childId: childId,
+        targetAge: targetAge,
+        educationalGoals: educationalGoals,
+      );
+    }
+    
+    Timber.d('[API] Generating AI story');
+    
+    try {
+      final response = await _dioV2.post('/ai/story/generate', data: {
+        'prompt': prompt,
+        'title': title,
+        'imageIds': imageIds ?? [],
+        'childId': childId,
+        'targetAge': targetAge ?? '3-5',
+        'educationalGoals': educationalGoals ?? [],
+      });
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error generating AI story: $e');
+      return null;
+    }
+  }
+  
+  /// Get AI story generation history
+  Future<Map<String, dynamic>?> getAIStoryHistory() async {
+    if (_useMockService) {
+      return _mockService.getAIStoryHistory();
+    }
+    
+    Timber.d('[API] Getting AI story history');
+    
+    try {
+      final response = await _dioV2.get('/ai/story/history');
+      
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting AI story history: $e');
+      return null;
+    }
+  }
+  
+  /// Get AI generation quota
+  Future<Map<String, dynamic>?> getAIQuota() async {
+    if (_useMockService) {
+      return _mockService.getAIQuota();
+    }
+    
+    Timber.d('[API] Getting AI quota');
+    
+    try {
+      final response = await _dioV2.get('/ai/story/quota');
+      
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting AI quota: $e');
+      return null;
+    }
+  }
+  
+  /// Save AI story to child's library
+  Future<bool> saveStoryToLibrary(String storyId) async {
+    if (_useMockService) {
+      return _mockService.saveStoryToLibrary(storyId);
+    }
+    
+    Timber.d('[API] Saving story to library: $storyId');
+    
+    try {
+      final response = await _dioV2.post('/ai/story/$storyId/save');
+      
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      Timber.e('Error saving story to library: $e');
+      return false;
+    }
+  }
 }
 

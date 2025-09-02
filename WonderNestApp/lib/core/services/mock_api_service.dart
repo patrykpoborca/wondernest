@@ -946,4 +946,141 @@ class MockApiService {
       },
     );
   }
+  
+  // ============================================================================
+  // AI Story Generation Mock Methods
+  // ============================================================================
+  
+  final List<Map<String, dynamic>> _storyHistory = [];
+  int _dailyUsed = 0;
+  int _monthlyUsed = 0;
+  
+  Future<Map<String, dynamic>?> generateAIStory({
+    required String prompt,
+    String? title,
+    List<String>? imageIds,
+    String? childId,
+    String? targetAge,
+    List<String>? educationalGoals,
+  }) async {
+    await Future.delayed(const Duration(seconds: 3)); // Simulate AI generation time
+    
+    final storyId = 'story_${DateTime.now().millisecondsSinceEpoch}';
+    final generatedTitle = title ?? 'The ${_getRandomAdjective()} ${_getRandomNoun()}';
+    
+    final story = {
+      'id': storyId,
+      'title': generatedTitle,
+      'content': _generateMockStoryContent(prompt, targetAge ?? '3-5'),
+      'chapters': [
+        {
+          'title': 'Chapter 1: The Beginning',
+          'content': 'Once upon a time, in a land filled with wonder and magic, $prompt',
+          'orderIndex': 0,
+        },
+        {
+          'title': 'Chapter 2: The Adventure',
+          'content': 'Our hero embarked on an amazing journey, discovering new friends and learning valuable lessons along the way.',
+          'orderIndex': 1,
+        },
+        {
+          'title': 'Chapter 3: The Happy Ending',
+          'content': 'And so, with courage and kindness, everyone lived happily ever after. The end.',
+          'orderIndex': 2,
+        },
+      ],
+      'metadata': {
+        'ageRange': targetAge ?? '3-5',
+        'educationalGoals': educationalGoals ?? [],
+        'themes': ['adventure', 'friendship', 'learning'],
+        'language': 'en',
+        'wordCount': 250,
+        'readingLevel': _getReadingLevel(targetAge ?? '3-5'),
+        'safetyScore': 0.98,
+      },
+      'imageUrls': imageIds?.map((id) => 'https://placeholder.com/image/$id').toList() ?? [],
+      'createdAt': DateTime.now().toIso8601String(),
+      'childId': childId,
+      'parentId': 'parent_123',
+    };
+    
+    _storyHistory.insert(0, story);
+    _dailyUsed++;
+    _monthlyUsed++;
+    
+    return story;
+  }
+  
+  Future<Map<String, dynamic>?> getAIStoryHistory() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return {
+      'stories': _storyHistory,
+      'totalCount': _storyHistory.length,
+    };
+  }
+  
+  Future<Map<String, dynamic>?> getAIQuota() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    return {
+      'dailyUsed': _dailyUsed,
+      'dailyLimit': 5,
+      'monthlyUsed': _monthlyUsed,
+      'monthlyLimit': 50,
+      'dailyResetAt': DateTime.now().add(const Duration(hours: 24)).toIso8601String(),
+      'monthlyResetAt': DateTime(DateTime.now().year, DateTime.now().month + 1, 1).toIso8601String(),
+    };
+  }
+  
+  Future<bool> saveStoryToLibrary(String storyId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    // In a real app, this would save to the child's library
+    return true;
+  }
+  
+  // Helper methods for mock story generation
+  String _generateMockStoryContent(String prompt, String ageRange) {
+    final baseStory = '''
+Once upon a time, there was a magical adventure waiting to unfold. $prompt
+
+In this wonderful story, our characters learned about friendship, kindness, and the importance of being brave. They discovered that with imagination and creativity, anything is possible.
+
+As the sun set on their adventure, everyone gathered together to celebrate what they had learned. They knew that tomorrow would bring new adventures and new opportunities to grow.
+
+The end.
+''';
+    
+    // Adjust complexity based on age range
+    if (ageRange == '3-5') {
+      return baseStory.replaceAll(RegExp(r'\b\w{10,}\b'), 'fun');
+    } else if (ageRange == '6-8') {
+      return baseStory;
+    } else {
+      return '$baseStory\n\nEpilogue: This story teaches us that every challenge is an opportunity for growth.';
+    }
+  }
+  
+  String _getRandomAdjective() {
+    final adjectives = ['Brave', 'Curious', 'Magical', 'Wonderful', 'Amazing', 'Clever', 'Kind'];
+    return adjectives[DateTime.now().millisecond % adjectives.length];
+  }
+  
+  String _getRandomNoun() {
+    final nouns = ['Adventure', 'Journey', 'Discovery', 'Friend', 'Explorer', 'Hero', 'Dream'];
+    return nouns[DateTime.now().second % nouns.length];
+  }
+  
+  String _getReadingLevel(String ageRange) {
+    switch (ageRange) {
+      case '3-5':
+        return 'Pre-K';
+      case '6-8':
+        return 'Early Elementary';
+      case '9-12':
+        return 'Elementary';
+      default:
+        return 'All Ages';
+    }
+  }
 }

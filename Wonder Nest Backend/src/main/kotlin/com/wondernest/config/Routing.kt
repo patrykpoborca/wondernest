@@ -13,6 +13,7 @@ import com.wondernest.api.games.gameDataRoutes
 import com.wondernest.api.games.enhancedGameRoutes
 import com.wondernest.api.games.storyAdventureRoutes
 import com.wondernest.api.health.healthRoutes
+import com.wondernest.api.marketplace.marketplaceRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
@@ -106,6 +107,9 @@ fun Application.configureRouting() {
         
         // AI story generation routes
         aiStoryRoutes()
+        
+        // Marketplace and creator economy routes
+        marketplaceRoutes()
         
         // Story Adventure routes (includes both standard plugin routes and platform-specific routes)
         storyAdventureRoutes()
