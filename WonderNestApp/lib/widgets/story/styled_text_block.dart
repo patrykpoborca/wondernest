@@ -566,29 +566,14 @@ class ScaledTextBlock extends StatelessWidget {
           'original=(${textBlock.position.x}, ${textBlock.position.y}, ${textBlock.size?.width}x${textBlock.size?.height}), '
           'scaled=($scaledX, $scaledY, ${scaledWidth}x?), scaleFactor=$scaleFactor');
       
-      // Wrap in a LayoutBuilder to be responsive to available space
+      // Position the text widget directly without intermediate layout widgets
       textWidget = Positioned(
         left: scaledX,
         top: scaledY,
         width: scaledWidth,
         // Remove fixed height constraint to prevent text clipping
         // Let text expand naturally based on content
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Wrap text in a Container with flexible sizing
-            return Container(
-              constraints: BoxConstraints(
-                // Set minimum height to 0 to allow natural text sizing
-                minHeight: 0,
-                // Set maximum width if specified, otherwise let it be flexible
-                maxWidth: constraints.maxWidth.isFinite 
-                    ? constraints.maxWidth 
-                    : double.infinity,
-              ),
-              child: textWidget,
-            );
-          },
-        ),
+        child: textWidget,
       );
     }
 

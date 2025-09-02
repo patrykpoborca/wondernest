@@ -16,6 +16,11 @@ import {
   Paper,
   Chip,
   CircularProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Alert,
 } from '@mui/material'
 import {
   Close as CloseIcon,
@@ -24,10 +29,13 @@ import {
   Collections as LibraryIcon,
   Image as ImageIcon,
   Check as CheckIcon,
+  MoreVert as MoreVertIcon,
+  Delete as DeleteIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { FileUploadWithTags } from '@/components/common/FileUploadWithTags'
-import { useGetUserFilesMutation } from '@/store/api/apiSlice'
+import { useGetUserFilesMutation, useDeleteFileMutation, useCheckFileUsageMutation } from '@/store/api/apiSlice'
 
 const ImageCard = styled(Paper)<{ selected?: boolean }>(({ theme, selected }) => ({
   position: 'relative',
@@ -111,7 +119,14 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [uploadedImages, setUploadedImages] = useState<any[]>([])
+  const [fileMenuAnchor, setFileMenuAnchor] = useState<{ element: HTMLElement; file: any } | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<any>(null)
+  const [fileUsageInfo, setFileUsageInfo] = useState<any>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [getUserFiles, { isLoading: isLoadingFiles }] = useGetUserFilesMutation()
+  const [deleteFile] = useDeleteFileMutation()
+  const [checkFileUsage, { isLoading: isCheckingUsage }] = useCheckFileUsageMutation()
 
   // Load user's uploaded images
   React.useEffect(() => {
@@ -166,6 +181,74 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
     if (file.url) {
       handleImageSelect(file.url)
     }
+  }
+
+  const handleFileMenuOpen = (event: React.MouseEvent<HTMLElement>, file: any) => {
+    event.stopPropagation()
+    setFileMenuAnchor({ element: event.currentTarget, file })
+  }
+
+  const handleFileMenuClose = () => {
+    setFileMenuAnchor(null)
+  }
+
+  const handleDeleteClick = async (file: any) => {
+    setFileToDelete(file)
+    handleFileMenuClose()
+    setDeleteError(null)
+    
+    // Check if file is used in any stories
+    try {
+      const usage = await checkFileUsage({ fileId: file.id }).unwrap()
+      setFileUsageInfo(usage)
+    } catch (error: any) {
+      console.error('Failed to check file usage:', error)
+      // If we can't check usage, assume it might be used to be safe
+      setFileUsageInfo({ 
+        isUsed: false, 
+        checkFailed: true,
+        error: error?.data?.error?.message || 'Unable to check if file is in use'
+      })
+    }
+    
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!fileToDelete) return
+    
+    setDeleteError(null)
+    
+    try {
+      // Use soft delete if file is being used or if we couldn't check
+      const softDelete = fileUsageInfo?.isUsed || fileUsageInfo?.checkFailed || false
+      await deleteFile({ fileId: fileToDelete.id, softDelete }).unwrap()
+      
+      // Remove from local state
+      setUploadedImages(prev => prev.filter(f => f.id !== fileToDelete.id))
+      
+      // Clear selection if deleted file was selected
+      setSelectedImages(prev => prev.filter(url => url !== fileToDelete.url))
+      
+      setDeleteConfirmOpen(false)
+      setFileToDelete(null)
+      setFileUsageInfo(null)
+      setDeleteError(null)
+    } catch (error: any) {
+      console.error('Failed to delete file:', error)
+      setDeleteError(
+        error?.data?.error?.message || 
+        error?.message || 
+        'Failed to delete file. Please try again.'
+      )
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false)
+    setFileToDelete(null)
+    setFileUsageInfo(null)
+    setDeleteError(null)
   }
 
   // Filter library images based on search and category
@@ -298,20 +381,39 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
             <Grid container spacing={2}>
               {uploadedImages.map(file => (
                 <Grid item xs={6} sm={4} md={3} key={file.id}>
-                  <ImageCard 
-                    selected={selectedImages.includes(file.url)}
-                    onClick={() => handleImageSelect(file.url)}
-                  >
-                    <ImageContent src={file.url} alt={file.originalName} />
-                    {selectedImages.includes(file.url) && (
-                      <SelectionOverlay>
-                        <CheckIcon sx={{ fontSize: 16 }} />
-                      </SelectionOverlay>
-                    )}
-                  </ImageCard>
-                  <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }} noWrap>
-                    {file.originalName}
-                  </Typography>
+                  <Box sx={{ position: 'relative' }}>
+                    <ImageCard 
+                      selected={selectedImages.includes(file.url)}
+                      onClick={() => handleImageSelect(file.url)}
+                    >
+                      <ImageContent src={file.url} alt={file.originalName} />
+                      {selectedImages.includes(file.url) && (
+                        <SelectionOverlay>
+                          <CheckIcon sx={{ fontSize: 16 }} />
+                        </SelectionOverlay>
+                      )}
+                      {/* More options button */}
+                      <IconButton
+                        onClick={(e) => handleFileMenuOpen(e, file)}
+                        sx={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 1)',
+                          },
+                          padding: 0.5,
+                        }}
+                        size="small"
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </ImageCard>
+                    <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }} noWrap>
+                      {file.originalName}
+                    </Typography>
+                  </Box>
                 </Grid>
               ))}
             </Grid>
@@ -338,6 +440,123 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
           {selectionMode === 'single' ? 'Select Image' : `Select ${selectedImages.length} Images`}
         </Button>
       </DialogActions>
+
+      {/* File Options Menu */}
+      <Menu
+        anchorEl={fileMenuAnchor?.element}
+        open={Boolean(fileMenuAnchor)}
+        onClose={handleFileMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={() => fileMenuAnchor && handleDeleteClick(fileMenuAnchor.file)}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete Image</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DeleteIcon color="error" />
+            <Typography variant="h6">Delete Image</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {isCheckingUsage ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Typography variant="body1" gutterBottom>
+                Are you sure you want to delete "{fileToDelete?.originalName}"?
+              </Typography>
+              
+              {/* Error message if deletion failed */}
+              {deleteError && (
+                <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="body2">
+                    {deleteError}
+                  </Typography>
+                </Alert>
+              )}
+              
+              {/* Warning if usage check failed */}
+              {fileUsageInfo?.checkFailed && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+                    Unable to verify if this image is used in stories
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    {fileUsageInfo.error}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+                    To be safe, the image will be soft deleted to prevent breaking any stories that might be using it.
+                  </Typography>
+                </Alert>
+              )}
+              
+              {/* Show usage info if file is being used */}
+              {fileUsageInfo?.isUsed && !fileUsageInfo?.checkFailed && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+                    This image is currently used in:
+                  </Typography>
+                  <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2 }}>
+                    {fileUsageInfo.stories?.map((story: any) => (
+                      <li key={story.id}>
+                        <Typography variant="body2">
+                          {story.title} ({story.pageCount} page{story.pageCount !== 1 ? 's' : ''})
+                        </Typography>
+                      </li>
+                    ))}
+                  </Box>
+                  <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+                    The image will be marked as deleted but preserved to prevent breaking these stories.
+                    It will no longer appear in your uploads.
+                  </Typography>
+                </Alert>
+              )}
+              
+              {/* Info if file is not being used */}
+              {!fileUsageInfo?.isUsed && !fileUsageInfo?.checkFailed && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    This image is not currently used in any stories and will be permanently deleted.
+                  </Typography>
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={isCheckingUsage}
+          >
+            {deleteError ? 'Retry' : 
+             fileUsageInfo?.isUsed || fileUsageInfo?.checkFailed ? 'Soft Delete' : 'Delete Permanently'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }

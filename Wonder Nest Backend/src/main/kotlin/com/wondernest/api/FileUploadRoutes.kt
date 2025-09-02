@@ -231,6 +231,31 @@ fun Route.fileUploadRoutes() {
                 }
             }
             
+            // Check file usage in stories
+            get("/{fileId}/usage") {
+                try {
+                    val user = call.extractUser()
+                    val fileId = UUID.fromString(call.parameters["fileId"])
+                    
+                    // TODO: Implement actual story usage checking
+                    // For now, return mock data
+                    val mockUsage = FileUsageResponse(
+                        isUsed = false,
+                        stories = emptyList()
+                    )
+                    
+                    call.respond(HttpStatusCode.OK, mockUsage)
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to check file usage" }
+                    call.respond(HttpStatusCode.InternalServerError, FileErrorResponse(
+                        error = ErrorDetails(
+                            code = "USAGE_CHECK_FAILED",
+                            message = "Failed to check file usage"
+                        )
+                    ))
+                }
+            }
+            
             // Delete file
             delete("/{fileId}") {
                 try {
@@ -240,26 +265,23 @@ fun Route.fileUploadRoutes() {
                     val deleted = fileUploadService.deleteFile(fileId, user.id)
                     
                     if (deleted) {
-                        call.respond(HttpStatusCode.OK, mapOf(
-                            "success" to true,
-                            "message" to "File deleted successfully"
+                        call.respond(HttpStatusCode.OK, FileDeleteSuccessResponse(
+                            message = "File deleted successfully"
                         ))
                     } else {
-                        call.respond(HttpStatusCode.NotFound, mapOf(
-                            "success" to false,
-                            "error" to mapOf(
-                                "code" to "FILE_NOT_FOUND",
-                                "message" to "File not found"
+                        call.respond(HttpStatusCode.NotFound, FileErrorResponse(
+                            error = ErrorDetails(
+                                code = "FILE_NOT_FOUND",
+                                message = "File not found"
                             )
                         ))
                     }
                 } catch (e: Exception) {
                     logger.error(e) { "Failed to delete file" }
-                    call.respond(HttpStatusCode.InternalServerError, mapOf(
-                        "success" to false,
-                        "error" to mapOf(
-                            "code" to "DELETE_FAILED",
-                            "message" to "Failed to delete file"
+                    call.respond(HttpStatusCode.InternalServerError, FileErrorResponse(
+                        error = ErrorDetails(
+                            code = "DELETE_FAILED",
+                            message = "Failed to delete file: ${e.message}"
                         )
                     ))
                 }

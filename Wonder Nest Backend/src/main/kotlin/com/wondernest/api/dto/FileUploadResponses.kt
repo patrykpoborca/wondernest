@@ -26,3 +26,22 @@ data class ErrorDetails(
     val code: String,
     val message: String
 )
+
+@Serializable
+data class FileDeleteSuccessResponse(
+    val success: Boolean = true,
+    val message: String
+)
+
+@Serializable
+data class FileUsageResponse(
+    val isUsed: Boolean,
+    val stories: List<StoryUsageInfo> = emptyList()
+)
+
+@Serializable
+data class StoryUsageInfo(
+    val id: String,
+    val title: String,
+    val pageCount: Int
+)
