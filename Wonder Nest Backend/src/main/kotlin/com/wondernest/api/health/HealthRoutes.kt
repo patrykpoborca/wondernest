@@ -37,6 +37,11 @@ fun Route.healthRoutes() {
     get("/health") {
         call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
     }
+    
+    // HEAD support for health check (used by load balancers)
+    head("/health") {
+        call.respond(HttpStatusCode.OK)
+    }
 
     // Detailed health check with service status
     get("/health/detailed") {

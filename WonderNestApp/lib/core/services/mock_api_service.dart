@@ -962,11 +962,26 @@ class MockApiService {
     String? childId,
     String? targetAge,
     List<String>? educationalGoals,
+    List<String>? characterPackIds,
   }) async {
     await Future.delayed(const Duration(seconds: 3)); // Simulate AI generation time
     
     final storyId = 'story_${DateTime.now().millisecondsSinceEpoch}';
     final generatedTitle = title ?? 'The ${_getRandomAdjective()} ${_getRandomNoun()}';
+    
+    // Get character pack names for the story
+    String characterInfo = '';
+    if (characterPackIds != null && characterPackIds.isNotEmpty) {
+      final mockPacks = _generateMockContentPacks();
+      final selectedPacks = mockPacks.where((pack) => 
+        characterPackIds.contains(pack['id']) && pack['packType'] == 'characterBundle'
+      ).toList();
+      
+      if (selectedPacks.isNotEmpty) {
+        final packNames = selectedPacks.map((pack) => pack['name']).join(', ');
+        characterInfo = ' featuring characters from $packNames';
+      }
+    }
     
     final story = {
       'id': storyId,
@@ -975,12 +990,12 @@ class MockApiService {
       'chapters': [
         {
           'title': 'Chapter 1: The Beginning',
-          'content': 'Once upon a time, in a land filled with wonder and magic, $prompt',
+          'content': 'Once upon a time, in a land filled with wonder and magic, $prompt$characterInfo.',
           'orderIndex': 0,
         },
         {
           'title': 'Chapter 2: The Adventure',
-          'content': 'Our hero embarked on an amazing journey, discovering new friends and learning valuable lessons along the way.',
+          'content': 'Our hero embarked on an amazing journey$characterInfo, discovering new friends and learning valuable lessons along the way.',
           'orderIndex': 1,
         },
         {
@@ -997,6 +1012,7 @@ class MockApiService {
         'wordCount': 250,
         'readingLevel': _getReadingLevel(targetAge ?? '3-5'),
         'safetyScore': 0.98,
+        'characterPackIds': characterPackIds ?? [],
       },
       'imageUrls': imageIds?.map((id) => 'https://placeholder.com/image/$id').toList() ?? [],
       'createdAt': DateTime.now().toIso8601String(),
@@ -1082,5 +1098,486 @@ The end.
       default:
         return 'All Ages';
     }
+  }
+
+  // ============================================================================
+  // Content Pack Mock Methods
+  // ============================================================================
+
+  /// Mock content pack categories
+  Future<Map<String, dynamic>> getContentPackCategories() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return {
+      'categories': [
+        {
+          'id': 'cat-1',
+          'name': 'Animals & Nature',
+          'description': 'Cute animals, forests, oceans, and natural environments',
+          'displayOrder': 1,
+          'iconUrl': '/icons/animals.svg',
+          'colorHex': '#4CAF50',
+          'isActive': true,
+          'ageMin': 3,
+          'ageMax': 12,
+          'createdAt': DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        {
+          'id': 'cat-2',
+          'name': 'Fantasy & Magic',
+          'description': 'Dragons, unicorns, castles, and magical worlds',
+          'displayOrder': 2,
+          'iconUrl': '/icons/fantasy.svg',
+          'colorHex': '#9C27B0',
+          'isActive': true,
+          'ageMin': 4,
+          'ageMax': 12,
+          'createdAt': DateTime.now().subtract(const Duration(days: 25)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        {
+          'id': 'cat-3',
+          'name': 'Transportation',
+          'description': 'Cars, trains, planes, boats, and vehicles',
+          'displayOrder': 3,
+          'iconUrl': '/icons/transport.svg',
+          'colorHex': '#2196F3',
+          'isActive': true,
+          'ageMin': 3,
+          'ageMax': 10,
+          'createdAt': DateTime.now().subtract(const Duration(days: 20)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      ]
+    };
+  }
+
+  /// Mock featured content packs
+  Future<Map<String, dynamic>> getFeaturedContentPacks({int limit = 10}) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    
+    final mockPacks = _generateMockContentPacks();
+    final featured = mockPacks.where((pack) => pack['isFeatured'] == true).take(limit).toList();
+    
+    return {
+      'packs': featured,
+    };
+  }
+
+  /// Mock search content packs
+  Future<Map<String, dynamic>> searchContentPacks(Map<String, dynamic> searchRequest) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    final mockPacks = _generateMockContentPacks();
+    var filtered = mockPacks.toList();
+    
+    // Apply search filters
+    final query = searchRequest['query'] as String?;
+    if (query != null && query.isNotEmpty) {
+      filtered = filtered.where((pack) =>
+          pack['name'].toString().toLowerCase().contains(query.toLowerCase()) ||
+          pack['description'].toString().toLowerCase().contains(query.toLowerCase())
+      ).toList();
+    }
+    
+    final packType = searchRequest['packType'] as String?;
+    if (packType != null) {
+      filtered = filtered.where((pack) => pack['packType'] == packType).toList();
+    }
+    
+    final isFree = searchRequest['isFree'] as bool?;
+    if (isFree != null) {
+      filtered = filtered.where((pack) => pack['isFree'] == isFree).toList();
+    }
+    
+    final page = searchRequest['page'] as int? ?? 0;
+    final size = searchRequest['size'] as int? ?? 20;
+    
+    final startIndex = page * size;
+    final endIndex = (startIndex + size).clamp(0, filtered.length);
+    final paginatedPacks = startIndex < filtered.length 
+        ? filtered.sublist(startIndex, endIndex) 
+        : <Map<String, dynamic>>[];
+    
+    return {
+      'packs': paginatedPacks,
+      'total': filtered.length,
+      'page': page,
+      'size': size,
+      'hasNext': endIndex < filtered.length,
+    };
+  }
+
+  /// Mock owned content packs
+  Future<Map<String, dynamic>> getOwnedContentPacks({String? childId}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    final mockPacks = _generateMockContentPacks();
+    // Return first 3 packs as owned for demo
+    final owned = mockPacks.take(3).map((pack) => <String, dynamic>{
+      ...pack,
+      'userOwnership': <String, dynamic>{
+        'id': 'ownership-${pack['id']}',
+        'userId': 'user-123',
+        'packId': pack['id'],
+        'childId': childId,
+        'acquiredAt': DateTime.now().subtract(const Duration(days: 7)).toIso8601String(),
+        'acquisitionType': 'purchase',
+        'purchasePriceCents': pack['priceCents'],
+        'transactionId': 'txn-${DateTime.now().millisecondsSinceEpoch}',
+        'downloadStatus': 'completed',
+        'downloadProgress': 100,
+        'downloadedAt': DateTime.now().subtract(const Duration(days: 6)).toIso8601String(),
+        'lastUsedAt': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        'usageCount': 15,
+        'isFavorite': pack['id'] == 'pack-1',
+        'isHidden': false,
+        'customTags': pack['id'] == 'pack-1' ? ['favorite'] : <String>[],
+      }
+    }).toList();
+    
+    return {
+      'packs': owned,
+    };
+  }
+
+  /// Mock content pack details
+  Future<Map<String, dynamic>> getContentPackDetails(String packId) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    
+    final mockPacks = _generateMockContentPacks();
+    final pack = mockPacks.firstWhere((p) => p['id'] == packId, orElse: () => mockPacks.first);
+    
+    // Add detailed assets
+    pack['assets'] = _generateMockPackAssets(packId);
+    
+    return {
+      'pack': pack,
+    };
+  }
+
+  /// Mock purchase content pack
+  Future<bool> purchaseContentPack({
+    required String packId,
+    String? childId,
+    String? paymentMethod,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    
+    // Simulate successful purchase
+    return true;
+  }
+
+  /// Mock update content pack download
+  Future<bool> updateContentPackDownload({
+    required String packId,
+    required String status,
+    int progress = 0,
+    String? childId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    return true;
+  }
+
+  /// Mock get content pack assets
+  Future<Map<String, dynamic>> getContentPackAssets({
+    required String packId,
+    String? childId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    return {
+      'assets': _generateMockPackAssets(packId),
+    };
+  }
+
+  /// Mock record content pack usage
+  Future<bool> recordContentPackUsage({
+    required String packId,
+    required String usedInFeature,
+    String? childId,
+    String? assetId,
+    String? sessionId,
+    int? usageDurationSeconds,
+    Map<String, dynamic>? metadata,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    return true;
+  }
+
+  /// Generate mock content packs
+  List<Map<String, dynamic>> _generateMockContentPacks() {
+    return [
+      {
+        'id': 'pack-1',
+        'name': 'Safari Animals',
+        'description': 'Meet amazing animals from the African safari! Lions, elephants, giraffes, and more friends waiting for adventures.',
+        'shortDescription': 'African safari animals for storytelling adventures',
+        'packType': 'CHARACTER_BUNDLE',
+        'categoryId': 'cat-1',
+        'category': {
+          'id': 'cat-1',
+          'name': 'Animals & Nature',
+          'description': 'Cute animals, forests, oceans, and natural environments',
+          'displayOrder': 1,
+          'iconUrl': '/icons/animals.svg',
+          'colorHex': '#4CAF50',
+          'isActive': true,
+          'ageMin': 3,
+          'ageMax': 12,
+          'createdAt': DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        'priceCents': 299,
+        'isFree': false,
+        'isFeatured': true,
+        'isPremium': false,
+        'ageMin': 3,
+        'ageMax': 10,
+        'educationalGoals': ['Science', 'Environmental Awareness', 'Reading'],
+        'curriculumTags': ['STEM', 'Nature Study'],
+        'thumbnailUrl': 'https://example.com/safari-thumb.jpg',
+        'previewUrls': [
+          'https://example.com/safari-preview1.jpg',
+          'https://example.com/safari-preview2.jpg',
+        ],
+        'bannerImageUrl': 'https://example.com/safari-banner.jpg',
+        'colorPalette': {
+          'primary': '#4CAF50',
+          'secondary': '#FFA726',
+          'accent': '#8BC34A',
+        },
+        'artStyle': 'Cartoon',
+        'moodTags': ['Adventurous', 'Educational', 'Friendly'],
+        'totalAssets': 12,
+        'fileSizeBytes': 15728640, // 15MB
+        'supportedPlatforms': ['ios', 'android', 'web'],
+        'minAppVersion': '1.0.0',
+        'performanceTier': 'standard',
+        'status': 'published',
+        'publishedAt': DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
+        'createdAt': DateTime.now().subtract(const Duration(days: 20)).toIso8601String(),
+        'updatedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+        'createdBy': 'admin-1',
+        'searchKeywords': 'safari animals lion elephant giraffe africa wildlife',
+        'popularityScore': 4.8,
+        'downloadCount': 1247,
+        'ratingAverage': 4.7,
+        'ratingCount': 89,
+        'assets': [],
+        'userOwnership': null,
+      },
+      {
+        'id': 'pack-2',
+        'name': 'Magical Castle',
+        'description': 'Enter a world of magic and wonder with enchanted castles, friendly dragons, and brave knights on epic quests.',
+        'shortDescription': 'Fantasy castle backgrounds and magical elements',
+        'packType': 'BACKDROP_COLLECTION',
+        'categoryId': 'cat-2',
+        'category': {
+          'id': 'cat-2',
+          'name': 'Fantasy & Magic',
+          'description': 'Dragons, unicorns, castles, and magical worlds',
+          'displayOrder': 2,
+          'iconUrl': '/icons/fantasy.svg',
+          'colorHex': '#9C27B0',
+          'isActive': true,
+          'ageMin': 4,
+          'ageMax': 12,
+          'createdAt': DateTime.now().subtract(const Duration(days: 25)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        'priceCents': 399,
+        'isFree': false,
+        'isFeatured': true,
+        'isPremium': true,
+        'ageMin': 4,
+        'ageMax': 12,
+        'educationalGoals': ['Creativity', 'Problem Solving', 'Social Skills'],
+        'curriculumTags': ['Creative Writing', 'Art'],
+        'thumbnailUrl': 'https://example.com/castle-thumb.jpg',
+        'previewUrls': [
+          'https://example.com/castle-preview1.jpg',
+          'https://example.com/castle-preview2.jpg',
+          'https://example.com/castle-preview3.jpg',
+        ],
+        'bannerImageUrl': 'https://example.com/castle-banner.jpg',
+        'colorPalette': {
+          'primary': '#9C27B0',
+          'secondary': '#673AB7',
+          'accent': '#E91E63',
+        },
+        'artStyle': 'Fantasy',
+        'moodTags': ['Magical', 'Adventurous', 'Inspiring'],
+        'totalAssets': 8,
+        'fileSizeBytes': 22020096, // 21MB
+        'supportedPlatforms': ['ios', 'android', 'web'],
+        'minAppVersion': '1.0.0',
+        'performanceTier': 'high',
+        'status': 'published',
+        'publishedAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
+        'createdAt': DateTime.now().subtract(const Duration(days: 18)).toIso8601String(),
+        'updatedAt': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+        'createdBy': 'admin-1',
+        'searchKeywords': 'castle magic fantasy dragon knight medieval fairy tale',
+        'popularityScore': 4.9,
+        'downloadCount': 892,
+        'ratingAverage': 4.8,
+        'ratingCount': 67,
+        'assets': [],
+        'userOwnership': null,
+      },
+      {
+        'id': 'pack-3',
+        'name': 'Happy Vehicles',
+        'description': 'Zoom into fun with cars, trucks, trains, and planes! Perfect for little ones who love things that go.',
+        'shortDescription': 'Collection of friendly vehicles for transportation stories',
+        'packType': 'STICKER_PACK',
+        'categoryId': 'cat-3',
+        'category': {
+          'id': 'cat-3',
+          'name': 'Transportation',
+          'description': 'Cars, trains, planes, boats, and vehicles',
+          'displayOrder': 3,
+          'iconUrl': '/icons/transport.svg',
+          'colorHex': '#2196F3',
+          'isActive': true,
+          'ageMin': 3,
+          'ageMax': 10,
+          'createdAt': DateTime.now().subtract(const Duration(days: 20)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        'priceCents': 0,
+        'isFree': true,
+        'isFeatured': false,
+        'isPremium': false,
+        'ageMin': 3,
+        'ageMax': 8,
+        'educationalGoals': ['Math', 'Problem Solving', 'Fine Motor Skills'],
+        'curriculumTags': ['Transportation', 'Counting'],
+        'thumbnailUrl': 'https://example.com/vehicles-thumb.jpg',
+        'previewUrls': [
+          'https://example.com/vehicles-preview1.jpg',
+        ],
+        'bannerImageUrl': 'https://example.com/vehicles-banner.jpg',
+        'colorPalette': {
+          'primary': '#2196F3',
+          'secondary': '#FF9800',
+          'accent': '#4CAF50',
+        },
+        'artStyle': 'Cartoon',
+        'moodTags': ['Fun', 'Energetic', 'Educational'],
+        'totalAssets': 15,
+        'fileSizeBytes': 8388608, // 8MB
+        'supportedPlatforms': ['ios', 'android', 'web'],
+        'minAppVersion': '1.0.0',
+        'performanceTier': 'standard',
+        'status': 'published',
+        'publishedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+        'createdAt': DateTime.now().subtract(const Duration(days: 12)).toIso8601String(),
+        'updatedAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'createdBy': 'admin-2',
+        'searchKeywords': 'vehicles cars trucks trains planes transportation free',
+        'popularityScore': 4.3,
+        'downloadCount': 2156,
+        'ratingAverage': 4.4,
+        'ratingCount': 142,
+        'assets': [],
+        'userOwnership': null,
+      },
+    ];
+  }
+
+  /// Generate mock pack assets
+  List<Map<String, dynamic>> _generateMockPackAssets(String packId) {
+    if (packId == 'pack-1') {
+      return [
+        {
+          'id': 'asset-1-1',
+          'packId': packId,
+          'name': 'Leo the Lion',
+          'description': 'A brave and friendly lion who loves adventures',
+          'assetType': 'IMAGE_STATIC',
+          'fileUrl': 'https://example.com/safari/leo-lion.png',
+          'thumbnailUrl': 'https://example.com/safari/leo-lion-thumb.png',
+          'fileFormat': 'png',
+          'fileSizeBytes': 1048576,
+          'dimensionsWidth': 512,
+          'dimensionsHeight': 512,
+          'durationSeconds': null,
+          'frameRate': null,
+          'tags': ['lion', 'brave', 'leader', 'safari'],
+          'colorPalette': {'primary': '#D2691E', 'secondary': '#FFD700'},
+          'transparencySupport': true,
+          'loopPoints': null,
+          'interactionConfig': null,
+          'animationTriggers': [],
+          'displayOrder': 1,
+          'groupName': 'Main Characters',
+          'isActive': true,
+          'createdAt': DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+        {
+          'id': 'asset-1-2',
+          'packId': packId,
+          'name': 'Ellie the Elephant',
+          'description': 'A gentle giant with a big heart and great memory',
+          'assetType': 'IMAGE_STATIC',
+          'fileUrl': 'https://example.com/safari/ellie-elephant.png',
+          'thumbnailUrl': 'https://example.com/safari/ellie-elephant-thumb.png',
+          'fileFormat': 'png',
+          'fileSizeBytes': 1234567,
+          'dimensionsWidth': 512,
+          'dimensionsHeight': 512,
+          'durationSeconds': null,
+          'frameRate': null,
+          'tags': ['elephant', 'gentle', 'memory', 'wise'],
+          'colorPalette': {'primary': '#708090', 'secondary': '#FFC0CB'},
+          'transparencySupport': true,
+          'loopPoints': null,
+          'interactionConfig': null,
+          'animationTriggers': [],
+          'displayOrder': 2,
+          'groupName': 'Main Characters',
+          'isActive': true,
+          'createdAt': DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
+          'updatedAt': DateTime.now().toIso8601String(),
+        },
+      ];
+    }
+    
+    // Default assets for other packs
+    return [
+      {
+        'id': 'asset-$packId-1',
+        'packId': packId,
+        'name': 'Sample Asset',
+        'description': 'A sample asset for demonstration',
+        'assetType': 'IMAGE_STATIC',
+        'fileUrl': 'https://example.com/assets/sample.png',
+        'thumbnailUrl': 'https://example.com/assets/sample-thumb.png',
+        'fileFormat': 'png',
+        'fileSizeBytes': 512000,
+        'dimensionsWidth': 256,
+        'dimensionsHeight': 256,
+        'durationSeconds': null,
+        'frameRate': null,
+        'tags': ['sample', 'demo'],
+        'colorPalette': {'primary': '#4CAF50'},
+        'transparencySupport': true,
+        'loopPoints': null,
+        'interactionConfig': null,
+        'animationTriggers': [],
+        'displayOrder': 1,
+        'groupName': 'Default',
+        'isActive': true,
+        'createdAt': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+    ];
   }
 }

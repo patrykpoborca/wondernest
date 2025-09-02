@@ -1,14 +1,14 @@
 import 'package:dio/dio.dart';
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import '../../core/services/timber_wrapper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'mock_api_service.dart';
 
 class ApiService {
-  // Use 10.0.2.2 for Android emulator, localhost for iOS simulator/physical devices
+  // Use 10.0.2.2 for Android emulator, localhost for iOS simulator/physical devices/web
   static String get baseUrl {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8080/api/v1';
     } else {
       return 'http://localhost:8080/api/v1';
@@ -17,7 +17,7 @@ class ApiService {
 
   // Enhanced API v2 for game data - using proper architecture
   static String get baseUrlV2 {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8080/api/v2';
     } else {
       return 'http://localhost:8080/api/v2';
@@ -25,7 +25,7 @@ class ApiService {
   }
   
   static String get healthUrl {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8080';
     } else {
       return 'http://localhost:8080';
@@ -49,7 +49,7 @@ class ApiService {
   
   ApiService._internal() {
     Timber.i('[API] Initializing ApiService');
-    Timber.i('[API] Platform: ${Platform.operatingSystem}');
+    Timber.i('[API] Platform: ${kIsWeb ? "web" : defaultTargetPlatform.toString()}');
     Timber.i('[API] Base URL: $baseUrl');
     Timber.i('[API] Health URL: $healthUrl');
     
@@ -321,7 +321,7 @@ class ApiService {
     }
     
     Timber.i('[API] Making login request to $baseUrl/auth/parent/login');
-    Timber.i('[API] Platform: ${Platform.operatingSystem}');
+    Timber.i('[API] Platform: ${kIsWeb ? "web" : defaultTargetPlatform.toString()}');
     Timber.i('[API] Base URL: $baseUrl');
     
     return _dio.post('/auth/parent/login', data: {
@@ -887,6 +887,7 @@ class ApiService {
     String? childId,
     String? targetAge,
     List<String>? educationalGoals,
+    List<String>? characterPackIds,
   }) async {
     if (_useMockService) {
       return _mockService.generateAIStory(
@@ -896,6 +897,7 @@ class ApiService {
         childId: childId,
         targetAge: targetAge,
         educationalGoals: educationalGoals,
+        characterPackIds: characterPackIds,
       );
     }
     
@@ -909,6 +911,7 @@ class ApiService {
         'childId': childId,
         'targetAge': targetAge ?? '3-5',
         'educationalGoals': educationalGoals ?? [],
+        'characterPackIds': characterPackIds ?? [],
       });
       
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -977,6 +980,255 @@ class ApiService {
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       Timber.e('Error saving story to library: $e');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // Content Pack API Methods
+  // ============================================================================
+
+  /// Get content pack categories
+  Future<Map<String, dynamic>?> getContentPackCategories() async {
+    if (_useMockService) {
+      return _mockService.getContentPackCategories();
+    }
+    
+    Timber.d('[API] Getting content pack categories');
+    
+    try {
+      final response = await _dio.get('/content-packs/categories');
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting content pack categories: $e');
+      return null;
+    }
+  }
+
+  /// Get featured content packs
+  Future<Map<String, dynamic>?> getFeaturedContentPacks({int limit = 10}) async {
+    if (_useMockService) {
+      return _mockService.getFeaturedContentPacks(limit: limit);
+    }
+    
+    Timber.d('[API] Getting featured content packs');
+    
+    try {
+      final response = await _dio.get('/content-packs/featured', 
+        queryParameters: {'limit': limit});
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting featured content packs: $e');
+      return null;
+    }
+  }
+
+  /// Search content packs
+  Future<Map<String, dynamic>?> searchContentPacks(Map<String, dynamic> searchRequest) async {
+    if (_useMockService) {
+      return _mockService.searchContentPacks(searchRequest);
+    }
+    
+    Timber.d('[API] Searching content packs');
+    
+    try {
+      final response = await _dio.get('/content-packs', 
+        queryParameters: searchRequest);
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error searching content packs: $e');
+      return null;
+    }
+  }
+
+  /// Get owned content packs
+  Future<Map<String, dynamic>?> getOwnedContentPacks({String? childId}) async {
+    if (_useMockService) {
+      return _mockService.getOwnedContentPacks(childId: childId);
+    }
+    
+    Timber.d('[API] Getting owned content packs');
+    
+    try {
+      final queryParams = childId != null ? {'childId': childId} : <String, String>{};
+      final response = await _dio.get('/content-packs/owned', 
+        queryParameters: queryParams);
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting owned content packs: $e');
+      return null;
+    }
+  }
+
+  /// Get content pack details
+  Future<Map<String, dynamic>?> getContentPackDetails(String packId) async {
+    if (_useMockService) {
+      return _mockService.getContentPackDetails(packId);
+    }
+    
+    Timber.d('[API] Getting content pack details: $packId');
+    
+    try {
+      final response = await _dio.get('/content-packs/$packId');
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting content pack details: $e');
+      return null;
+    }
+  }
+
+  /// Purchase a content pack
+  Future<bool> purchaseContentPack({
+    required String packId,
+    String? childId,
+    String? paymentMethod,
+  }) async {
+    if (_useMockService) {
+      return _mockService.purchaseContentPack(
+        packId: packId, 
+        childId: childId,
+        paymentMethod: paymentMethod,
+      );
+    }
+    
+    Timber.d('[API] Purchasing content pack: $packId');
+    
+    try {
+      final data = {
+        'packId': packId,
+        if (childId != null) 'childId': childId,
+        if (paymentMethod != null) 'paymentMethod': paymentMethod,
+      };
+      
+      final response = await _dio.post('/content-packs/purchase', data: data);
+      
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      Timber.e('Error purchasing content pack: $e');
+      return false;
+    }
+  }
+
+  /// Update content pack download status
+  Future<bool> updateContentPackDownload({
+    required String packId,
+    required String status,
+    int progress = 0,
+    String? childId,
+  }) async {
+    if (_useMockService) {
+      return _mockService.updateContentPackDownload(
+        packId: packId,
+        status: status,
+        progress: progress,
+        childId: childId,
+      );
+    }
+    
+    Timber.d('[API] Updating content pack download: $packId - $status');
+    
+    try {
+      final data = {
+        'status': status,
+        'progress': progress,
+        if (childId != null) 'childId': childId,
+      };
+      
+      final response = await _dio.patch('/content-packs/$packId/download', data: data);
+      
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      Timber.e('Error updating content pack download: $e');
+      return false;
+    }
+  }
+
+  /// Get content pack assets
+  Future<Map<String, dynamic>?> getContentPackAssets({
+    required String packId,
+    String? childId,
+  }) async {
+    if (_useMockService) {
+      return _mockService.getContentPackAssets(packId: packId, childId: childId);
+    }
+    
+    Timber.d('[API] Getting content pack assets: $packId');
+    
+    try {
+      final queryParams = childId != null ? {'childId': childId} : <String, String>{};
+      final response = await _dio.get('/content-packs/$packId/assets',
+        queryParameters: queryParams);
+      
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      Timber.e('Error getting content pack assets: $e');
+      return null;
+    }
+  }
+
+  /// Record content pack usage
+  Future<bool> recordContentPackUsage({
+    required String packId,
+    required String usedInFeature,
+    String? childId,
+    String? assetId,
+    String? sessionId,
+    int? usageDurationSeconds,
+    Map<String, dynamic>? metadata,
+  }) async {
+    if (_useMockService) {
+      return _mockService.recordContentPackUsage(
+        packId: packId,
+        usedInFeature: usedInFeature,
+        childId: childId,
+        assetId: assetId,
+        sessionId: sessionId,
+        usageDurationSeconds: usageDurationSeconds,
+        metadata: metadata,
+      );
+    }
+    
+    Timber.d('[API] Recording content pack usage: $packId in $usedInFeature');
+    
+    try {
+      final data = {
+        'packId': packId,
+        'usedInFeature': usedInFeature,
+        if (childId != null) 'childId': childId,
+        if (assetId != null) 'assetId': assetId,
+        if (sessionId != null) 'sessionId': sessionId,
+        if (usageDurationSeconds != null) 'usageDurationSeconds': usageDurationSeconds,
+        if (metadata != null) 'metadata': metadata,
+      };
+      
+      final response = await _dio.post('/content-packs/usage', data: data);
+      
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      Timber.e('Error recording content pack usage: $e');
       return false;
     }
   }

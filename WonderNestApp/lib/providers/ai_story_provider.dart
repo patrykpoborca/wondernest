@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/ai_story.dart';
 import 'auth_provider.dart';
+import 'content_pack_provider.dart';
 
 final aiStoryProvider = StateNotifierProvider<AIStoryNotifier, AIStoryState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return AIStoryNotifier(apiService);
+  final contentPackNotifier = ref.watch(contentPackProvider.notifier);
+  return AIStoryNotifier(apiService, contentPackNotifier);
 });
 
 class AIStoryState {
@@ -41,8 +43,9 @@ class AIStoryState {
 
 class AIStoryNotifier extends StateNotifier<AIStoryState> {
   final ApiService _apiService;
+  final ContentPackNotifier _contentPackNotifier;
 
-  AIStoryNotifier(this._apiService) : super(AIStoryState());
+  AIStoryNotifier(this._apiService, this._contentPackNotifier) : super(AIStoryState());
 
   Future<AIStory?> generateStory({
     required String prompt,
@@ -51,6 +54,7 @@ class AIStoryNotifier extends StateNotifier<AIStoryState> {
     String? childId,
     String? ageRange,
     List<String>? educationalGoals,
+    List<String>? characterPackIds,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -62,6 +66,7 @@ class AIStoryNotifier extends StateNotifier<AIStoryState> {
         childId: childId,
         targetAge: ageRange ?? '3-5',
         educationalGoals: educationalGoals ?? [],
+        characterPackIds: characterPackIds ?? [],
       );
 
       if (response != null) {
@@ -71,6 +76,24 @@ class AIStoryNotifier extends StateNotifier<AIStoryState> {
           currentStory: story,
           storyHistory: [story, ...state.storyHistory],
         );
+        
+        // Record pack usage for each character pack used
+        if (characterPackIds != null && characterPackIds.isNotEmpty) {
+          for (final packId in characterPackIds) {
+            await _contentPackNotifier.recordPackUsage(
+              packId: packId,
+              usedInFeature: 'ai_story_generation',
+              childId: childId,
+              sessionId: story.id,
+              metadata: {
+                'storyId': story.id,
+                'storyTitle': story.title,
+                'prompt': prompt,
+              },
+            );
+          }
+        }
+        
         return story;
       } else {
         state = state.copyWith(

@@ -14,6 +14,7 @@ import com.wondernest.api.games.enhancedGameRoutes
 import com.wondernest.api.games.storyAdventureRoutes
 import com.wondernest.api.health.healthRoutes
 import com.wondernest.api.marketplace.marketplaceRoutes
+import com.wondernest.routes.contentPackRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
@@ -95,6 +96,7 @@ fun Application.configureRouting() {
             coppaRoutes()
             fileUploadRoutes()         // File upload routes
             gameDataRoutes()           // Legacy game data routes (SimpleGameData)
+            contentPackRoutes()         // Content packs marketplace routes
         }
         
         // API v2 routes with proper game architecture

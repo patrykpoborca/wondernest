@@ -13,6 +13,7 @@ import com.wondernest.services.email.EmailService
 import com.wondernest.services.family.FamilyService
 // import com.wondernest.services.games.*
 import com.wondernest.services.notification.NotificationService
+import com.wondernest.services.ContentPackServiceSimple
 // import com.wondernest.services.storage.StorageService
 import io.ktor.server.application.*
 import org.koin.dsl.module
@@ -107,6 +108,9 @@ val serviceModule = module {
     // Marketplace services
     single { com.wondernest.services.marketplace.MarketplaceService(get()) }
     single { com.wondernest.services.marketplace.CreatorService() }
+    
+    // Content Pack services - using simplified version temporarily
+    single { ContentPackServiceSimple() }
     
     // Game services - temporarily disabled
     // single<GameService> { GameServiceImpl(get(), get(), get(), get()) } // gameRegistryRepo, instanceRepo, dataRepo, sessionRepo

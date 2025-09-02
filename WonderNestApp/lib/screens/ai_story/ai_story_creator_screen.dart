@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/ai_story_provider.dart';
+import '../../providers/content_pack_provider.dart';
 
 class AIStoryCreatorScreen extends ConsumerStatefulWidget {
   const AIStoryCreatorScreen({super.key});
@@ -19,6 +20,7 @@ class _AIStoryCreatorScreenState extends ConsumerState<AIStoryCreatorScreen> {
   final List<String> _selectedImageIds = [];
   String _selectedAgeRange = '3-5';
   final List<String> _selectedEducationalGoals = [];
+  final List<String> _selectedCharacterPacks = [];
   bool _isGenerating = false;
 
   final List<String> _ageRanges = ['3-5', '6-8', '9-12'];
@@ -34,6 +36,14 @@ class _AIStoryCreatorScreenState extends ConsumerState<AIStoryCreatorScreen> {
     'Environmental Awareness',
     'Cultural Diversity',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(contentPackProvider.notifier).loadOwnedPacks();
+    });
+  }
 
   @override
   void dispose() {
@@ -61,6 +71,7 @@ class _AIStoryCreatorScreenState extends ConsumerState<AIStoryCreatorScreen> {
         imageIds: _selectedImageIds,
         ageRange: _selectedAgeRange,
         educationalGoals: _selectedEducationalGoals,
+        characterPackIds: _selectedCharacterPacks,
       );
 
       if (mounted && story != null) {
@@ -236,6 +247,11 @@ class _AIStoryCreatorScreenState extends ConsumerState<AIStoryCreatorScreen> {
                     );
                   }).toList(),
                 ).animate().fadeIn(delay: 500.ms),
+                
+                const SizedBox(height: 24),
+                
+                // Character Pack Selection
+                _buildCharacterPackSection(),
                 
                 const SizedBox(height: 24),
                 
@@ -546,6 +562,221 @@ class _AIStoryCreatorScreenState extends ConsumerState<AIStoryCreatorScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCharacterPackSection() {
+    final contentPackState = ref.watch(contentPackProvider);
+    final characterPacks = contentPackState.ownedPacks
+        .where((pack) => pack.packType == 'characterBundle')
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Character Packs (Optional)'),
+        Text(
+          'Select character packs to include characters in your story',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        
+        if (contentPackState.isLoading)
+          const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryBlue,
+            ),
+          )
+        else if (characterPacks.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.textSecondary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 48,
+                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No character packs owned yet',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      context.push('/content-packs');
+                    },
+                    child: const Text('Browse Character Packs'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: characterPacks.length,
+              itemBuilder: (context, index) {
+                final pack = characterPacks[index];
+                final isSelected = _selectedCharacterPacks.contains(pack.id);
+                
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedCharacterPacks.remove(pack.id);
+                        } else {
+                          _selectedCharacterPacks.add(pack.id);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected 
+                            ? AppColors.accentGreen
+                            : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(9),
+                            child: Container(
+                              width: 100,
+                              height: 120,
+                              color: AppColors.backgroundLight,
+                              child: pack.thumbnailUrl != null
+                                ? Image.network(
+                                    pack.thumbnailUrl!,
+                                    width: 100,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: AppColors.backgroundLight,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.people,
+                                              color: AppColors.textSecondary,
+                                              size: 32,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              pack.name,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.people,
+                                        color: AppColors.textSecondary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Text(
+                                          pack.name,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGreen,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 4,
+                            left: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                pack.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: Duration(milliseconds: 600 + (index * 50))),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }

@@ -29,6 +29,7 @@ import 'screens/security/pin_entry_screen.dart';
 import 'screens/coppa/coppa_consent_screen.dart';
 import 'screens/ai_story/ai_story_creator_screen.dart';
 import 'screens/ai_story/story_viewer_screen.dart';
+import 'screens/content_packs/content_pack_browser_screen.dart';
 import 'models/ai_story.dart';
 import 'screens/games/mini_game_framework.dart';
 import 'screens/games/game_plugin_framework.dart';
@@ -223,6 +224,12 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
             }
             return StoryViewerScreen(story: story);
           },
+        ),
+        
+        // Content Pack Browser
+        GoRoute(
+          path: '/content-packs',
+          builder: (context, state) => const ContentPackBrowserScreen(),
         ),
         
         // Authentication & Onboarding
