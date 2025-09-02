@@ -1,5 +1,6 @@
 package com.wondernest.config
 
+import com.wondernest.api.ai.aiStoryRoutes
 import com.wondernest.api.analytics.analyticsRoutes
 import com.wondernest.api.audio.audioRoutes
 import com.wondernest.api.auth.authRoutes
@@ -102,6 +103,9 @@ fun Application.configureRouting() {
             enhancedGameRoutes()        // Legacy enhanced routes
             fileRoutes()                // Enhanced file routes with tagging
         }
+        
+        // AI story generation routes
+        aiStoryRoutes()
         
         // Story Adventure routes (includes both standard plugin routes and platform-specific routes)
         storyAdventureRoutes()

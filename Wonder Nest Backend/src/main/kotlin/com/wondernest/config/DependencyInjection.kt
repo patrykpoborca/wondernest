@@ -1,5 +1,6 @@
 package com.wondernest.config
 
+import com.wondernest.config.aiModule
 import com.wondernest.data.cache.RedisCache
 import com.wondernest.data.database.DatabaseFactory
 import com.wondernest.data.database.repository.*
@@ -29,7 +30,8 @@ fun Application.configureDependencyInjection() {
             databaseModule,
             repositoryModule,
             useCaseModule,
-            serviceModule
+            serviceModule,
+            aiModule
         )
     }
 }
