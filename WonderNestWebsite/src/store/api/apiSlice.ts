@@ -233,7 +233,7 @@ export const apiSlice = createApi({
         method: 'GET',
         params: { category },
       }),
-      providesTags: ['File'],
+      invalidatesTags: ['File'],
     }),
     
     getFile: builder.query<any, string>({
@@ -241,12 +241,20 @@ export const apiSlice = createApi({
       providesTags: (_, __, fileId) => [{ type: 'File', id: fileId }],
     }),
     
-    deleteFile: builder.mutation<any, string>({
-      query: (fileId) => ({
+    deleteFile: builder.mutation<any, { fileId: string; softDelete?: boolean }>({
+      query: ({ fileId, softDelete }) => ({
         url: `/files/${fileId}`,
         method: 'DELETE',
+        params: { softDelete },
       }),
-      invalidatesTags: (_, __, fileId) => [{ type: 'File', id: fileId }, 'File'],
+      invalidatesTags: (_, __, { fileId }) => [{ type: 'File', id: fileId }, 'File'],
+    }),
+    
+    checkFileUsage: builder.mutation<any, { fileId: string }>({
+      query: ({ fileId }) => ({
+        url: `/files/${fileId}/usage`,
+        method: 'GET',
+      }),
     }),
     
     listUserFiles: builder.query<any, { category?: string; childId?: string; limit?: number; offset?: number }>({
@@ -315,6 +323,7 @@ export const {
   useGetUserFilesMutation,
   useGetFileQuery,
   useDeleteFileMutation,
+  useCheckFileUsageMutation,
   useListUserFilesQuery,
   useSaveGameDataMutation,
   useLoadGameDataQuery,

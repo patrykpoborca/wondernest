@@ -61,16 +61,28 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     user, 
     hasAnyRole, 
     hasAnyPermission, 
-    hasAllPermissions 
+    hasAllPermissions,
+    token 
   } = useAuth()
   
-  // Show loading screen while authentication state is being determined
-  if (isLoading) {
+  // Show loading screen only on initial load
+  // Don't show loading for subsequent navigations
+  const [initialLoadComplete, setInitialLoadComplete] = React.useState(false)
+  
+  React.useEffect(() => {
+    if (!isLoading) {
+      setInitialLoadComplete(true)
+    }
+  }, [isLoading])
+  
+  // Show loading only on initial app load
+  if (!initialLoadComplete && isLoading) {
     return <LoadingScreen message="Checking authentication..." />
   }
   
   // Redirect to fallback if not authenticated
-  if (!isAuthenticated || !user) {
+  // Check both isAuthenticated and token to ensure we have valid auth
+  if (!isAuthenticated || !user || !token) {
     return <Navigate to={fallback} replace />
   }
   

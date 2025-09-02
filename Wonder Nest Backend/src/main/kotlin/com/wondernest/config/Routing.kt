@@ -7,6 +7,7 @@ import com.wondernest.api.content.contentRoutes
 import com.wondernest.api.coppa.coppaRoutes
 import com.wondernest.api.family.familyRoutes
 import com.wondernest.api.fileUploadRoutes
+import com.wondernest.server.api.fileRoutes
 import com.wondernest.api.games.gameDataRoutes
 import com.wondernest.api.games.enhancedGameRoutes
 import com.wondernest.api.games.storyAdventureRoutes
@@ -99,6 +100,7 @@ fun Application.configureRouting() {
             authRoutes()                // Reuse auth for v2
             gameDataRoutes()            // Standard game data routes (plugin architecture)
             enhancedGameRoutes()        // Legacy enhanced routes
+            fileRoutes()                // Enhanced file routes with tagging
         }
         
         // Story Adventure routes (includes both standard plugin routes and platform-specific routes)

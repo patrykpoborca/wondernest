@@ -37,6 +37,9 @@ object UploadedFiles : UUIDTable("core.uploaded_files") {
         deserialize = { Json.decodeFromString(it) }
     )
     
+    // Soft delete support
+    val isDeleted = bool("is_deleted").default(false)
+    
     // Timestamps
     val uploadedAt = timestamp("uploaded_at")
     val accessedAt = timestamp("accessed_at").nullable()

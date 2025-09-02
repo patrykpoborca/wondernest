@@ -8,11 +8,9 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App'
 import { store } from './store'
 import { marketingTheme } from './theme/marketingTheme'
-import { loginSuccess, restoreSession } from './store/slices/authSlice'
+import { loginSuccess } from './store/slices/authSlice'
 import { UserRole, Permission } from './types/auth'
-
-// Restore session from localStorage on app start
-store.dispatch(restoreSession())
+import AuthProvider from './components/auth/AuthProvider'
 
 // Development-only mock authentication with query parameter
 // Use by adding ?mock=true to the URL (e.g., http://localhost:3004?mock=true)
@@ -62,12 +60,14 @@ if (import.meta.env.DEV && !import.meta.env.PROD) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <ThemeProvider theme={marketingTheme}>
-          <CssBaseline />
-          <App />
-        </ThemeProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <ThemeProvider theme={marketingTheme}>
+            <CssBaseline />
+            <App />
+          </ThemeProvider>
+        </BrowserRouter>
+      </AuthProvider>
     </Provider>
   </React.StrictMode>,
 )

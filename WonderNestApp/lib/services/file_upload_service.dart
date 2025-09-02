@@ -75,14 +75,30 @@ class FileUploadService {
     }
   }
 
-  /// Upload a file
-  Future<UploadedFile?> uploadFile({
+  /// Upload a file with tags
+  Future<UploadedFile?> uploadFileWithTags({
     required File file,
     required FileCategory category,
+    required List<String> tags,
     String? childId,
     bool isPublic = false,
+    bool isSystemImage = false,
     Function(double)? onProgress,
   }) async {
+    // Validate tags
+    if (!isSystemImage && tags.length < 2) {
+      Timber.e('At least 2 tags are required for non-system images');
+      throw Exception('At least 2 tags are required');
+    }
+    
+    for (final tag in tags) {
+      if (tag.isEmpty || tag.length > 50) {
+        throw Exception('Invalid tag: $tag');
+      }
+      if (!RegExp(r'^[a-zA-Z0-9-_]+$').hasMatch(tag)) {
+        throw Exception('Tag contains invalid characters: $tag');
+      }
+    }
     try {
       final fileName = file.path.split('/').last;
       final fileBytes = await file.readAsBytes();
@@ -100,11 +116,13 @@ class FileUploadService {
         ),
       });
 
-      // Add query parameters
+      // Add query parameters including tags
       final queryParams = {
         'category': category.name,
+        'tags': tags.join(','),
         if (childId != null) 'childId': childId,
         'isPublic': isPublic.toString(),
+        'isSystemImage': isSystemImage.toString(),
       };
 
       final response = await _apiService.uploadFile(
@@ -125,15 +143,37 @@ class FileUploadService {
     }
   }
 
-  /// Upload profile picture
+  /// Upload a file (legacy method - requires tags)
+  Future<UploadedFile?> uploadFile({
+    required File file,
+    required FileCategory category,
+    String? childId,
+    bool isPublic = false,
+    Function(double)? onProgress,
+  }) async {
+    // Default tags for legacy uploads
+    final defaultTags = ['uploaded', category.name];
+    return uploadFileWithTags(
+      file: file,
+      category: category,
+      tags: defaultTags,
+      childId: childId,
+      isPublic: isPublic,
+      onProgress: onProgress,
+    );
+  }
+  
+  /// Upload profile picture with tags
   Future<UploadedFile?> uploadProfilePicture({
     required File image,
+    List<String> tags = const ['profile', 'avatar'],
     String? childId,
     Function(double)? onProgress,
   }) async {
-    return uploadFile(
+    return uploadFileWithTags(
       file: image,
       category: FileCategory.profilePicture,
+      tags: tags,
       childId: childId,
       isPublic: true,
       onProgress: onProgress,

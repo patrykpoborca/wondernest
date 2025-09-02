@@ -26,7 +26,7 @@ import {
   Check as CheckIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
-import { FileUpload } from '@/components/common/FileUpload'
+import { FileUploadWithTags } from '@/components/common/FileUploadWithTags'
 import { useGetUserFilesMutation } from '@/store/api/apiSlice'
 
 const ImageCard = styled(Paper)<{ selected?: boolean }>(({ theme, selected }) => ({
@@ -277,7 +277,7 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
         {/* Uploads Tab */}
         <TabPanel value={activeTab} index={1}>
           <Box sx={{ mb: 3 }}>
-            <FileUpload
+            <FileUploadWithTags
               accept={{
                 'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
               }}
@@ -285,6 +285,8 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
               category="game_asset"
               isPublic={false}
               onUploadComplete={handleUploadComplete}
+              requireTags={true}
+              minTags={2}
             />
           </Box>
 
