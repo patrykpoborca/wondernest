@@ -5,7 +5,7 @@ use crate::{
     db::{UserRepository, FamilyRepository},
     models::{
         SignupRequest, LoginRequest, AuthResponse, AuthData, TokenPair, MessageResponse,
-        User, UserSession, Family, FamilyMember, NewUser,
+        User, UserSession, Family, FamilyMember, NewUser, OAuthLoginRequest,
     },
     services::{
         jwt::JwtService,
@@ -346,6 +346,179 @@ impl AuthService {
             Ok(self.user_repo.invalidate_session(session.id).await?)
         } else {
             Ok(false)
+        }
+    }
+
+    // Logout all sessions for user (for protected logout endpoint)
+    pub async fn logout_all_sessions(&self, user_id: uuid::Uuid) -> Result<bool, AuthServiceError> {
+        Ok(self.user_repo.invalidate_all_user_sessions(user_id).await?)
+    }
+
+    // Verify user email (matching Kotlin verifyEmail exactly)
+    pub async fn verify_email(&self, user_id: uuid::Uuid) -> Result<bool, AuthServiceError> {
+        Ok(self.user_repo.verify_user_email(user_id).await?)
+    }
+
+    // Request password reset (matching Kotlin requestPasswordReset exactly)
+    pub async fn request_password_reset(&self, email: &str) -> Result<bool, AuthServiceError> {
+        use uuid::Uuid;
+        use chrono::{Duration, Utc};
+        
+        // Check if user exists
+        let user = match self.user_repo.get_user_by_email(email).await? {
+            Some(user) => user,
+            None => {
+                // Don't reveal if user exists
+                tracing::info!("Password reset requested for non-existent email: {}", email);
+                return Ok(true); // Always return success
+            }
+        };
+
+        // Generate reset token
+        let reset_token = format!("{}", Uuid::new_v4());
+        let now = Utc::now();
+        
+        let password_reset_token = crate::models::PasswordResetToken {
+            id: Uuid::new_v4(),
+            user_id: user.id,
+            token: reset_token.clone(),
+            used: false,
+            expires_at: now + Duration::hours(24), // 24 hour expiry
+            created_at: now,
+        };
+
+        // Store reset token
+        self.user_repo.create_password_reset_token(&password_reset_token).await?;
+        
+        // TODO: Send email with reset link
+        tracing::info!("Password reset token generated for user: {} ({})", user.email, user.id);
+        
+        Ok(true)
+    }
+
+    // Reset password (matching Kotlin resetPassword exactly)
+    pub async fn reset_password(&self, token: &str, new_password: &str) -> Result<bool, AuthServiceError> {
+        // Validate password first
+        self.validate_password(new_password)?;
+        
+        // Get and validate reset token
+        let reset_token = match self.user_repo.get_password_reset_token(token).await? {
+            Some(token) => token,
+            None => {
+                tracing::warn!("Invalid or expired password reset token used");
+                return Ok(false);
+            }
+        };
+
+        // Hash new password
+        let new_password_hash = self.password_service.hash_password(new_password)?;
+        
+        // Update user password
+        let success = self.user_repo.update_user_password(reset_token.user_id, &new_password_hash).await?;
+        
+        if success {
+            // Mark token as used
+            self.user_repo.mark_password_reset_token_used(reset_token.id).await?;
+            
+            // Invalidate all user sessions for security
+            self.user_repo.invalidate_all_user_sessions(reset_token.user_id).await?;
+            
+            tracing::info!("Password reset successful for user: {}", reset_token.user_id);
+        }
+        
+        Ok(success)
+    }
+
+    // OAuth login (matching Kotlin oauthLogin exactly)
+    pub async fn oauth_login(&self, request: OAuthLoginRequest) -> Result<AuthResponse, AuthServiceError> {
+        // For now, we'll implement a basic OAuth flow validation
+        // In production, this would verify the ID token with the respective provider
+        
+        // TODO: Implement actual OAuth token verification with Google/Apple/Facebook
+        // For development purposes, we'll mock the OAuth validation
+        
+        // Validate provider
+        let valid_providers = ["google", "apple", "facebook"];
+        if !valid_providers.contains(&request.provider.as_str()) {
+            return Err(AuthServiceError::ValidationError("Unsupported OAuth provider".to_string()));
+        }
+
+        // Mock OAuth token validation - in production, verify with provider
+        if request.id_token.is_empty() || request.id_token.len() < 10 {
+            return Err(AuthServiceError::SecurityError("Invalid OAuth token".to_string()));
+        }
+        
+        // For demonstration, we'll extract a mock email from the token
+        // In production, this would come from the verified OAuth payload
+        let mock_email = format!("oauth_user_{}@example.com", 
+            &request.id_token[..std::cmp::min(8, request.id_token.len())]);
+        
+        // Check if user exists
+        let existing_user = self.user_repo.get_user_by_email(&mock_email).await?;
+        
+        if let Some(user) = existing_user {
+            // User exists - log them in
+            if !user.is_active {
+                return Err(AuthServiceError::SecurityError("Account suspended".to_string()));
+            }
+            
+            // Update last login
+            self.user_repo.update_last_login(user.id).await?;
+            
+            // Generate tokens
+            let token_pair = self.jwt_service.generate_token(&user)?;
+            
+            // Create session
+            let session = self.create_user_session(&user, &token_pair)?;
+            self.user_repo.create_session(&session).await?;
+            
+            tracing::info!("OAuth user logged in: {} ({})", user.email, user.id);
+            
+            Ok(AuthResponse::success(AuthData {
+                user_id: user.id.to_string(),
+                email: user.email,
+                access_token: token_pair.access_token,
+                refresh_token: token_pair.refresh_token,
+                expires_in: token_pair.expires_in,
+                has_pin: false, // TODO: Check if user has PIN set up
+                requires_pin_setup: false, // OAuth users might not need PINs
+                children: vec![], // TODO: Get children if family context
+            }))
+        } else {
+            // User doesn't exist - create new OAuth user
+            let _now = Utc::now();
+            
+            let mut new_user = NewUser::default();
+            new_user.id = Uuid::new_v4();
+            new_user.email = mock_email.clone();
+            new_user.auth_provider = request.provider.clone();
+            new_user.email_verified = true; // OAuth emails are typically verified
+            new_user.first_name = Some("OAuth".to_string()); // TODO: Extract from provider
+            new_user.last_name = Some("User".to_string());
+            
+            let created_user = self.user_repo.create_user(&new_user).await?;
+            
+            // No password hash for OAuth users - they login via provider only
+            
+            // Generate tokens
+            let token_pair = self.jwt_service.generate_token(&created_user)?;
+            
+            // Create session
+            let session = self.create_user_session(&created_user, &token_pair)?;
+            self.user_repo.create_session(&session).await?;
+            
+            tracing::info!("New OAuth user created and logged in: {} ({})", created_user.email, created_user.id);
+            
+            Ok(AuthResponse::success(AuthData {
+                user_id: created_user.id.to_string(),
+                email: created_user.email,
+                access_token: token_pair.access_token,
+                refresh_token: token_pair.refresh_token,
+                expires_in: token_pair.expires_in,
+                has_pin: false,
+                requires_pin_setup: true, // New OAuth users need PIN setup
+                children: vec![], // Empty for new users
+            }))
         }
     }
 

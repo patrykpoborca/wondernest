@@ -35,6 +35,29 @@ pub struct PinVerificationRequest {
     pub pin: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PasswordResetRequest {
+    pub email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PasswordResetConfirmRequest {
+    pub token: String,
+    #[serde(rename = "newPassword")]
+    pub new_password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OAuthLoginRequest {
+    pub provider: String, // "google", "apple", "facebook"
+    #[serde(rename = "idToken")]
+    pub id_token: String,
+    #[serde(rename = "accessToken")]
+    pub access_token: Option<String>,
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: Option<String>,
+}
+
 // Response structures (matching Kotlin exactly)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthResponse {

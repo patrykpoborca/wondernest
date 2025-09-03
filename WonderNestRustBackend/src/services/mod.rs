@@ -3,6 +3,7 @@ pub mod auth_service;
 pub mod content_pack;
 pub mod family;
 pub mod game_data;
+pub mod game_data_service;
 pub mod jwt;
 pub mod password;
 pub mod validation;
