@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  rust-backend:
+    build: .
+    container_name: wondernest-rust-backend
+    ports:
+      - "8082:8080"  # Using 8082 to avoid conflicts
+    environment:
+      - DATABASE_URL=postgresql://wondernest_app:wondernest_secure_password_dev@host.docker.internal:5433/wondernest_prod
+      - REDIS_URL=redis://host.docker.internal:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - RUST_LOG=debug
+      - RUST_ENV=development
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - wondernest-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres:
+    image: postgres:16
+    container_name: wondernest-postgres-rust
+    environment:
+      - POSTGRES_DB=wondernest_prod
+      - POSTGRES_USER=wondernest_app
+      - POSTGRES_PASSWORD=wondernest_secure_password_dev
+    ports:
+      - "5434:5432"  # Using 5434 to avoid conflict
+    volumes:
+      - postgres-data-rust:/var/lib/postgresql/data
+    networks:
+      - wondernest-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wondernest-redis-rust
+    ports:
+      - "6380:6379"  # Using 6380 to avoid conflict
+    networks:
+      - wondernest-network
+
+networks:
+  wondernest-network:
+    driver: bridge
+
+volumes:
+  postgres-data-rust:
