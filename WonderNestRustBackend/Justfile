@@ -1,0 +1,158 @@
+# WonderNest Backend Development Commands
+# Use `just --list` to see all available commands
+
+# Default recipe - runs all tests
+default: test
+
+# Run the full test suite
+test:
+    ./scripts/run_tests.sh
+
+# Run quick tests (no coverage)
+test-quick:
+    ./scripts/run_tests.sh --quick
+
+# Run only coverage analysis
+coverage:
+    ./scripts/run_tests.sh --coverage-only
+
+# Run tests with mutation testing
+test-mutation:
+    ./scripts/run_tests.sh --mutation
+
+# Run specific test categories
+test-unit:
+    cargo test --lib unit --verbose -- --nocapture
+
+test-integration:
+    cargo test --test '*' integration --verbose -- --nocapture --test-threads=1
+
+test-security:
+    cargo test --test '*' security --verbose -- --nocapture --test-threads=1
+
+test-coppa:
+    cargo test coppa --verbose -- --nocapture --test-threads=1
+
+test-concurrency:
+    cargo test concurrency --verbose -- --nocapture
+
+# Development helpers
+fmt:
+    cargo fmt
+
+lint:
+    cargo clippy --all-targets --all-features -- -D warnings
+
+check: fmt lint
+    cargo check
+
+# Database operations
+db-setup:
+    docker-compose up -d wondernest-db
+    ./scripts/wait-for-db.sh
+
+db-reset:
+    docker-compose down wondernest-db
+    docker-compose up -d wondernest-db
+    ./scripts/wait-for-db.sh
+
+db-logs:
+    docker-compose logs -f wondernest-db
+
+# Clean up
+clean:
+    cargo clean
+    rm -rf coverage/
+    rm -f test-report-*.md
+
+# Build for development
+build:
+    cargo build
+
+# Build for release
+build-release:
+    cargo build --release
+
+# Run the server in development mode
+dev:
+    cargo run
+
+# Watch tests (requires cargo-watch)
+watch-test:
+    cargo watch -x "test --lib unit"
+
+# Security audit
+audit:
+    cargo audit
+
+# Documentation
+docs:
+    cargo doc --open
+
+# Install development tools
+install-tools:
+    cargo install cargo-tarpaulin
+    cargo install cargo-llvm-cov
+    cargo install cargo-watch
+    cargo install cargo-audit
+    cargo install cargo-mutants
+
+# Benchmark tests (if implemented)
+bench:
+    cargo bench
+
+# Profile test execution
+profile-test:
+    cargo test --release -- --ignored
+
+# Generate test data
+generate-test-data:
+    cargo run --bin generate_test_data
+
+# Run load tests
+load-test:
+    cargo test load_test --release -- --ignored --nocapture
+
+# Docker commands
+docker-build:
+    docker build -t wondernest-backend .
+
+docker-run:
+    docker run -p 8082:8082 wondernest-backend
+
+# Check for security vulnerabilities
+security-check: audit
+    cargo clippy -- -W clippy::all
+
+# Validate COPPA compliance
+coppa-check:
+    cargo test coppa --verbose -- --nocapture --test-threads=1
+
+# Full CI/CD pipeline simulation
+ci: clean check test security-check coppa-check coverage
+
+# Help
+help:
+    @echo "WonderNest Backend Development Commands"
+    @echo "======================================"
+    @echo ""
+    @echo "Testing:"
+    @echo "  just test           - Run full test suite with coverage"
+    @echo "  just test-quick     - Run tests without coverage"
+    @echo "  just test-unit      - Run only unit tests"
+    @echo "  just test-security  - Run security tests"
+    @echo "  just test-coppa     - Run COPPA compliance tests"
+    @echo "  just coverage       - Generate coverage report"
+    @echo ""
+    @echo "Development:"
+    @echo "  just dev            - Run server in development mode"
+    @echo "  just watch-test     - Watch and run unit tests"
+    @echo "  just check          - Format and lint code"
+    @echo "  just clean          - Clean build artifacts"
+    @echo ""
+    @echo "Database:"
+    @echo "  just db-setup       - Start PostgreSQL database"
+    @echo "  just db-reset       - Reset database"
+    @echo "  just db-logs        - Show database logs"
+    @echo ""
+    @echo "Use 'just --list' for all available commands"
