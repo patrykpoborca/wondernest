@@ -10,7 +10,7 @@ use crate::{
     error::AppResult,
     models::{
         SignupRequest, LoginRequest, RefreshTokenRequest, PinVerificationRequest,
-        AuthResponse, PinVerificationResponse, MessageResponse,
+        PinVerificationResponse, MessageResponse,
     },
     services::{
         AppState,

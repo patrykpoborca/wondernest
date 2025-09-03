@@ -1,4 +1,3 @@
-use regex::Regex;
 use crate::models::{SignupRequest, LoginRequest, MessageResponse};
 
 #[derive(Debug, Clone)]

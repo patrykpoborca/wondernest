@@ -1,16 +1,5 @@
-mod config;
-mod error;
-mod middleware;
-mod models;
-mod routes;
-mod services;
-mod db;
-
-use axum::Router;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
-use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -28,7 +17,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // Load configuration
-    let config = config::Config::from_env()?;
+    let config = wondernest_backend::config::Config::from_env()?;
 
     // Create database pool
     let db_pool = PgPoolOptions::new()
@@ -48,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Redis connected successfully");
 
     // Build application
-    let app = create_app(db_pool, redis_conn, config.clone()).await?;
+    let app = wondernest_backend::create_app(db_pool, redis_conn, config.clone()).await?;
 
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
@@ -60,30 +49,3 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn create_app(
-    db_pool: sqlx::PgPool,
-    redis_conn: redis::aio::ConnectionManager,
-    config: config::Config,
-) -> anyhow::Result<Router> {
-    // Create application state
-    let state = services::AppState {
-        db: db_pool,
-        redis: redis_conn,
-        config,
-    };
-
-    // Build router
-    let app = Router::new()
-        // Health check endpoints (no auth required)
-        .nest("/health", routes::health::router())
-        // API v1 routes
-        .nest("/api/v1", routes::v1::router())
-        // API v2 routes (for game data)
-        .nest("/api/v2", routes::v2::router())
-        // Add middleware
-        .layer(CorsLayer::permissive()) // TODO: Configure properly
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
-
-    Ok(app)
-}

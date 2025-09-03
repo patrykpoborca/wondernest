@@ -16,8 +16,8 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn get_family_profile(
-    State(state): State<AppState>,
-    req: Request,
+    State(_state): State<AppState>,
+    _req: Request,
 ) -> AppResult<impl IntoResponse> {
     // TODO: Implement actual family profile retrieval
     Ok(Json(serde_json::json!({

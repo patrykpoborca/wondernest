@@ -2,7 +2,7 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, head},
+    routing::get,
     Json, Router,
 };
 use chrono::Utc;
@@ -57,7 +57,7 @@ async fn health_check_head() -> impl IntoResponse {
 
 // Detailed health check with service status
 async fn health_detailed(State(state): State<AppState>) -> impl IntoResponse {
-    let start = std::time::Instant::now();
+    let _start = std::time::Instant::now();
     let mut services = HashMap::new();
 
     // Check database health
