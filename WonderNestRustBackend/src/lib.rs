@@ -61,6 +61,7 @@ pub async fn create_app(
     let cors = CorsLayer::new()
         .allow_origin([
             "http://localhost:3000".parse::<HeaderValue>().unwrap(), // Flutter web dev
+            "http://localhost:3001".parse::<HeaderValue>().unwrap(), // Website dev port
             "http://localhost:8080".parse::<HeaderValue>().unwrap(), // Alternative dev port
             "https://wondernest.app".parse::<HeaderValue>().unwrap(), // Production domain
         ])
@@ -72,7 +73,14 @@ pub async fn create_app(
             Method::OPTIONS,
             Method::PATCH,
         ])
-        .allow_headers(Any)
+        .allow_headers([
+            "authorization".parse().unwrap(),
+            "content-type".parse().unwrap(),
+            "accept".parse().unwrap(),
+            "origin".parse().unwrap(),
+            "user-agent".parse().unwrap(),
+            "x-requested-with".parse().unwrap(),
+        ])
         .allow_credentials(true)
         .max_age(Duration::from_secs(3600)); // Cache preflight for 1 hour
 

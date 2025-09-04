@@ -550,13 +550,13 @@ class SavedProjectsService {
       
       // Prepare game data for enhanced API v2 - proper GameRegistry architecture
       final gameDataPayload = {
-        'gameKey': 'sticker_book',
+        'gameType': 'sticker_book',  // Changed from 'gameKey' to match Rust backend
         'dataKey': 'sticker_project_${project.id}',
         'dataValue': project.toJson(), // Full project data as JSON
       };
       
       Timber.d('[SavedProjectsService] Game data payload prepared:');
-      Timber.d('[SavedProjectsService]   gameKey: ${gameDataPayload['gameKey']}');
+      Timber.d('[SavedProjectsService]   gameType: ${gameDataPayload['gameType']}');
       Timber.d('[SavedProjectsService]   dataKey: ${gameDataPayload['dataKey']}');
       Timber.d('[SavedProjectsService]   dataValue size: ${json.encode(gameDataPayload['dataValue']).length} characters');
       

@@ -141,7 +141,8 @@ class ApiService {
         }
         
         if (error.response?.statusCode == 401) {
-          // Token expired, try to refresh
+          
+          // Try to refresh token
           final refreshToken = await _storage.read(key: refreshTokenKey);
           if (refreshToken != null) {
             try {
@@ -155,7 +156,7 @@ class ApiService {
                 },
               ));
               
-              final response = await refreshDio.post('/auth/session/refresh', data: {
+              final response = await refreshDio.post('/auth/parent/refresh', data: {
                 'refreshToken': refreshToken,
               });
               
@@ -181,6 +182,7 @@ class ApiService {
               
               return handler.resolve(cloneReq);
             } catch (e) {
+              Timber.e('[API] Token refresh failed: $e');
               // Refresh failed, logout user
               await logout();
             }
@@ -356,6 +358,8 @@ class ApiService {
       'name': fullName,
       'phoneNumber': phoneNumber ?? '',
       'countryCode': 'US', // Default to US for now
+      'timezone': 'America/New_York', // Default timezone
+      'language': 'en', // Default language
     });
   }
   
@@ -434,9 +438,9 @@ class ApiService {
     return _dio.post('/family/children', data: {
       'name': name,
       'birthDate': formattedDate,
-      if (gender != null) 'gender': gender,
-      if (interests != null && interests.isNotEmpty) 'interests': interests,
-      if (avatar != null) 'avatar': avatar,
+      'gender': gender ?? '',
+      'interests': interests ?? [],
+      'avatar': avatar ?? '',
     });
   }
   

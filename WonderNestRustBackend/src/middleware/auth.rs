@@ -21,6 +21,8 @@ pub struct Claims {
     pub role: String,
     pub verified: bool,
     pub nonce: String,
+    #[serde(rename = "familyId", skip_serializing_if = "Option::is_none")]
+    pub family_id: Option<String>,
     pub iat: i64,  // issued at
     pub exp: i64,  // expiration
 }
@@ -47,11 +49,22 @@ pub async fn auth_middleware(
     let jwt_secret = std::env::var("JWT_SECRET")
         .unwrap_or_else(|_| "your-super-secret-jwt-key-change-this-in-production".to_string());
 
+    // Get expected issuer and audience
+    let jwt_issuer = std::env::var("JWT_ISSUER")
+        .unwrap_or_else(|_| "wondernest-api".to_string());
+    let jwt_audience = std::env::var("JWT_AUDIENCE")
+        .unwrap_or_else(|_| "wondernest-users".to_string());
+
+    // Configure validation with expected issuer and audience
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.set_issuer(&[&jwt_issuer]);
+    validation.set_audience(&[&jwt_audience]);
+
     // Decode and validate JWT
     let token_data = decode::<Claims>(
         token,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
-        &Validation::new(Algorithm::HS256),
+        &validation,
     )
     .map_err(|e| {
         tracing::debug!("JWT validation failed: {:?}", e);
@@ -60,24 +73,6 @@ pub async fn auth_middleware(
             _ => AppError::InvalidToken,
         }
     })?;
-
-    // Basic validation - for full compatibility validation, we'd need state
-    // For now, just validate token format and expiry
-    let jwt_issuer = std::env::var("JWT_ISSUER")
-        .unwrap_or_else(|_| "wondernest".to_string());
-    let jwt_audience = std::env::var("JWT_AUDIENCE")
-        .unwrap_or_else(|_| "wondernest-app".to_string());
-
-    // Verify issuer and audience
-    if token_data.claims.iss != jwt_issuer {
-        tracing::debug!("Invalid issuer: {}", token_data.claims.iss);
-        return Err(AppError::InvalidToken);
-    }
-
-    if token_data.claims.aud != jwt_audience {
-        tracing::debug!("Invalid audience: {}", token_data.claims.aud);
-        return Err(AppError::InvalidToken);
-    }
 
     // Parse user_id as UUID to validate format
     let _user_id = Uuid::parse_str(&token_data.claims.user_id)
