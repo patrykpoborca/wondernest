@@ -1,15 +1,29 @@
 use axum::{middleware, Router};
 
-use crate::{middleware::auth_middleware, services::AppState};
+use crate::{
+    extractors::AuthClaims,
+    middleware::auth_middleware, 
+    services::AppState
+};
 
+mod analytics;
+mod audio;
 mod auth;
+mod content;
 mod content_packs;
+mod coppa;
 mod family;
+mod file_upload;
 
 pub fn router() -> Router<AppState> {
     let protected_routes = Router::new()
         .nest("/family", family::router())
         .nest("/content-packs", content_packs::router())
+        .nest("/coppa", coppa::router())
+        .nest("/audio", audio::router())
+        .nest("/analytics", analytics::router())
+        .nest("/files", file_upload::router())
+        .merge(content::router()) // content routes are at the root level
         .layer(middleware::from_fn(auth_middleware));
 
     Router::new()

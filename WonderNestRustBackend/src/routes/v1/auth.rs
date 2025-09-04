@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Request, State},
+    extract::{State},
     http::StatusCode,
     middleware,
     response::IntoResponse,
@@ -8,8 +8,9 @@ use axum::{
 };
 
 use crate::{
-    error::AppResult,
-    middleware::auth::{auth_middleware, extract_claims},
+    extractors::AuthClaims,
+    error::{AppError, AppResult},
+    middleware::auth::{auth_middleware},
     models::{
         SignupRequest, LoginRequest, RefreshTokenRequest, PinVerificationRequest,
         PinVerificationResponse, MessageResponse, PasswordResetRequest, PasswordResetConfirmRequest,
@@ -191,7 +192,6 @@ async fn parent_verify_pin(
             session_token: Some(session_token),
         })).into_response())
     } else {
-        tracing::warn!("PIN verification failed");
         Ok((StatusCode::UNAUTHORIZED, Json(PinVerificationResponse {
             verified: false,
             message: "Invalid PIN".to_string(),
@@ -420,10 +420,10 @@ async fn password_reset_confirm(
 // Protected route: Logout (matching Kotlin "/logout" exactly)
 async fn logout(
     State(state): State<AppState>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<axum::response::Response> {
     // Extract user claims from JWT middleware
-    if let Some(claims) = extract_claims(&req) {
+    {
         // Create auth service  
         let user_repo = UserRepository::new(state.db.clone());
         let family_repo = FamilyRepository::new(state.db.clone());
@@ -453,20 +453,16 @@ async fn logout(
                 })).into_response())
             }
         }
-    } else {
-        Ok((StatusCode::BAD_REQUEST, Json(MessageResponse { 
-            message: "Invalid session".to_string() 
-        })).into_response())
     }
 }
 
 // Protected route: Verify email (matching Kotlin "/verify-email" exactly)
 async fn verify_email(
     State(state): State<AppState>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<axum::response::Response> {
     // Extract user claims from JWT middleware
-    if let Some(claims) = extract_claims(&req) {
+    {
         match uuid::Uuid::parse_str(&claims.user_id) {
             Ok(user_id) => {
                 // Create auth service
@@ -499,36 +495,26 @@ async fn verify_email(
                 })).into_response())
             }
         }
-    } else {
-        Ok((StatusCode::UNAUTHORIZED, Json(MessageResponse { 
-            message: "Invalid token".to_string() 
-        })).into_response())
     }
 }
 
 // Protected route: Get current user profile (matching Kotlin "/me" exactly)
 async fn get_current_user(
     State(_state): State<AppState>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<axum::response::Response> {
     use serde_json::json;
     
     // Extract user claims from JWT middleware
-    if let Some(claims) = extract_claims(&req) {
-        // Return user info from token (matching Kotlin logic exactly)
-        let user_info = json!({
-            "id": claims.user_id,
-            "email": claims.email,
-            "role": claims.role,
-            "verified": claims.verified
-        });
-        
-        Ok((StatusCode::OK, Json(user_info)).into_response())
-    } else {
-        Ok((StatusCode::UNAUTHORIZED, Json(MessageResponse { 
-            message: "Invalid token".to_string() 
-        })).into_response())
-    }
+    // Return user info from token (matching Kotlin logic exactly)
+    let user_info = json!({
+        "id": claims.user_id,
+        "email": claims.email,
+        "role": claims.role,
+        "verified": claims.verified
+    });
+    
+    Ok((StatusCode::OK, Json(user_info)).into_response())
 }
 
 // OAuth login (matching Kotlin "/oauth" exactly)

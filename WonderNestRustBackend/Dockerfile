@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
     libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -39,6 +40,10 @@ COPY --from=builder /app/target/release/wondernest-backend /app/wondernest-backe
 RUN useradd -m -u 1001 wondernest && chown -R wondernest:wondernest /app
 USER wondernest
 
-EXPOSE 8080
+EXPOSE 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8082/health || exit 1
 
 CMD ["./wondernest-backend"]

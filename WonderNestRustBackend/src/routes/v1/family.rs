@@ -1,11 +1,12 @@
 use axum::{
-    extract::{State, Request},
+    extract::{State},
     response::IntoResponse,
     routing::get,
     Json, Router,
 };
 
 use crate::{
+    extractors::AuthClaims,
     error::AppResult,
     services::AppState,
 };
@@ -17,7 +18,7 @@ pub fn router() -> Router<AppState> {
 
 async fn get_family_profile(
     State(_state): State<AppState>,
-    _req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<impl IntoResponse> {
     // TODO: Implement actual family profile retrieval
     Ok(Json(serde_json::json!({

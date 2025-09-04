@@ -41,6 +41,7 @@ pub fn router() -> Router<AppState> {
         .route("/ready", get(health_ready))
         .route("/live", get(health_live))
         .route("/startup", get(health_startup))
+        .route("/metrics", get(get_metrics))
 }
 
 // Basic health check - minimal response for load balancers
@@ -182,4 +183,52 @@ async fn health_startup(State(state): State<AppState>) -> impl IntoResponse {
             })),
         ).into_response()
     }
+}
+
+// Prometheus-compatible metrics endpoint
+async fn get_metrics(State(_state): State<AppState>) -> impl IntoResponse {
+    // TODO: PRODUCTION - Implement proper Prometheus metrics:
+    // - HTTP request counts and durations
+    // - Database connection pool metrics
+    // - Redis connection metrics
+    // - JWT token validation metrics
+    // - Game data operation metrics
+    // - Error rates by endpoint
+    // - Authentication success/failure rates
+
+    let mock_metrics = format!(
+        r#"# HELP wondernest_http_requests_total Total HTTP requests processed
+# TYPE wondernest_http_requests_total counter
+wondernest_http_requests_total{{method="GET",path="/health",status="200"}} 42
+
+# HELP wondernest_db_connections Database connection pool status
+# TYPE wondernest_db_connections gauge
+wondernest_db_connections{{state="active"}} 5
+wondernest_db_connections{{state="idle"}} 5
+
+# HELP wondernest_auth_operations Authentication operations
+# TYPE wondernest_auth_operations counter
+wondernest_auth_operations{{operation="login",status="success"}} 128
+wondernest_auth_operations{{operation="login",status="failure"}} 12
+
+# HELP wondernest_game_data_operations Game data operations  
+# TYPE wondernest_game_data_operations counter
+wondernest_game_data_operations{{operation="save",game_type="sticker_book"}} 89
+wondernest_game_data_operations{{operation="load",game_type="sticker_book"}} 156
+
+# HELP wondernest_uptime_seconds Application uptime in seconds
+# TYPE wondernest_uptime_seconds gauge
+wondernest_uptime_seconds {}
+"#,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
+
+    use axum::http::header;
+    (
+        [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        mock_metrics
+    )
 }

@@ -155,6 +155,11 @@ impl ValidationService {
         if !password.chars().any(|c| c.is_ascii_lowercase()) {
             return ValidationResult::failure("Password must contain at least one lowercase letter".to_string());
         }
+        
+        // Require at least one special character
+        if !password.chars().any(|c| "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c)) {
+            return ValidationResult::failure("Password must contain at least one special character".to_string());
+        }
 
         ValidationResult::success()
     }
@@ -202,15 +207,29 @@ impl ValidationService {
         language.len() >= 2 && language.len() <= 5 && language.chars().all(|c| c.is_ascii_alphabetic() || c == '-')
     }
 
-    // String sanitization (basic HTML/XSS prevention)
+    // String sanitization (comprehensive HTML/XSS prevention)
     fn sanitize_string(&self, input: &str) -> String {
-        input
+        let mut result = input
             .trim()
+            .replace("&", "&amp;") // Do this first to avoid double-escaping
             .replace("<", "&lt;")
             .replace(">", "&gt;")
-            .replace("&", "&amp;")
             .replace("\"", "&quot;")
-            .replace("'", "&#x27;")
+            .replace("'", "&#x27;");
+        
+        // Remove dangerous event handlers and protocols
+        let dangerous_patterns = [
+            "javascript:", "vbscript:", "data:",
+            "onerror=", "onload=", "onclick=", "onmouseover=", "onmouseout=",
+            "onfocus=", "onblur=", "onchange=", "onsubmit=", "onreset=",
+            "onselect=", "onkeyup=", "onkeydown=", "onkeypress=",
+        ];
+        
+        for pattern in dangerous_patterns {
+            result = result.replace(pattern, "");
+        }
+        
+        result
     }
 }
 

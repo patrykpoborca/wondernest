@@ -1,11 +1,21 @@
+pub mod analytics;
+pub mod audio;
 pub mod auth;
+pub mod content;
 pub mod content_pack;
+pub mod coppa;
 pub mod family;
+pub mod file_upload;
 pub mod game;
 pub mod user;
 
+pub use analytics::*;
+pub use audio::*;
 pub use auth::*;
+pub use content::*;
 pub use content_pack::*;
+pub use coppa::*;
 pub use family::*;
+pub use file_upload::*;
 pub use game::*;
 pub use user::*;

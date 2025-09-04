@@ -1,6 +1,10 @@
 use axum::{middleware, Router};
 
-use crate::{middleware::auth_middleware, services::AppState};
+use crate::{
+    extractors::AuthClaims,
+    middleware::auth_middleware, 
+    services::AppState
+};
 
 mod games;
 

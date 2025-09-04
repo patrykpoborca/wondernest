@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query, State, Path, Request},
+    extract::{Query, State, Path},
     response::IntoResponse,
     routing::get,
     Json, Router,
@@ -7,8 +7,8 @@ use axum::{
 use uuid::Uuid;
 
 use crate::{
+    extractors::AuthClaims,
     error::AppResult,
-    middleware::auth::extract_claims,
     models::{ContentPackResponse, CategoriesData, PacksData, ContentPackSearchRequest},
     services::{AppState, content_pack::ContentPackService},
 };
@@ -41,13 +41,12 @@ async fn get_categories(
 
 async fn get_featured(
     State(state): State<AppState>,
+    AuthClaims(claims): AuthClaims,
     Query(params): Query<std::collections::HashMap<String, String>>,
-    req: Request,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!("Content-packs: Getting featured packs");
     
-    let claims = extract_claims(&req)
-        .ok_or(crate::error::AppError::Unauthorized)?;
+    let _claims_check = &claims;
     
     let user_id = Uuid::parse_str(&claims.user_id)
         .map_err(|_| crate::error::AppError::InvalidToken)?;
@@ -74,12 +73,11 @@ async fn get_featured(
 async fn get_owned(
     State(state): State<AppState>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!("Content-packs: Getting owned packs");
     
-    let claims = extract_claims(&req)
-        .ok_or(crate::error::AppError::Unauthorized)?;
+    let _claims_check = &claims;
     
     let user_id = Uuid::parse_str(&claims.user_id)
         .map_err(|_| crate::error::AppError::InvalidToken)?;
@@ -103,10 +101,9 @@ async fn get_owned(
 async fn search_packs(
     State(state): State<AppState>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<impl IntoResponse> {
-    let claims = extract_claims(&req)
-        .ok_or(crate::error::AppError::Unauthorized)?;
+    let _claims_check = &claims;
     
     let user_id = Uuid::parse_str(&claims.user_id)
         .map_err(|_| crate::error::AppError::InvalidToken)?;
@@ -143,10 +140,9 @@ async fn search_packs(
 async fn get_pack_by_id(
     State(state): State<AppState>,
     Path(pack_id): Path<Uuid>,
-    req: Request,
+    AuthClaims(claims): AuthClaims,
 ) -> AppResult<impl IntoResponse> {
-    let claims = extract_claims(&req)
-        .ok_or(crate::error::AppError::Unauthorized)?;
+    let _claims_check = &claims;
     
     let user_id = Uuid::parse_str(&claims.user_id)
         .map_err(|_| crate::error::AppError::InvalidToken)?;

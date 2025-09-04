@@ -9,6 +9,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
+    extractors::AuthClaims,
     error::AppResult,
     models::{SaveGameDataRequest},
     services::{AppState, game_data_service::GameDataService},
