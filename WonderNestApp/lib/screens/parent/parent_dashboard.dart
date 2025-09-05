@@ -168,6 +168,16 @@ class ParentDashboard extends ConsumerWidget {
                   ).animate().fadeIn(delay: 900.ms).scale(),
                   
                   QuickActionButton(
+                    title: 'Story Creator',
+                    subtitle: 'AI story builder',
+                    icon: Icons.auto_stories,
+                    color: AppColors.accentPurple,
+                    onTap: () {
+                      context.push('/ai-story-creator');
+                    },
+                  ).animate().fadeIn(delay: 1000.ms).scale(),
+                  
+                  QuickActionButton(
                     title: 'Content Library',
                     subtitle: 'Browse activities',
                     icon: Icons.library_books,
@@ -175,7 +185,7 @@ class ParentDashboard extends ConsumerWidget {
                     onTap: () {
                       context.push('/content-library');
                     },
-                  ).animate().fadeIn(delay: 1000.ms).scale(),
+                  ).animate().fadeIn(delay: 1100.ms).scale(),
                   
                   QuickActionButton(
                     title: 'Content Filters',
@@ -185,7 +195,7 @@ class ParentDashboard extends ConsumerWidget {
                     onTap: () {
                       context.push('/content-filters');
                     },
-                  ).animate().fadeIn(delay: 1100.ms).scale(),
+                  ).animate().fadeIn(delay: 1200.ms).scale(),
                 ],
               ),
               

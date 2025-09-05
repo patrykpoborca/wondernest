@@ -26,6 +26,7 @@ import {
   ChevronLeft as CollapseIcon,
   ChevronRight as ExpandIcon,
   FormatPaint as StyleIcon,
+  AutoAwesome as AIIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -53,6 +54,7 @@ import { StoryPage, StoryContent, TextBlock, TextBlockStyle, TextVariant } from 
 import { PageNavigator } from '../components/PageNavigator'
 import { StoryCanvas } from '../components/StoryCanvas'
 import { TextStyleEditor } from '../components/TextStyleEditor'
+import { AIAssistantPanel } from '../components/AIAssistantPanel'
 import { LogoutButton } from '@/components/common/LogoutButton'
 
 const EditorContainer = styled(Box)(({ theme }) => ({
@@ -125,7 +127,7 @@ export const StoryEditor: React.FC = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   
-  const { currentDraft, loading, error, lastAutoSave } = useSelector(
+  const { currentDraft, loading, error, lastAutoSave, aiState } = useSelector(
     (state: RootState) => state.storyBuilder
   )
   
@@ -141,6 +143,7 @@ export const StoryEditor: React.FC = () => {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [selectedTextBlock, setSelectedTextBlock] = useState<TextBlock | null>(null)
+  const [aiPanelOpen, setAIPanelOpen] = useState(false)
   
   const autoSaveTimeoutRef = useRef<number | null>(null)
   const lastSavedContentRef = useRef<string>('')
@@ -426,6 +429,14 @@ export const StoryEditor: React.FC = () => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton
+              onClick={() => setAIPanelOpen(!aiPanelOpen)}
+              color={aiPanelOpen ? 'primary' : 'inherit'}
+              title="AI Assistant"
+            >
+              <AIIcon />
+            </IconButton>
+
             <Button
               variant="outlined"
               startIcon={<SaveIcon />}
@@ -488,52 +499,82 @@ export const StoryEditor: React.FC = () => {
         />
 
         {/* Style Sidebar */}
-        <StyleSidebar collapsed={sidebarCollapsed}>
+        <StyleSidebar collapsed={sidebarCollapsed && !aiPanelOpen}>
           <SidebarToggle
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={() => {
+              if (aiPanelOpen) {
+                setAIPanelOpen(false)
+              } else {
+                setSidebarCollapsed(!sidebarCollapsed)
+              }
+            }}
             size="small"
           >
-            {sidebarCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+            {(sidebarCollapsed && !aiPanelOpen) ? <ExpandIcon /> : <CollapseIcon />}
           </SidebarToggle>
 
-          <SidebarHeader>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StyleIcon />
-              <Typography variant="h6">Text Styling</Typography>
-            </Box>
-          </SidebarHeader>
+          {aiPanelOpen ? (
+            <AIAssistantPanel
+              onClose={() => setAIPanelOpen(false)}
+              currentPageContent={currentPage?.textBlocks.map(tb => 
+                tb.variants.find(v => v.id === tb.activeVariantId)?.content || ''
+              ).join(' ')}
+              selectedText={selectedTextBlock?.variants.find(v => 
+                v.id === selectedTextBlock.activeVariantId
+              )?.content}
+              onApplySuggestion={(text) => {
+                if (selectedTextBlock) {
+                  const updatedVariants = selectedTextBlock.variants.map(v =>
+                    v.id === selectedTextBlock.activeVariantId
+                      ? { ...v, content: text }
+                      : v
+                  )
+                  handleTextBlockVariantsChange(updatedVariants)
+                }
+              }}
+            />
+          ) : (
+            <>
+              <SidebarHeader>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StyleIcon />
+                  <Typography variant="h6">Text Styling</Typography>
+                </Box>
+              </SidebarHeader>
 
-          <Box sx={{ flex: 1, overflow: 'hidden' }}>
-            {selectedTextBlock ? (
-              <TextStyleEditor
-                textBlock={selectedTextBlock}
-                onStyleChange={handleTextBlockStyleChange}
-                onVariantChange={handleTextBlockVariantsChange}
-                allowCustomStyles={true}
-              />
-            ) : (
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '50%',
-                  flexDirection: 'column',
-                  gap: 2,
-                  p: 3,
-                  textAlign: 'center',
-                }}
-              >
-                <StyleIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
-                <Typography variant="body1" color="text.secondary">
-                  Select a text block to edit its style and variants
-                </Typography>
-                <Typography variant="body2" color="text.disabled">
-                  Click on any text element in the canvas to get started
-                </Typography>
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                {selectedTextBlock ? (
+                  <TextStyleEditor
+                    textBlock={selectedTextBlock}
+                    onStyleChange={handleTextBlockStyleChange}
+                    onVariantChange={handleTextBlockVariantsChange}
+                    allowCustomStyles={true}
+                  />
+                ) : (
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      height: '50%',
+                      flexDirection: 'column',
+                      gap: 2,
+                      p: 3,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <StyleIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                    <Typography variant="body1" color="text.secondary">
+                      Select a text block to edit its style and variants
+                    </Typography>
+                    <Typography variant="body2" color="text.disabled">
+                      Click on any text element in the canvas to get started
+                    </Typography>
+                  </Box>
+                )}
               </Box>
-            )}
-          </Box>
+            </>
+          )}
         </StyleSidebar>
       </Box>
 

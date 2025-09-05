@@ -277,6 +277,59 @@ export const storyGameDataApi = apiSlice.injectEndpoints({
       },
       providesTags: ['PublishedStory'],
     }),
+
+    // AI Story Generation Endpoints
+    generateStory: builder.mutation<any, {
+      prompt: string;
+      title?: string;
+      age_range: string;
+      educational_goals: string[];
+      max_pages?: number;
+      vocabulary_level?: string;
+      include_images?: boolean;
+    }>({
+      query: (params) => ({
+        url: '/ai/story/generate',
+        method: 'POST',
+        body: params,
+      }),
+    }),
+
+    enhanceText: builder.mutation<any, {
+      text: string;
+      mode: 'simplify' | 'elaborate' | 'add_vocabulary' | 'make_exciting' | 'add_educational';
+      context?: string;
+    }>({
+      query: (params) => ({
+        url: '/ai/story/enhance',
+        method: 'POST',
+        body: params,
+      }),
+    }),
+
+    getSuggestions: builder.mutation<any, {
+      context: {
+        current_text: string;
+        previous_page?: string;
+        next_page?: string;
+        story_title: string;
+        target_age: string;
+      };
+      suggestion_type: 'next_sentence' | 'plot_twist' | 'character' | 'setting' | 'dialogue' | 'ending';
+    }>({
+      query: (params) => ({
+        url: '/ai/story/suggest',
+        method: 'POST',
+        body: params,
+      }),
+    }),
+
+    getAITemplates: builder.query<any[], void>({
+      query: () => ({
+        url: '/ai/story/templates',
+        method: 'GET',
+      }),
+    }),
   }),
   overrideExisting: false,
 })
@@ -289,4 +342,8 @@ export const {
   useDeleteStoryDraftMutation,
   usePublishStoryMutation,
   useGetPublishedStoriesQuery,
+  useGenerateStoryMutation,
+  useEnhanceTextMutation,
+  useGetSuggestionsMutation,
+  useGetAITemplatesQuery,
 } = storyGameDataApi

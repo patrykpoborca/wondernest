@@ -6,6 +6,7 @@ use crate::{
     services::AppState
 };
 
+mod ai_story;
 mod analytics;
 mod audio;
 mod auth;
@@ -17,6 +18,7 @@ mod file_upload;
 
 pub fn router() -> Router<AppState> {
     let protected_routes = Router::new()
+        .nest("/ai/story", ai_story::router())
         .nest("/family", family::router())
         .nest("/content-packs", content_packs::router())
         .nest("/coppa", coppa::router())

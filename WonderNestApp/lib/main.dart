@@ -13,6 +13,9 @@ import 'core/services/timber_wrapper.dart';
 import 'providers/app_mode_provider.dart';
 import 'providers/auth_provider.dart';
 
+// Models
+import 'models/app_mode.dart';
+
 // Game System
 import 'core/games/game_initialization.dart';
 
@@ -209,10 +212,21 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
           },
         ),
         
-        // AI Story Generation Routes
+        // AI Story Generation Routes (Parent Only)
         GoRoute(
           path: '/ai-story-creator',
           builder: (context, state) => const AIStoryCreatorScreen(),
+          redirect: (BuildContext context, GoRouterState state) {
+            final container = ProviderScope.containerOf(context);
+            final appModeState = container.read(appModeProvider);
+            
+            // Only allow access in parent mode
+            if (appModeState.currentMode != AppMode.parent) {
+              // Redirect to parent dashboard if not in parent mode
+              return '/parent-dashboard';
+            }
+            return null; // Allow navigation
+          },
         ),
         GoRoute(
           path: '/story-viewer',
@@ -223,6 +237,17 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
               return const AIStoryCreatorScreen();
             }
             return StoryViewerScreen(story: story);
+          },
+          redirect: (BuildContext context, GoRouterState state) {
+            final container = ProviderScope.containerOf(context);
+            final appModeState = container.read(appModeProvider);
+            
+            // Only allow access in parent mode for AI-generated stories
+            if (appModeState.currentMode != AppMode.parent) {
+              // Redirect to parent dashboard if not in parent mode
+              return '/parent-dashboard';
+            }
+            return null; // Allow navigation
           },
         ),
         

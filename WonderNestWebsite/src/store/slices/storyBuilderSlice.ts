@@ -112,10 +112,28 @@ const initialState: StoryBuilderState = {
     assets: false,
     publishing: false,
     saving: false,
+    aiGenerating: false,
   },
   error: null,
   autoSaveEnabled: true,
   lastAutoSave: undefined,
+  aiState: {
+    enabled: false,
+    mode: 'builder',
+    currentSuggestion: null,
+    suggestions: [],
+    history: [],
+    isGenerating: false,
+    generationParams: null,
+    metadata: {
+      percentAIGenerated: 0,
+      lastAIAssistTime: null,
+      educationalGoals: [],
+      vocabularyLevel: 'grade_2',
+      totalSuggestionsAccepted: 0,
+      totalSuggestionsRejected: 0,
+    },
+  },
 }
 
 export const storyBuilderSlice = createSlice({
@@ -378,6 +396,72 @@ export const storyBuilderSlice = createSlice({
         }
       }
     },
+    
+    // AI-related actions
+    toggleAI: (state) => {
+      state.aiState.enabled = !state.aiState.enabled
+    },
+    
+    setAIMode: (state, action: PayloadAction<'quick' | 'builder' | 'focus'>) => {
+      state.aiState.mode = action.payload
+    },
+    
+    startAIGeneration: (state, action: PayloadAction<any>) => {
+      state.loading.aiGenerating = true
+      state.aiState.isGenerating = true
+      state.aiState.generationParams = action.payload
+    },
+    
+    completeAIGeneration: (state, action: PayloadAction<any>) => {
+      state.loading.aiGenerating = false
+      state.aiState.isGenerating = false
+      state.aiState.currentSuggestion = action.payload
+      state.aiState.suggestions.unshift(action.payload)
+      state.aiState.metadata.lastAIAssistTime = new Date().toISOString()
+    },
+    
+    acceptAISuggestion: (state, action: PayloadAction<{ pageNumber: number; suggestion: any }>) => {
+      if (state.currentDraft && state.aiState.currentSuggestion) {
+        const { pageNumber, suggestion } = action.payload
+        // Apply suggestion to the page
+        state.aiState.metadata.totalSuggestionsAccepted++
+        // Add to history
+        state.aiState.history.push({
+          id: Date.now().toString(),
+          type: 'suggestion',
+          input: state.aiState.generationParams?.prompt || '',
+          output: suggestion.text,
+          accepted: true,
+          timestamp: new Date().toISOString(),
+        })
+      }
+    },
+    
+    rejectAISuggestion: (state) => {
+      if (state.aiState.currentSuggestion) {
+        state.aiState.metadata.totalSuggestionsRejected++
+        state.aiState.history.push({
+          id: Date.now().toString(),
+          type: 'suggestion',
+          input: state.aiState.generationParams?.prompt || '',
+          output: state.aiState.currentSuggestion.text,
+          accepted: false,
+          timestamp: new Date().toISOString(),
+        })
+        state.aiState.currentSuggestion = null
+      }
+    },
+    
+    clearAISuggestion: (state) => {
+      state.aiState.currentSuggestion = null
+    },
+    
+    updateAIMetadata: (state, action: PayloadAction<Partial<any>>) => {
+      state.aiState.metadata = {
+        ...state.aiState.metadata,
+        ...action.payload,
+      }
+    },
   },
 })
 
@@ -412,6 +496,15 @@ export const {
   updateTextBlockStyle,
   updateTextBlockVariants,
   setTextBlockActiveVariant,
+  // AI actions
+  toggleAI,
+  setAIMode,
+  startAIGeneration,
+  completeAIGeneration,
+  acceptAISuggestion,
+  rejectAISuggestion,
+  clearAISuggestion,
+  updateAIMetadata,
 } = storyBuilderSlice.actions
 
 export default storyBuilderSlice.reducer

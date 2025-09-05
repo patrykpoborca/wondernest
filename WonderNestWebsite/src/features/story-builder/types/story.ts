@@ -332,10 +332,62 @@ export interface StoryBuilderState {
     assets: boolean
     publishing: boolean
     saving: boolean
+    aiGenerating: boolean
   }
   error: string | null
   autoSaveEnabled: boolean
   lastAutoSave?: string
+  // AI Enhancement State
+  aiState: AIState
+}
+
+export interface AIState {
+  enabled: boolean
+  mode: 'quick' | 'builder' | 'focus'
+  currentSuggestion: AISuggestion | null
+  suggestions: AISuggestion[]
+  history: AIHistoryItem[]
+  isGenerating: boolean
+  generationParams: GenerationParams | null
+  metadata: AIMetadata
+}
+
+export interface AISuggestion {
+  id: string
+  text: string
+  type: 'full_story' | 'page' | 'paragraph' | 'sentence' | 'enhancement'
+  reasoning?: string
+  educationalValue?: string
+  confidence: number
+  createdAt: string
+}
+
+export interface AIHistoryItem {
+  id: string
+  type: 'generation' | 'enhancement' | 'suggestion'
+  input: string
+  output: string
+  accepted: boolean
+  timestamp: string
+}
+
+export interface GenerationParams {
+  prompt: string
+  title?: string
+  ageRange: string
+  educationalGoals: string[]
+  maxPages?: number
+  vocabularyLevel?: string
+  includeImages?: boolean
+}
+
+export interface AIMetadata {
+  percentAIGenerated: number
+  lastAIAssistTime: string | null
+  educationalGoals: string[]
+  vocabularyLevel: string
+  totalSuggestionsAccepted: number
+  totalSuggestionsRejected: number
 }
 
 // Style Preset System
