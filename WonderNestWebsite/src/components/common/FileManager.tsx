@@ -1,7 +1,80 @@
 import React, { useState } from 'react'
-import { File, Image, FileText, Trash2, Download, Grid, List, Search } from 'lucide-react'
+import {
+  Box,
+  Paper,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  CardActions,
+  IconButton,
+  Button,
+  TextField,
+  InputAdornment,
+  ToggleButton,
+  ToggleButtonGroup,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemSecondaryAction,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Skeleton,
+  Alert,
+  Chip,
+  Tooltip,
+  Avatar,
+  alpha,
+} from '@mui/material'
+import {
+  Delete as DeleteIcon,
+  Download as DownloadIcon,
+  GridView as GridIcon,
+  ViewList as ListIcon,
+  Search as SearchIcon,
+  InsertDriveFile as FileIcon,
+  Image as ImageIcon,
+  PictureAsPdf as PdfIcon,
+  Close as CloseIcon,
+  CloudUpload as UploadIcon,
+  Folder as FolderIcon,
+} from '@mui/icons-material'
+import { styled } from '@mui/material/styles'
 import { useListUserFilesQuery, useDeleteFileMutation } from '@/store/api/apiSlice'
-import FileUpload from './FileUpload'
+import { FileUploadWithTags } from './FileUploadWithTags'
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'all 0.2s ease-in-out',
+  cursor: 'pointer',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[4],
+  },
+}))
+
+const ImagePreview = styled('img')(({ theme }) => ({
+  width: '100%',
+  height: 140,
+  objectFit: 'cover',
+  backgroundColor: theme.palette.grey[100],
+}))
+
+const FileIconContainer = styled(Box)(({ theme }) => ({
+  width: '100%',
+  height: 140,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: theme.palette.grey[50],
+  borderBottom: `1px solid ${theme.palette.divider}`,
+}))
 
 interface FileManagerProps {
   childId?: string
@@ -19,6 +92,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFile, setSelectedFile] = useState<any>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null)
   
   const { data: filesData, isLoading, refetch } = useListUserFilesQuery({
     category,
@@ -27,7 +102,7 @@ export const FileManager: React.FC<FileManagerProps> = ({
     offset: 0,
   })
   
-  const [deleteFile] = useDeleteFileMutation()
+  const [deleteFile, { isLoading: isDeleting }] = useDeleteFileMutation()
 
   const files = filesData?.data || []
   
@@ -35,10 +110,16 @@ export const FileManager: React.FC<FileManagerProps> = ({
     file.originalName.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image className="w-5 h-5" />
-    if (mimeType === 'application/pdf') return <FileText className="w-5 h-5" />
-    return <File className="w-5 h-5" />
+  const getFileIcon = (mimeType: string, size: 'small' | 'large' = 'small') => {
+    const iconSize = size === 'large' ? 48 : 24
+    
+    if (mimeType.startsWith('image/')) {
+      return <ImageIcon sx={{ fontSize: iconSize, color: 'primary.main' }} />
+    }
+    if (mimeType === 'application/pdf') {
+      return <PdfIcon sx={{ fontSize: iconSize, color: 'error.main' }} />
+    }
+    return <FileIcon sx={{ fontSize: iconSize, color: 'action.active' }} />
   }
 
   const formatFileSize = (bytes: number) => {
@@ -57,11 +138,21 @@ export const FileManager: React.FC<FileManagerProps> = ({
     })
   }
 
-  const handleDelete = async (fileId: string) => {
-    if (window.confirm('Are you sure you want to delete this file?')) {
+  const handleDeleteClick = (fileId: string) => {
+    setFileToDelete(fileId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (fileToDelete) {
       try {
-        await deleteFile(fileId).unwrap()
+        await deleteFile(fileToDelete).unwrap()
         refetch()
+        setDeleteDialogOpen(false)
+        setFileToDelete(null)
+        if (selectedFile?.id === fileToDelete) {
+          setSelectedFile(null)
+        }
       } catch (error) {
         console.error('Failed to delete file:', error)
       }
@@ -78,229 +169,376 @@ export const FileManager: React.FC<FileManagerProps> = ({
     refetch()
   }
 
+  const handleViewModeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newMode: 'grid' | 'list' | null,
+  ) => {
+    if (newMode !== null) {
+      setViewMode(newMode)
+    }
+  }
+
   return (
-    <div className={`space-y-4 ${className}`}>
+    <Box className={className}>
       {/* Upload Section */}
       {showUpload && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Files</h3>
-          <FileUpload
+        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <UploadIcon sx={{ mr: 2, color: 'primary.main' }} />
+            <Typography variant="h6" component="h3">
+              Upload Files
+            </Typography>
+          </Box>
+          <FileUploadWithTags
             category={category}
             childId={childId}
             onUploadComplete={handleUploadComplete}
+            isPublic={false}
+            requireTags={false}
           />
-        </div>
+        </Paper>
       )}
 
       {/* Files List Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Files</h3>
+      <Paper elevation={2}>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <FolderIcon sx={{ mr: 2, color: 'primary.main' }} />
+              <Typography variant="h6" component="h3">
+                Files ({filteredFiles.length})
+              </Typography>
+            </Box>
             
-            <div className="flex items-center space-x-4">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search files..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <TextField
+                size="small"
+                placeholder="Search files..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ minWidth: 200 }}
+              />
               
               {/* View Mode Toggle */}
-              <div className="flex items-center border border-gray-300 rounded-md">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-gray-100' : ''}`}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-gray-100' : ''}`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewModeChange}
+                size="small"
+              >
+                <ToggleButton value="grid" aria-label="grid view">
+                  <Tooltip title="Grid View">
+                    <GridIcon />
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="list" aria-label="list view">
+                  <Tooltip title="List View">
+                    <ListIcon />
+                  </Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </Box>
+        </Box>
 
-        <div className="p-6">
+        <Box sx={{ p: 3, minHeight: 400 }}>
           {isLoading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              <p className="mt-2 text-sm text-gray-500">Loading files...</p>
-            </div>
-          ) : filteredFiles.length === 0 ? (
-            <div className="text-center py-8">
-              <File className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500">No files found</p>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredFiles.map((file: any) => (
-                <div
-                  key={file.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedFile(file)}
-                >
-                  <div className="flex flex-col items-center">
-                    <div className="text-gray-500 mb-2">
-                      {file.mimeType.startsWith('image/') ? (
-                        <img 
-                          src={file.url} 
-                          alt={file.originalName}
-                          className="w-20 h-20 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded">
-                          {getFileIcon(file.mimeType)}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 text-center truncate w-full">
-                      {file.originalName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(file.fileSize)}
-                    </p>
-                  </div>
-                </div>
+            <Grid container spacing={2}>
+              {[...Array(8)].map((_, i) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+                  <Skeleton variant="rectangular" height={200} />
+                  <Skeleton variant="text" sx={{ mt: 1 }} />
+                  <Skeleton variant="text" width="60%" />
+                </Grid>
               ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
+            </Grid>
+          ) : filteredFiles.length === 0 ? (
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 8,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2
+            }}>
+              <Avatar sx={{ width: 64, height: 64, bgcolor: 'grey.200' }}>
+                <FileIcon sx={{ fontSize: 32, color: 'grey.500' }} />
+              </Avatar>
+              <Typography variant="h6" color="text.secondary">
+                No files found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {searchTerm ? 'Try adjusting your search' : 'Upload your first file to get started'}
+              </Typography>
+            </Box>
+          ) : viewMode === 'grid' ? (
+            <Grid container spacing={2}>
               {filteredFiles.map((file: any) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="text-gray-500">
-                      {getFileIcon(file.mimeType)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
+                <Grid item xs={12} sm={6} md={4} lg={3} key={file.id}>
+                  <StyledCard onClick={() => setSelectedFile(file)}>
+                    {file.mimeType.startsWith('image/') ? (
+                      <ImagePreview 
+                        src={file.url} 
+                        alt={file.originalName}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <FileIconContainer>
+                        {getFileIcon(file.mimeType, 'large')}
+                      </FileIconContainer>
+                    )}
+                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                      <Typography 
+                        variant="body2" 
+                        component="div" 
+                        noWrap
+                        title={file.originalName}
+                        sx={{ fontWeight: 500, mb: 0.5 }}
+                      >
                         {file.originalName}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(file.fileSize)} • {formatDate(file.uploadedAt)}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatFileSize(file.fileSize)}
+                      </Typography>
+                    </CardContent>
+                    <CardActions sx={{ p: 1, pt: 0 }}>
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownload(file)
+                        }}
+                        title="Download"
+                      >
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteClick(file.id)
+                        }}
+                        title="Delete"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </CardActions>
+                  </StyledCard>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <List>
+              {filteredFiles.map((file: any) => (
+                <ListItem
+                  key={file.id}
+                  button
+                  onClick={() => setSelectedFile(file)}
+                  sx={{ 
+                    mb: 1, 
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    '&:hover': {
+                      bgcolor: alpha('#000', 0.02)
+                    }
+                  }}
+                >
+                  <ListItemIcon>
+                    {file.mimeType.startsWith('image/') ? (
+                      <Avatar 
+                        src={file.url} 
+                        variant="rounded"
+                        sx={{ width: 40, height: 40 }}
+                      >
+                        {getFileIcon(file.mimeType)}
+                      </Avatar>
+                    ) : (
+                      getFileIcon(file.mimeType)
+                    )}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={file.originalName}
+                    secondary={`${formatFileSize(file.fileSize)} • ${formatDate(file.uploadedAt)}`}
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDownload(file)
                       }}
-                      className="p-1 text-gray-400 hover:text-gray-600"
+                      sx={{ mr: 1 }}
                     >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
+                      <DownloadIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleDelete(file.id)
+                        handleDeleteClick(file.id)
                       }}
-                      className="p-1 text-gray-400 hover:text-red-600"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
               ))}
-            </div>
+            </List>
           )}
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
-      {/* File Details Modal */}
-      {selectedFile && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedFile(null)}
-        >
-          <div 
-            className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">File Details</h3>
-                <button
-                  onClick={() => setSelectedFile(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
+      {/* File Details Dialog */}
+      <Dialog
+        open={!!selectedFile}
+        onClose={() => setSelectedFile(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        {selectedFile && (
+          <>
+            <DialogTitle sx={{ m: 0, p: 2 }}>
+              File Details
+              <IconButton
+                aria-label="close"
+                onClick={() => setSelectedFile(null)}
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  top: 8,
+                  color: (theme) => theme.palette.grey[500],
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
               {selectedFile.mimeType.startsWith('image/') && (
-                <div className="mb-4">
+                <Box sx={{ mb: 3, textAlign: 'center' }}>
                   <img 
                     src={selectedFile.url} 
                     alt={selectedFile.originalName}
-                    className="max-w-full h-auto rounded"
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: 400, 
+                      objectFit: 'contain',
+                      borderRadius: 4
+                    }}
                   />
-                </div>
+                </Box>
               )}
               
-              <dl className="space-y-2">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Name</dt>
-                  <dd className="text-sm text-gray-900">{selectedFile.originalName}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Size</dt>
-                  <dd className="text-sm text-gray-900">{formatFileSize(selectedFile.fileSize)}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Type</dt>
-                  <dd className="text-sm text-gray-900">{selectedFile.mimeType}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Uploaded</dt>
-                  <dd className="text-sm text-gray-900">{formatDate(selectedFile.uploadedAt)}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Category</dt>
-                  <dd className="text-sm text-gray-900">{selectedFile.category}</dd>
-                </div>
-              </dl>
-              
-              <div className="mt-6 flex space-x-3">
-                <button
-                  onClick={() => handleDownload(selectedFile)}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                >
-                  Download
-                </button>
-                <button
-                  onClick={() => {
-                    handleDelete(selectedFile.id)
-                    setSelectedFile(null)
-                  }}
-                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    File Name
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    {selectedFile.originalName}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    File Size
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    {formatFileSize(selectedFile.fileSize)}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    File Type
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    {selectedFile.mimeType}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Uploaded Date
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    {formatDate(selectedFile.uploadedAt)}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Category
+                  </Typography>
+                  <Chip 
+                    label={selectedFile.category} 
+                    size="small" 
+                    color="primary"
+                    sx={{ mt: 0.5 }}
+                  />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={() => handleDownload(selectedFile)}
+              >
+                Download
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => {
+                  setSelectedFile(null)
+                  handleDeleteClick(selectedFile.id)
+                }}
+              >
+                Delete
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this file? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }
-
-// Add missing import for X icon
-import { X } from 'lucide-react'
 
 export default FileManager
