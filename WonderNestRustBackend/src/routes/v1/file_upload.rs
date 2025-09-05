@@ -8,7 +8,7 @@ use axum::{
     Json, Router,
 };
 use chrono::Utc;
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error};
 use uuid::Uuid;
 
 use crate::{
@@ -21,6 +21,16 @@ use crate::{
     },
     services::AppState,
 };
+
+#[derive(serde::Deserialize)]
+pub struct FileUploadParams {
+    category: Option<String>,
+    #[serde(rename = "childId")]
+    child_id: Option<String>,
+    #[serde(rename = "isPublic")]
+    is_public: Option<bool>,
+    tags: Option<String>,
+}
 
 pub fn router() -> Router<AppState> {
     // Create protected routes
@@ -43,6 +53,7 @@ pub fn router() -> Router<AppState> {
 async fn upload_file(
     State(state): State<AppState>,
     AuthClaims(claims): AuthClaims,
+    Query(params): Query<FileUploadParams>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
     tracing::info!("File upload request from user: {}", claims.user_id);
@@ -65,11 +76,21 @@ async fn upload_file(
             file_name = field.file_name().map(|s| s.to_string());
             content_type = field.content_type().map(|s| s.to_string());
             
+            tracing::debug!("Processing file field: name={:?}, content_type={:?}", file_name, content_type);
+            
             // Read file data
-            file_data = Some(field.bytes().await.map_err(|e| {
-                tracing::error!("Failed to read file data: {}", e);
-                AppError::BadRequest("Failed to read file data".to_string())
-            })?);
+            match field.bytes().await {
+                Ok(bytes) => {
+                    tracing::debug!("Successfully read file data: {} bytes", bytes.len());
+                    file_data = Some(bytes);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to read file data: {}", e);
+                    tracing::error!("Error details: {:?}", e);
+                    tracing::error!("Error source: {:?}", e.source());
+                    return Err(AppError::BadRequest(format!("Failed to read file data: {}", e)));
+                }
+            }
         }
     }
 
@@ -100,14 +121,18 @@ async fn upload_file(
         return Err(AppError::BadRequest(format!("File type {} not allowed", content_type)));
     }
 
-    // Store file metadata in database
-    // TODO: Get these from multipart form fields if needed
-    let category = "game_asset".to_string();
-    let is_public = false;
+    // Use parameters from query string
+    let category = params.category.unwrap_or_else(|| "game_asset".to_string());
+    let is_public = params.is_public.unwrap_or(false);
     
     // Upload file to storage
     let storage_key = format!("uploads/{}/{}", claims.user_id, file_id);
-    let metadata = HashMap::new(); // Could include user-specific metadata
+    let mut metadata = HashMap::new();
+    
+    // Add tags to metadata if provided
+    if let Some(tags) = params.tags {
+        metadata.insert("tags".to_string(), tags);
+    }
     
     let upload_result = state.storage.upload(
         &storage_key,

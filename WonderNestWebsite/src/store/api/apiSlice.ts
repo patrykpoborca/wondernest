@@ -213,13 +213,15 @@ export const apiSlice = createApi({
       category?: string;
       childId?: string;
       isPublic?: boolean;
+      tags?: string;
     }>({
-      query: ({ formData, category, childId, isPublic }) => {
+      query: ({ formData, category, childId, isPublic, tags }) => {
         // Build query parameters
         const params = new URLSearchParams()
         if (category) params.append('category', category)
         if (childId) params.append('childId', childId)
         if (isPublic !== undefined) params.append('isPublic', isPublic.toString())
+        if (tags) params.append('tags', tags)
         
         return {
           url: `/files/upload${params.toString() ? `?${params.toString()}` : ''}`,
