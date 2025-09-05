@@ -7,6 +7,7 @@ pub mod coppa;
 pub mod family;
 pub mod file_upload;
 pub mod game;
+pub mod marketplace;
 pub mod user;
 
 pub use analytics::*;
@@ -18,4 +19,5 @@ pub use coppa::*;
 pub use family::*;
 pub use file_upload::*;
 pub use game::*;
+pub use marketplace::*;
 pub use user::*;

@@ -34,7 +34,7 @@ pub use models::{
 
 // Re-export database repositories for testing
 pub use db::{
-    UserRepository, FamilyRepository,
+    UserRepository, FamilyRepository, MarketplaceRepository,
 };
 
 // Create app function for testing and main

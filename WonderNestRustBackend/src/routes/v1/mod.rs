@@ -15,6 +15,7 @@ mod content_packs;
 mod coppa;
 mod family;
 mod file_upload;
+mod marketplace;
 
 pub fn router() -> Router<AppState> {
     let protected_routes = Router::new()
@@ -24,6 +25,7 @@ pub fn router() -> Router<AppState> {
         .nest("/coppa", coppa::router())
         .nest("/audio", audio::router())
         .nest("/analytics", analytics::router())
+        .nest("/marketplace", marketplace::router())
         .merge(content::router()) // content routes are at the root level
         .layer(middleware::from_fn(auth_middleware));
 
