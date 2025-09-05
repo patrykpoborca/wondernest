@@ -38,7 +38,11 @@ pub use db::{
 };
 
 // Create app function for testing and main
-use axum::{Router, http::{HeaderValue, Method}};
+use axum::{
+    Router, 
+    http::{HeaderValue, Method},
+    extract::DefaultBodyLimit,
+};
 use tower_http::cors::{CorsLayer, Any};
 use tower_http::trace::TraceLayer;
 use tower_http::compression::CompressionLayer;
@@ -102,6 +106,7 @@ pub async fn create_app(
         // Add production middleware stack
         .layer(
             ServiceBuilder::new()
+                .layer(DefaultBodyLimit::max(10 * 1024 * 1024)) // 10MB limit for file uploads
                 .layer(TraceLayer::new_for_http()) // Request tracing first
                 .layer(CompressionLayer::new()) // Compress responses
                 .layer(cors) // CORS last

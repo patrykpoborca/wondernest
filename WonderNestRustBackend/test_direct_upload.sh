@@ -18,7 +18,7 @@ echo "$DIRECT_RESPONSE" | jq . 2>/dev/null || echo "$DIRECT_RESPONSE"
 
 echo ""
 echo "Now testing through Vite proxy (port 3000)..."
-PROXY_RESPONSE=$(curl -X POST "http://localhost:3000/api/files/upload?category=game_asset&isPublic=true" \
+PROXY_RESPONSE=$(curl -X POST "http://localhost:3000/api/v1/files/upload?category=game_asset&isPublic=true" \
   -H "Authorization: Bearer fake-token-for-testing" \
   -F "file=@/tmp/test_direct.png;type=image/png" \
   2>/dev/null)

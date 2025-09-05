@@ -195,8 +195,20 @@ export const FileUploadWithTags: React.FC<FileUploadWithTagsProps> = ({
     setError(null)
     setUploadProgress(0)
 
+    // Debug: Check file before upload
+    console.log('File to upload:', {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type,
+      lastModified: selectedFile.lastModified
+    })
+
     const formData = new FormData()
     formData.append('file', selectedFile)
+    
+    // Debug: Check FormData content
+    console.log('FormData has file:', formData.has('file'))
+    console.log('FormData file:', formData.get('file'))
 
     try {
       // Simulate progress for demo

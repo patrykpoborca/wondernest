@@ -16,11 +16,9 @@ const baseQuery = fetchBaseQuery({
     }
     
     // Don't set content-type for file uploads - let the browser set it with boundary
-    if (endpoint !== 'uploadFile') {
+    // For other endpoints, only set content-type if not already set
+    if (endpoint !== 'uploadFile' && !headers.has('content-type')) {
       headers.set('content-type', 'application/json')
-    } else {
-      // Explicitly delete content-type for file uploads to ensure browser sets it
-      headers.delete('content-type')
     }
     
     return headers
