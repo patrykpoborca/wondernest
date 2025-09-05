@@ -22,13 +22,14 @@ pub fn router() -> Router<AppState> {
         .nest("/coppa", coppa::router())
         .nest("/audio", audio::router())
         .nest("/analytics", analytics::router())
-        .nest("/files", file_upload::router())
         .merge(content::router()) // content routes are at the root level
         .layer(middleware::from_fn(auth_middleware));
 
     Router::new()
         // Auth routes (no middleware)
         .nest("/auth", auth::router())
+        // File routes (mixed public/protected, handles its own auth)
+        .nest("/files", file_upload::router())
         // Protected routes with middleware
         .merge(protected_routes)
 }

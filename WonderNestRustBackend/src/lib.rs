@@ -50,11 +50,18 @@ pub async fn create_app(
     redis_conn: redis::aio::ConnectionManager,
     config: config::Config,
 ) -> anyhow::Result<Router> {
+    // Initialize storage provider
+    let storage_config = services::storage::StorageConfigBuilder::from_environment()
+        .map_err(|e| anyhow::anyhow!("Failed to load storage configuration: {}", e))?;
+    let storage_provider = storage_config.create_provider().await
+        .map_err(|e| anyhow::anyhow!("Failed to create storage provider: {}", e))?;
+
     // Create application state
     let state = services::AppState {
         db: db_pool,
         redis: redis_conn,
         config,
+        storage: storage_provider,
     };
 
     // Configure CORS for production

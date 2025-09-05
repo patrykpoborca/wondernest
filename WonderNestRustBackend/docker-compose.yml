@@ -12,6 +12,12 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
       - RUST_LOG=debug
       - RUST_ENV=development
+      - STORAGE_PROVIDER=minio
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=wondernest-dev
+      - MINIO_REGION=us-east-1
     depends_on:
       - postgres
       - redis
@@ -42,9 +48,30 @@ services:
     networks:
       - wondernest-network
 
+  minio:
+    image: minio/minio
+    container_name: wondernest-minio
+    ports:
+      - "9000:9000"  # S3 API port
+      - "9001:9001"  # MinIO Console port
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - wondernest-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
 networks:
   wondernest-network:
     driver: bridge
 
 volumes:
   postgres-data-rust:
+  minio-data:

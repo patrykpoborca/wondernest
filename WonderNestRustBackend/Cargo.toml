@@ -55,13 +55,22 @@ regex = "1.10"
 
 # File uploads
 multer = "3.0"
+bytes = "1.5"
+tokio-util = { version = "0.7", features = ["io"] }
+futures = "0.3"
+mime_guess = "2.0"
 
-# AWS S3
+# AWS S3 (for MinIO compatibility)
 aws-sdk-s3 = "1.13"
 aws-config = "1.1"
+aws-smithy-runtime = { version = "1.1", features = ["client"] }
+aws-smithy-runtime-api = "1.1"
 
 # Request ID
 tower-request-id = "0.3"
+
+# Async traits
+async-trait = "0.1"
 
 # Metrics
 metrics = "0.21"
