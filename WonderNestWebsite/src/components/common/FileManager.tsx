@@ -106,6 +106,9 @@ export const FileManager: React.FC<FileManagerProps> = ({
 
   const files = filesData?.data || []
   
+  // Debug: log files data to check for id field
+  console.log('Files data:', files.slice(0, 3)) // Log first 3 files for debugging
+  
   const filteredFiles = files.filter((file: any) =>
     file.originalName.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -139,14 +142,17 @@ export const FileManager: React.FC<FileManagerProps> = ({
   }
 
   const handleDeleteClick = (fileId: string) => {
+    console.log('Delete clicked for fileId:', fileId)
     setFileToDelete(fileId)
     setDeleteDialogOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
     if (fileToDelete) {
+      console.log('Attempting to delete file with ID:', fileToDelete)
       try {
-        await deleteFile(fileToDelete).unwrap()
+        const result = await deleteFile({ fileId: fileToDelete }).unwrap()
+        console.log('Delete result:', result)
         refetch()
         setDeleteDialogOpen(false)
         setFileToDelete(null)
@@ -156,6 +162,8 @@ export const FileManager: React.FC<FileManagerProps> = ({
       } catch (error) {
         console.error('Failed to delete file:', error)
       }
+    } else {
+      console.error('No fileToDelete set when trying to delete')
     }
   }
 

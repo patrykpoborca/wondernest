@@ -16,10 +16,11 @@ use crate::{
     error::{AppError, AppResult},
     middleware::auth::{auth_middleware},
     models::{
-        FileDeleteSuccessResponse, FileListSuccessResponse, FileQueryParams,
+        FileListSuccessResponse, FileQueryParams,
         FileUploadSuccessResponse, FileUsageResponse, UploadedFileDto,
+        FileOperation, FileOperationResponse,
     },
-    services::AppState,
+    services::{AppState, file_reference_service::FileReferenceService},
 };
 
 #[derive(serde::Deserialize)]
@@ -364,24 +365,161 @@ async fn check_file_usage(
 
 // Delete file
 async fn delete_file(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(file_id): Path<String>,
     AuthClaims(claims): AuthClaims,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!("File delete request from user: {}", claims.user_id);
+    tracing::info!("Content-aware file delete request from user: {} for file: {}", claims.user_id, file_id);
 
     // Validate file ID format
-    if Uuid::parse_str(&file_id).is_err() {
-        return Err(AppError::BadRequest("Invalid file ID format".to_string()));
+    let file_uuid = Uuid::parse_str(&file_id).map_err(|_| {
+        AppError::BadRequest("Invalid file ID format".to_string())
+    })?;
+
+    // Parse user ID
+    let user_uuid = Uuid::parse_str(&claims.user_id).map_err(|_| {
+        AppError::BadRequest("Invalid user ID format".to_string())
+    })?;
+
+    // Get comprehensive file metadata including detachment info
+    let file_record = sqlx::query!(
+        r#"
+        SELECT id, user_id, original_name, file_key, file_size, reference_count,
+               detached_at, detached_by, detachment_reason, is_system_image
+        FROM core.uploaded_files
+        WHERE id = $1 AND user_id = $2
+        "#,
+        file_uuid,
+        user_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to get file metadata: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let file_record = file_record.ok_or_else(|| {
+        AppError::NotFound("File not found or access denied".to_string())
+    })?;
+
+    // Check if file is already detached
+    if file_record.detached_at.is_some() {
+        let response = FileOperationResponse::new(file_uuid, FileOperation::AlreadyDeleted)
+            .with_reason("File was previously detached from your account due to active references");
+        return Ok((StatusCode::OK, Json(response)));
     }
 
-    // TODO: PRODUCTION - Implement actual file deletion
+    // Check if file is protected (system image)
+    if file_record.is_system_image.unwrap_or(false) {
+        let response = FileOperationResponse::new(file_uuid, FileOperation::Protected)
+            .with_reason("System files cannot be deleted");
+        return Ok((StatusCode::FORBIDDEN, Json(response)));
+    }
 
-    let response = FileDeleteSuccessResponse {
-        message: "File deleted successfully - TODO: Implement deletion".to_string(),
-    };
+    // Initialize reference service and check for references
+    let ref_service = FileReferenceService::new(state.db.clone());
+    
+    // Get comprehensive reference information
+    let reference_types = ref_service.get_comprehensive_references(file_uuid).await
+        .map_err(|e| {
+            tracing::error!("Failed to check file references: {}", e);
+            AppError::InternalError("Failed to check file references".to_string())
+        })?;
+    
+    let reference_count = file_record.reference_count;
+    
+    // Decide on operation type
+    if reference_count > 0 || !reference_types.is_empty() {
+        // File has references - perform soft detachment
+        tracing::info!("File has {} references of types {:?}, performing soft detachment", 
+                      reference_count, reference_types);
+        
+        let now = Utc::now();
+        let detachment_reason = format!(
+            "Has {} active references: {}", 
+            reference_count + reference_types.len() as i32,
+            reference_types.join(", ")
+        );
+        
+        // Update file to mark as detached (remove ownership but keep file)
+        sqlx::query!(
+            r#"
+            UPDATE core.uploaded_files 
+            SET user_id = NULL, 
+                detached_at = $1, 
+                detached_by = $2,
+                detachment_reason = $3
+            WHERE id = $4
+            "#,
+            now,
+            user_uuid,
+            detachment_reason,
+            file_uuid
+        )
+        .execute(&state.db)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to detach file: {}", e);
+            AppError::DatabaseError(e)
+        })?;
 
-    Ok((StatusCode::OK, Json(response)))
+        tracing::info!("Successfully detached file: {} ({})", file_record.original_name, file_id);
+
+        let response = FileOperationResponse::new(file_uuid, FileOperation::SoftDetached)
+            .with_reason("File detached from your account but preserved due to active references")
+            .with_references(reference_count, reference_types);
+        
+        Ok((StatusCode::OK, Json(response)))
+        
+    } else {
+        // No references - perform hard deletion
+        tracing::info!("File has no references, performing hard deletion");
+        
+        let storage_freed = file_record.file_size;
+        
+        // Delete file from storage first
+        match state.storage.delete(&file_record.file_key).await {
+            Ok(_) => {
+                tracing::info!("Successfully deleted file from storage: {}", file_record.file_key);
+            }
+            Err(e) => {
+                tracing::warn!("Failed to delete file from storage (will continue with database deletion): {}", e);
+                // Continue with database deletion even if storage deletion fails
+                // This handles cases where the file was already manually deleted from storage
+            }
+        }
+
+        // Delete file record from database
+        let deleted_rows = sqlx::query!(
+            r#"
+            DELETE FROM core.uploaded_files
+            WHERE id = $1 AND user_id = $2
+            "#,
+            file_uuid,
+            user_uuid
+        )
+        .execute(&state.db)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete file from database: {}", e);
+            AppError::DatabaseError(e)
+        })?;
+
+        if deleted_rows.rows_affected() == 0 {
+            let response = FileOperationResponse::new(file_uuid, FileOperation::Failed)
+                .with_reason("File not found or already deleted");
+            return Ok((StatusCode::NOT_FOUND, Json(response)));
+        }
+
+        tracing::info!("Successfully hard deleted file: {} ({})", file_record.original_name, file_id);
+
+        let response = FileOperationResponse::new(file_uuid, FileOperation::HardDeleted)
+            .with_reason(format!("File '{}' completely removed", file_record.original_name))
+            .with_storage_freed(storage_freed);
+
+        Ok((StatusCode::OK, Json(response)))
+    }
 }
 
 // List files
