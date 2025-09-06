@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/services/api_service.dart';
 import '../../widgets/custom_text_field.dart';
 
 class PinSetupScreen extends ConsumerStatefulWidget {
@@ -95,7 +96,12 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 48),
+                  IconButton(
+                    onPressed: () => context.go('/signup'),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  ).animate().fadeIn().slideX(begin: -1),
+                  
+                  const SizedBox(height: 32),
                   
                   Center(
                     child: Icon(

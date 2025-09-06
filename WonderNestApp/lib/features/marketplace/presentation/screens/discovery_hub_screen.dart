@@ -286,7 +286,7 @@ class _DiscoveryHubScreenState extends ConsumerState<DiscoveryHubScreen>
   }
 
   Widget _buildCategoriesTab(MarketplaceBrowseState state) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,7 +320,9 @@ class _DiscoveryHubScreenState extends ConsumerState<DiscoveryHubScreen>
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
+            // Use a fixed height container instead of Expanded since we're in a ScrollView
+            SizedBox(
+              height: 400, // Reasonable height for grid results
               child: GridView.builder(
                 controller: _scrollController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -340,7 +342,8 @@ class _DiscoveryHubScreenState extends ConsumerState<DiscoveryHubScreen>
               ),
             ),
           ] else if (state.isLoading)
-            const Expanded(
+            const SizedBox(
+              height: 200,
               child: Center(
                 child: CircularProgressIndicator(),
               ),

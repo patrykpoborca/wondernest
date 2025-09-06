@@ -4,6 +4,7 @@ import '../../../core/games/game_plugin.dart';
 import '../../../core/services/timber_wrapper.dart';
 import '../../../models/child_profile.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../widgets/game_app_bar.dart';
 import '../models/story_models.dart';
 import '../story_adventure_plugin.dart';
 import 'story_reader_screen.dart';
@@ -77,62 +78,15 @@ class _StorySelectionScreenState extends ConsumerState<StorySelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.kidBackgroundLight,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: _buildContent(),
-            ),
-          ],
-        ),
+      appBar: StoryGameAppBar(
+        title: 'Story Adventure',
+        subtitle: 'Hi ${widget.childProfile.name}! Choose a story to read',
+        showProgressIndicator: false,
       ),
+      body: _buildContent(),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-              ),
-              Expanded(
-                child: Text(
-                  'Story Adventure',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(width: 48), // Balance the back button
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Hi ${widget.childProfile.name}! Choose a story to read',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white70,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildContent() {
     if (_isLoading) {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../../../../core/services/timber_wrapper.dart';
+import '../../../../widgets/game_app_bar.dart';
 import '../providers/marketplace_providers.dart';
 import '../widgets/child_library_item_card.dart';
 import '../widgets/collection_carousel.dart';
@@ -66,7 +67,23 @@ class _ChildLibraryScreenState extends ConsumerState<ChildLibraryScreen>
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: _buildAppBar(theme),
+      appBar: EducationalGameAppBar(
+        title: 'My Library',
+        subtitle: 'Hi ${widget.childName}! Ready to learn and play?',
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              onPressed: () => _showProgressDialog(),
+              icon: const Icon(
+                Icons.stars,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(childLibraryProvider.notifier).refreshLibrary();
@@ -76,59 +93,6 @@ class _ChildLibraryScreenState extends ConsumerState<ChildLibraryScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ThemeData theme) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.secondary,
-            ],
-          ),
-        ),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hi ${widget.childName}! 👋',
-            style: TextStyle(
-              color: theme.colorScheme.onPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            'Ready to learn and play?',
-            style: TextStyle(
-              color: theme.colorScheme.onPrimary.withOpacity(0.8),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-      toolbarHeight: 80,
-      actions: [
-        // Achievement/Progress Button
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: IconButton(
-            onPressed: () => _showProgressDialog(),
-            icon: Icon(
-              Icons.stars,
-              color: theme.colorScheme.onPrimary,
-              size: 28,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildBody(BuildContext context, ChildLibraryState state) {
     if (state.isLoading && state.items.isEmpty) {

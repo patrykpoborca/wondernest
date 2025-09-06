@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/timber_wrapper.dart';
 import '../../../models/child_profile.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../widgets/game_app_bar.dart';
 import '../models/story_models.dart';
 import '../story_adventure_plugin.dart';
 import '../widgets/image_first_story_viewer.dart';
@@ -106,93 +107,31 @@ class _StoryReaderScreenState extends ConsumerState<StoryReaderScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            if (_isLoading) 
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else
-              Expanded(
-                child: _buildStoryContent(),
+      appBar: StoryGameAppBar(
+        title: widget.storyTemplate.title,
+        subtitle: _pages.isNotEmpty ? 'Page ${_currentPage + 1} of ${_pages.length}' : null,
+        showProgressIndicator: true,
+        progress: _pages.isNotEmpty ? (_currentPage + 1) / _pages.length : 0.0,
+        onBackPressed: _onBackPressed,
+      ),
+      body: Column(
+        children: [
+          if (_isLoading) 
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(),
               ),
-            _buildNavigationControls(),
-          ],
-        ),
+            )
+          else
+            Expanded(
+              child: _buildStoryContent(),
+            ),
+          _buildNavigationControls(),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: _onBackPressed,
-            icon: const Icon(Icons.close, color: Colors.white, size: 24),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Text(
-                  widget.storyTemplate.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (_pages.isNotEmpty)
-                  Text(
-                    'Page ${_currentPage + 1} of ${_pages.length}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Progress indicator
-          Container(
-            width: 40,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.white30,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: _pages.isNotEmpty ? (_currentPage + 1) / _pages.length : 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildStoryContent() {
     // Use image-first mode for younger children
