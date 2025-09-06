@@ -40,6 +40,8 @@ import 'screens/family/family_overview_screen.dart';
 import 'screens/family/child_profile_screen.dart';
 import 'screens/content/content_library_screen.dart';
 import 'screens/content/content_filter_settings_screen.dart';
+import 'features/marketplace/presentation/screens/discovery_hub_screen.dart';
+import 'features/marketplace/presentation/screens/child_library_screen.dart';
 import 'models/game_model.dart';
 
 void main() async {
@@ -360,6 +362,31 @@ class _WonderNestAppState extends ConsumerState<WonderNestApp> {
         GoRoute(
           path: '/content-filters',
           builder: (context, state) => const ContentFilterSettingsScreen(),
+        ),
+        
+        // Marketplace Routes
+        GoRoute(
+          path: '/marketplace/discovery',
+          builder: (context, state) => const DiscoveryHubScreen(),
+        ),
+        GoRoute(
+          path: '/child/library',
+          builder: (context, state) {
+            // Get the active child from app mode provider
+            final container = ProviderScope.containerOf(context);
+            final appModeState = container.read(appModeProvider);
+            final activeChild = appModeState.activeChild;
+            
+            if (activeChild == null) {
+              // Redirect to child selection if no active child
+              return const ChildSelectionScreen();
+            }
+            
+            return ChildLibraryScreen(
+              childId: activeChild.id,
+              childName: activeChild.name,
+            );
+          },
         ),
         
         // Mini-Game Framework (Legacy web games)

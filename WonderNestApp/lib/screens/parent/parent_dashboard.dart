@@ -158,12 +158,12 @@ class ParentDashboard extends ConsumerWidget {
                   ).animate().fadeIn(delay: 800.ms).scale(),
                   
                   QuickActionButton(
-                    title: 'View Analytics',
-                    subtitle: 'Learning insights',
-                    icon: Icons.analytics,
-                    color: AppColors.accentPurple,
+                    title: 'Marketplace',
+                    subtitle: 'Browse content',
+                    icon: Icons.store,
+                    color: AppColors.accentGreen,
                     onTap: () {
-                      // Navigate to analytics screen
+                      context.push('/marketplace/discovery');
                     },
                   ).animate().fadeIn(delay: 900.ms).scale(),
                   

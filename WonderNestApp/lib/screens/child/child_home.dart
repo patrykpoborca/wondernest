@@ -90,6 +90,17 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
         progress: 0.0, // Start fresh
         description: 'Collect colorful stickers by completing fun activities! Match shapes, colors, and patterns to fill your sticker books.',
       ),
+      // My Library - Access to purchased content
+      ActivityItem(
+        id: 'my_library',
+        title: 'My Library',
+        subtitle: 'Your special content!',
+        emoji: '📚',
+        color: AppColors.primaryBlue,
+        type: ActivityType.educational,
+        progress: 0.7,
+        description: 'All your favorite books, games, and activities in one special place!',
+      ),
       ActivityItem(
         id: 'story_adventure',
         title: 'Story Adventure',
@@ -780,6 +791,12 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       return;
     }
     
+    // Handle my library navigation
+    if (activity.id == 'my_library') {
+      _launchMyLibrary();
+      return;
+    }
+    
     // For activities, show the dialog
     showDialog(
       context: context,
@@ -897,6 +914,12 @@ class _ChildHomeState extends ConsumerState<ChildHome> {
       'childId': activeChild.id,
       'childName': activeChild.name,
     });
+  }
+
+  void _launchMyLibrary() {
+    Timber.d('[LIBRARY] Launching My Library');
+    // Navigate to the child library screen
+    context.go('/child/library');
   }
 
   void _startActivity(ActivityItem activity) {
