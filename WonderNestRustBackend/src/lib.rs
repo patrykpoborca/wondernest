@@ -68,6 +68,15 @@ pub async fn create_app(
         .unwrap_or_else(|_| config.jwt.secret.clone());
     let signed_url_service = services::signed_url_service::SignedUrlService::new(signed_url_secret, Some(24)); // 24 hour expiry
     
+    // Create content pack service
+    let file_reference_service = services::file_reference_service::FileReferenceService::new(db_pool.clone(), storage_provider.clone());
+    let marketplace_repository = db::MarketplaceRepository::new(db_pool.clone());
+    let content_pack_service = services::content_pack_service::ContentPackService::new(
+        file_reference_service,
+        signed_url_service.clone(),
+        marketplace_repository,
+    );
+    
     let state = services::AppState {
         db: db_pool,
         redis: redis_conn,
@@ -75,6 +84,7 @@ pub async fn create_app(
         storage: storage_provider,
         file_access: file_access_controller,
         signed_url: signed_url_service,
+        content_pack: content_pack_service,
     };
 
     // Configure CORS for production

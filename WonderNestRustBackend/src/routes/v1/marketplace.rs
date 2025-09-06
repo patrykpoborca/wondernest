@@ -13,7 +13,7 @@ use crate::{
         MarketplaceBrowseRequest, CreateCreatorProfileRequest, PurchaseRequest,
         CreateReviewRequest, CreateCollectionRequest
     },
-    services::AppState,
+    services::{AppState, content_pack_service::ContentPackCreateRequest},
     db::MarketplaceRepository,
 };
 
@@ -22,6 +22,9 @@ pub fn router() -> Router<AppState> {
         // Creator profile management
         .route("/creator/profile", post(create_creator_profile))
         .route("/creator/profile", get(get_creator_profile))
+        
+        // Content pack management
+        .route("/content-packs", post(create_content_pack))
         
         // Marketplace browsing
         .route("/browse", get(browse_marketplace))
@@ -282,4 +285,23 @@ async fn get_item_reviews(
         })?;
     
     Ok(Json(reviews))
+}
+
+async fn create_content_pack(
+    State(state): State<AppState>,
+    AuthClaims(claims): AuthClaims,
+    Json(request): Json<ContentPackCreateRequest>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!("Creating content pack '{}' for user: {}", request.title, claims.user_id);
+    
+    let user_id = Uuid::parse_str(&claims.user_id)
+        .map_err(|_| crate::error::AppError::BadRequest("Invalid user ID".to_string()))?;
+    
+    let response = state.content_pack.create_content_pack(user_id, request).await
+        .map_err(|e| {
+            tracing::error!("Failed to create content pack: {}", e);
+            crate::error::AppError::InternalError("Failed to create content pack".to_string())
+        })?;
+    
+    Ok(Json(response))
 }
