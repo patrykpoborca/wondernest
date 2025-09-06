@@ -61,11 +61,20 @@ pub async fn create_app(
         .map_err(|e| anyhow::anyhow!("Failed to create storage provider: {}", e))?;
 
     // Create application state
+    let file_access_controller = services::file_access_controller::FileAccessController::new(db_pool.clone());
+    
+    // Create signed URL service with secret from config
+    let signed_url_secret = std::env::var("SIGNED_URL_SECRET")
+        .unwrap_or_else(|_| config.jwt.secret.clone());
+    let signed_url_service = services::signed_url_service::SignedUrlService::new(signed_url_secret, Some(24)); // 24 hour expiry
+    
     let state = services::AppState {
         db: db_pool,
         redis: redis_conn,
         config,
         storage: storage_provider,
+        file_access: file_access_controller,
+        signed_url: signed_url_service,
     };
 
     // Configure CORS for production

@@ -33,9 +33,11 @@ serde_json = "1.0"
 # JWT
 jsonwebtoken = "9.2"
 
-# Password hashing
+# Password hashing and cryptography
 bcrypt = "0.15"
 sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.21"
 
 # UUID
 uuid = { version = "1.6", features = ["v4", "serde"] }

@@ -23,6 +23,9 @@ pub enum AppError {
     // Not found
     NotFound(String),
     
+    // Access forbidden
+    Forbidden(String),
+    
     // Internal errors
     InternalError(String),
     
@@ -43,6 +46,7 @@ impl fmt::Display for AppError {
             AppError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
             AppError::BadRequest(msg) => write!(f, "Bad request: {}", msg),
             AppError::NotFound(msg) => write!(f, "Not found: {}", msg),
+            AppError::Forbidden(msg) => write!(f, "Forbidden: {}", msg),
             AppError::InternalError(msg) => write!(f, "Internal error: {}", msg),
             AppError::RedisError(e) => write!(f, "Redis error: {}", e),
             AppError::JwtError(e) => write!(f, "JWT error: {}", e),
@@ -74,6 +78,9 @@ impl IntoResponse for AppError {
             }
             AppError::NotFound(msg) => {
                 (StatusCode::NOT_FOUND, msg)
+            }
+            AppError::Forbidden(msg) => {
+                (StatusCode::FORBIDDEN, msg)
             }
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);

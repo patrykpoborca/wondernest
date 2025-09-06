@@ -1,12 +1,13 @@
 use axum::{
-    body::Bytes,
-    extract::{Multipart, Path, Query, State},
-    http::{header, StatusCode},
+    body::{Bytes, Body},
+    extract::{Multipart, Path, Query, State, Request},
+    http::{header, StatusCode, HeaderMap},
     middleware,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put, patch},
     Json, Router,
 };
+use sqlx::Row;
 use chrono::Utc;
 use std::{collections::HashMap, error::Error};
 use uuid::Uuid;
@@ -33,20 +34,37 @@ pub struct FileUploadParams {
     tags: Option<String>,
 }
 
+#[derive(serde::Deserialize)]
+pub struct FileMetadataUpdate {
+    original_name: Option<String>,
+    category: Option<String>,
+    tags: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct FileVisibilityUpdate {
+    #[serde(rename = "isPublic")]
+    is_public: bool,
+}
+
 pub fn router() -> Router<AppState> {
     // Create protected routes
     let protected = Router::new()
         .route("/", get(list_files))
         .route("/upload", post(upload_file))
         .route("/:file_id", get(get_file_metadata))
+        .route("/:file_id", put(update_file_metadata))
         .route("/:file_id/download", get(download_file))
         .route("/:file_id/usage", get(check_file_usage))
+        .route("/:file_id/visibility", patch(update_file_visibility))
         .route("/:file_id", delete(delete_file))
         .layer(middleware::from_fn(auth_middleware));
     
     // Combine public and protected routes
     Router::new()
-        .route("/:file_id/public", get(public_download))  // Public endpoint
+        .route("/:file_id/public", get(public_download))  // Public endpoint (no auth)
+        .route("/:file_id/family", get(family_download))  // Family-accessible endpoint (manual auth)
+        .route("/:file_id/signed", get(signed_download))  // Signed URL endpoint (no auth, signature required)
         .merge(protected)  // Protected endpoints
 }
 
@@ -124,7 +142,7 @@ async fn upload_file(
 
     // Use parameters from query string
     let category = params.category.unwrap_or_else(|| "game_asset".to_string());
-    let is_public = params.is_public.unwrap_or(false);
+    let is_public = params.is_public.unwrap_or(false); // Default to private (family access)
     
     // Upload file to storage
     let storage_key = format!("uploads/{}/{}", claims.user_id, file_id);
@@ -223,6 +241,168 @@ async fn get_file_metadata(
     };
 
     Ok((StatusCode::OK, Json(mock_file)))
+}
+
+// Update file metadata (name, category, tags)
+async fn update_file_metadata(
+    State(state): State<AppState>,
+    Path(file_id): Path<String>,
+    AuthClaims(claims): AuthClaims,
+    Json(update_data): Json<FileMetadataUpdate>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!("File metadata update request from user: {} for file: {}", claims.user_id, file_id);
+
+    // Validate file ID format
+    let file_uuid = Uuid::parse_str(&file_id).map_err(|_| {
+        AppError::BadRequest("Invalid file ID format".to_string())
+    })?;
+
+    // Parse user ID
+    let user_uuid = Uuid::parse_str(&claims.user_id).map_err(|_| {
+        AppError::BadRequest("Invalid user ID format".to_string())
+    })?;
+
+    // Validate access using FileAccessController (owner only)
+    let _file_info = state.file_access.validate_file_access(
+        Some(user_uuid),
+        file_uuid,
+        true // require_owner = true
+    ).await?;
+
+    // For simplicity, we'll handle each case separately with sqlx::query!
+    // First get current values 
+    let current_file = sqlx::query!(
+        "SELECT original_name, category, tags FROM core.uploaded_files WHERE id = $1 AND user_id = $2",
+        file_uuid, user_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to get current file data: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let current_file = current_file.ok_or_else(|| {
+        AppError::NotFound("File not found or access denied".to_string())
+    })?;
+
+    // Use new values if provided, otherwise keep current values
+    let new_original_name = update_data.original_name.unwrap_or(current_file.original_name);
+    let new_category = update_data.category.unwrap_or(current_file.category);
+    let new_tags = update_data.tags.unwrap_or(current_file.tags.unwrap_or_default().join(","));
+
+    // Update the file
+    let updated_file = sqlx::query!(
+        r#"
+        UPDATE core.uploaded_files 
+        SET original_name = $1, category = $2, tags = string_to_array($3, ',')
+        WHERE id = $4 AND user_id = $5
+        RETURNING id, original_name, mime_type, file_size, category, uploaded_at
+        "#,
+        new_original_name,
+        new_category,
+        new_tags,
+        file_uuid,
+        user_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to update file metadata: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let updated_file = updated_file.ok_or_else(|| {
+        AppError::NotFound("File not found or access denied".to_string())
+    })?;
+
+    let file_dto = UploadedFileDto {
+        id: updated_file.id.to_string(),
+        original_name: updated_file.original_name,
+        mime_type: updated_file.mime_type,
+        file_size: updated_file.file_size,
+        category: updated_file.category,
+        url: format!("/api/v1/files/{}/family", updated_file.id),
+        uploaded_at: updated_file.uploaded_at.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+        metadata: None,
+    };
+
+    tracing::info!("Successfully updated file metadata for: {}", file_id);
+    Ok((StatusCode::OK, Json(file_dto)))
+}
+
+// Update file visibility (public/private toggle)
+async fn update_file_visibility(
+    State(state): State<AppState>,
+    Path(file_id): Path<String>,
+    AuthClaims(claims): AuthClaims,
+    Json(visibility_data): Json<FileVisibilityUpdate>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!("File visibility update request from user: {} for file: {} to public: {}", 
+                  claims.user_id, file_id, visibility_data.is_public);
+
+    // Validate file ID format
+    let file_uuid = Uuid::parse_str(&file_id).map_err(|_| {
+        AppError::BadRequest("Invalid file ID format".to_string())
+    })?;
+
+    // Parse user ID
+    let user_uuid = Uuid::parse_str(&claims.user_id).map_err(|_| {
+        AppError::BadRequest("Invalid user ID format".to_string())
+    })?;
+
+    // Validate access using FileAccessController (owner only)
+    let _file_info = state.file_access.validate_file_access(
+        Some(user_uuid),
+        file_uuid,
+        true // require_owner = true
+    ).await?;
+
+    // Update file visibility
+    let updated_file = sqlx::query!(
+        r#"
+        UPDATE core.uploaded_files 
+        SET is_public = $1
+        WHERE id = $2 AND user_id = $3
+        RETURNING id, original_name, mime_type, file_size, category, is_public, uploaded_at
+        "#,
+        visibility_data.is_public,
+        file_uuid,
+        user_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to update file visibility: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let updated_file = updated_file.ok_or_else(|| {
+        AppError::NotFound("File not found or access denied".to_string())
+    })?;
+
+    // Determine the appropriate URL based on visibility
+    let url = if updated_file.is_public.unwrap_or(false) {
+        format!("/api/v1/files/{}/public", file_uuid)
+    } else {
+        format!("/api/v1/files/{}/family", file_uuid)
+    };
+
+    let file_dto = UploadedFileDto {
+        id: file_uuid.to_string(),
+        original_name: updated_file.original_name,
+        mime_type: updated_file.mime_type,
+        file_size: updated_file.file_size,
+        category: updated_file.category,
+        url,
+        uploaded_at: updated_file.uploaded_at.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+        metadata: None,
+    };
+
+    let visibility_status = if visibility_data.is_public { "public" } else { "private" };
+    tracing::info!("Successfully updated file visibility to {} for: {}", visibility_status, file_id);
+    
+    Ok((StatusCode::OK, Json(file_dto)))
 }
 
 // Download file
@@ -342,6 +522,153 @@ async fn public_download(
     Ok((StatusCode::OK, headers, file_data))
 }
 
+// Family download endpoint (requires auth, allows family member access)
+async fn family_download(
+    State(state): State<AppState>,
+    Path(file_id): Path<String>,
+    req: Request<Body>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!("Family file download request for file: {}", file_id);
+
+    // Manual JWT validation since this endpoint is outside auth middleware
+    let auth_header = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .ok_or(AppError::Unauthorized)?;
+
+    // Check for Bearer prefix
+    if !auth_header.starts_with("Bearer ") {
+        return Err(AppError::InvalidToken);
+    }
+
+    let token = &auth_header[7..]; // Skip "Bearer "
+
+    // Get JWT secret and validation params from environment
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "your-super-secret-jwt-key-change-this-in-production".to_string());
+    let jwt_issuer = std::env::var("JWT_ISSUER")
+        .unwrap_or_else(|_| "wondernest-api".to_string());
+    let jwt_audience = std::env::var("JWT_AUDIENCE")
+        .unwrap_or_else(|_| "wondernest-users".to_string());
+
+    // Configure validation
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.set_issuer(&[&jwt_issuer]);
+    validation.set_audience(&[&jwt_audience]);
+
+    // Decode and validate JWT
+    let token_data = jsonwebtoken::decode::<crate::middleware::auth::Claims>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(jwt_secret.as_bytes()),
+        &validation,
+    )
+    .map_err(|e| {
+        tracing::debug!("JWT validation failed: {:?}", e);
+        match e.kind() {
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => AppError::TokenExpired,
+            _ => AppError::InvalidToken,
+        }
+    })?;
+
+    let claims = token_data.claims;
+    tracing::info!("Family file download request from user: {} for file: {}", claims.user_id, file_id);
+
+    // Validate file ID format
+    let file_uuid = Uuid::parse_str(&file_id).map_err(|_| {
+        AppError::BadRequest("Invalid file ID format".to_string())
+    })?;
+
+    // Parse requesting user ID
+    let requesting_user_id = Uuid::parse_str(&claims.user_id).map_err(|_| {
+        AppError::BadRequest("Invalid user ID format".to_string())
+    })?;
+
+    // Get file metadata with owner info
+    let file_record = sqlx::query!(
+        r#"
+        SELECT uf.id, uf.user_id as owner_id, uf.original_name, uf.mime_type, 
+               uf.file_size, uf.file_key, uf.is_public
+        FROM core.uploaded_files uf
+        WHERE uf.id = $1 AND uf.detached_at IS NULL
+        "#,
+        file_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to get file metadata: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let file_record = file_record.ok_or_else(|| {
+        AppError::NotFound("File not found".to_string())
+    })?;
+
+    // Check if file is public - if so, allow access
+    if file_record.is_public.unwrap_or(false) {
+        tracing::debug!("File is public, allowing access");
+    } else {
+        // For private files, check family membership
+        let owner_id = file_record.owner_id;
+
+        // If requesting user is the owner, allow access
+        if requesting_user_id == owner_id {
+            tracing::debug!("User is file owner, allowing access");
+        } else {
+            // Check if both users are in the same family
+            let same_family = sqlx::query_scalar!(
+                r#"
+                SELECT COUNT(*) > 0
+                FROM family.family_members fm1
+                JOIN family.family_members fm2 ON fm1.family_id = fm2.family_id
+                WHERE fm1.user_id = $1 AND fm2.user_id = $2
+                "#,
+                requesting_user_id,
+                owner_id
+            )
+            .fetch_one(&state.db)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to check family membership: {}", e);
+                AppError::DatabaseError(e)
+            })?;
+
+            if !same_family.unwrap_or(false) {
+                tracing::warn!("User {} attempted to access file owned by {} but they are not in the same family", 
+                              requesting_user_id, owner_id);
+                return Err(AppError::Forbidden("Access denied: file not accessible to your family".to_string()));
+            }
+
+            tracing::debug!("Users are in same family, allowing access");
+        }
+    }
+
+    // Download file from storage
+    let file_data = state.storage.download(&file_record.file_key).await
+        .map_err(|e| {
+            tracing::error!("Failed to download file from storage: {}", e);
+            match e {
+                crate::services::storage::StorageError::NotFound(_) => {
+                    AppError::NotFound("File not found in storage".to_string())
+                }
+                _ => AppError::InternalError("Failed to retrieve file".to_string())
+            }
+        })?;
+
+    tracing::info!("Successfully downloaded family file from storage: key={}, size={} bytes", 
+                   file_record.file_key, file_data.len());
+
+    let headers = [
+        (header::CONTENT_TYPE, file_record.mime_type),
+        (header::CONTENT_DISPOSITION, 
+         format!("inline; filename=\"{}\"", file_record.original_name)),
+        (header::CACHE_CONTROL, "private, max-age=3600".to_string()),
+    ];
+
+    Ok((StatusCode::OK, headers, file_data))
+}
+
 // Check file usage
 async fn check_file_usage(
     State(_state): State<AppState>,
@@ -380,6 +707,13 @@ async fn delete_file(
     let user_uuid = Uuid::parse_str(&claims.user_id).map_err(|_| {
         AppError::BadRequest("Invalid user ID format".to_string())
     })?;
+
+    // Validate access using FileAccessController (owner only)
+    let _file_info = state.file_access.validate_file_access(
+        Some(user_uuid), 
+        file_uuid, 
+        true // require_owner = true
+    ).await?;
 
     // Get comprehensive file metadata including detachment info
     let file_record = sqlx::query!(
@@ -522,6 +856,87 @@ async fn delete_file(
     }
 }
 
+// Signed URL download endpoint (no auth required, validates signature)
+async fn signed_download(
+    State(state): State<AppState>,
+    Path(file_id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+) -> AppResult<impl IntoResponse> {
+    tracing::info!("Signed URL file download request for: {}", file_id);
+
+    // Extract payload and signature from query parameters
+    let payload = params.get("payload")
+        .ok_or_else(|| AppError::BadRequest("Missing payload parameter".to_string()))?;
+    
+    let signature = params.get("signature")
+        .ok_or_else(|| AppError::BadRequest("Missing signature parameter".to_string()))?;
+
+    // Validate file ID format
+    let file_uuid = Uuid::parse_str(&file_id).map_err(|_| {
+        AppError::BadRequest("Invalid file ID format".to_string())
+    })?;
+
+    // Validate the signed URL
+    let payload_info = state.signed_url.validate_signed_url(file_uuid, payload, signature)?;
+
+    // Parse user ID from payload
+    let user_uuid = Uuid::parse_str(&payload_info.user_id).map_err(|_| {
+        AppError::InternalError("Invalid user ID in signed URL".to_string())
+    })?;
+
+    // Verify the user has access to this file using FileAccessController
+    let can_view = state.file_access.can_view_file(user_uuid, file_uuid).await?;
+    if !can_view {
+        tracing::warn!("User {} attempted to access file {} with valid signature but lacks permission", 
+                      user_uuid, file_uuid);
+        return Err(AppError::NotFound("File not found".to_string()));
+    }
+
+    // Get file metadata from database
+    let file_record = sqlx::query!(
+        r#"
+        SELECT id, original_name, mime_type, file_size, file_key
+        FROM core.uploaded_files
+        WHERE id = $1 AND detached_at IS NULL
+        "#,
+        file_uuid
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to get file metadata: {}", e);
+        AppError::DatabaseError(e)
+    })?;
+
+    let file_record = file_record.ok_or_else(|| {
+        AppError::NotFound("File not found".to_string())
+    })?;
+
+    // Download file from storage
+    let file_data = state.storage.download(&file_record.file_key).await
+        .map_err(|e| {
+            tracing::error!("Failed to download file from storage: {}", e);
+            match e {
+                crate::services::storage::StorageError::NotFound(_) => {
+                    AppError::NotFound("File not found in storage".to_string())
+                }
+                _ => AppError::InternalError("Failed to retrieve file".to_string())
+            }
+        })?;
+
+    tracing::info!("Successfully downloaded file via signed URL: key={}, size={} bytes", 
+                   file_record.file_key, file_data.len());
+
+    let headers = [
+        (header::CONTENT_TYPE, file_record.mime_type),
+        (header::CONTENT_DISPOSITION, 
+         format!("inline; filename=\"{}\"", file_record.original_name)),
+        (header::CACHE_CONTROL, "private, max-age=3600".to_string()),
+    ];
+
+    Ok((StatusCode::OK, headers, file_data))
+}
+
 // List files
 async fn list_files(
     State(state): State<AppState>,
@@ -536,7 +951,7 @@ async fn list_files(
     // Build query that works with optional category
     let files = sqlx::query!(
         r#"
-        SELECT id, original_name, mime_type, file_size, category, uploaded_at
+        SELECT id, original_name, mime_type, file_size, category, is_public, uploaded_at
         FROM core.uploaded_files
         WHERE user_id = $1 
           AND ($2::text IS NULL OR category = $2)
@@ -555,17 +970,43 @@ async fn list_files(
         AppError::DatabaseError(e)
     })?;
 
+    // Get user ID for signed URL generation
+    let user_uuid = Uuid::parse_str(&claims.user_id).unwrap_or_else(|_| Uuid::nil());
+
     let file_list: Vec<UploadedFileDto> = files
         .into_iter()
-        .map(|f| UploadedFileDto {
-            id: f.id.to_string(),
-            original_name: f.original_name,
-            mime_type: f.mime_type,
-            file_size: f.file_size,
-            category: f.category,
-            url: format!("/api/v1/files/{}/public", f.id),
-            uploaded_at: f.uploaded_at.unwrap_or_else(|| Utc::now()).to_rfc3339(),
-            metadata: None,
+        .map(|f| {
+            // Generate appropriate URL based on file visibility
+            let url = if f.is_public.unwrap_or(false) {
+                format!("/api/v1/files/{}/public", f.id)
+            } else {
+                // Generate signed URL for private files (24 hour expiry)
+                match state.signed_url.generate_signed_url(
+                    f.id,
+                    user_uuid,
+                    "view",
+                    "http://localhost:8080", // TODO: Get from config
+                    None
+                ) {
+                    Ok(signed_url) => signed_url,
+                    Err(e) => {
+                        tracing::error!("Failed to generate signed URL for file {}: {}", f.id, e);
+                        // Fallback to family URL (will require manual auth)
+                        format!("/api/v1/files/{}/family", f.id)
+                    }
+                }
+            };
+
+            UploadedFileDto {
+                id: f.id.to_string(),
+                original_name: f.original_name,
+                mime_type: f.mime_type,
+                file_size: f.file_size,
+                category: f.category,
+                url,
+                uploaded_at: f.uploaded_at.unwrap_or_else(|| Utc::now()).to_rfc3339(),
+                metadata: None,
+            }
         })
         .collect();
 
