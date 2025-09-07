@@ -34,6 +34,9 @@ pub enum AppError {
     
     // JWT errors
     JwtError(jsonwebtoken::errors::Error),
+    
+    // JSON serialization errors
+    JsonError(serde_json::Error),
 }
 
 impl fmt::Display for AppError {
@@ -50,6 +53,7 @@ impl fmt::Display for AppError {
             AppError::InternalError(msg) => write!(f, "Internal error: {}", msg),
             AppError::RedisError(e) => write!(f, "Redis error: {}", e),
             AppError::JwtError(e) => write!(f, "JWT error: {}", e),
+            AppError::JsonError(e) => write!(f, "JSON serialization error: {}", e),
         }
     }
 }
@@ -94,6 +98,10 @@ impl IntoResponse for AppError {
                 tracing::error!("JWT error: {:?}", e);
                 (StatusCode::UNAUTHORIZED, "Authentication error".to_string())
             }
+            AppError::JsonError(e) => {
+                tracing::error!("JSON serialization error: {:?}", e);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Data serialization error".to_string())
+            }
         };
 
         let body = Json(json!({
@@ -121,6 +129,12 @@ impl From<redis::RedisError> for AppError {
 impl From<jsonwebtoken::errors::Error> for AppError {
     fn from(e: jsonwebtoken::errors::Error) -> Self {
         AppError::JwtError(e)
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(e: serde_json::Error) -> Self {
+        AppError::JsonError(e)
     }
 }
 

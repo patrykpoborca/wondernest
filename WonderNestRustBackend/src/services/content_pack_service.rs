@@ -55,6 +55,7 @@ pub struct ContentPackResponse {
     pub status: String, // "draft", "pending_review", "approved"
 }
 
+#[derive(Clone)]
 pub struct ContentPackService {
     file_service: FileReferenceService,
     signed_url_service: SignedUrlService,
@@ -105,12 +106,16 @@ impl ContentPackService {
                 Some(24 * 7), // 7 days for content pack assets
             )?;
 
+            let content_type = file.detected_content_type.clone()
+                .or_else(|| Some(file.mime_type.clone()))
+                .unwrap_or_else(|| "application/octet-stream".to_string());
+                
             assets.push(ContentPackAsset {
                 id: file.id,
                 original_name: file.original_name.clone(),
-                content_type: file.content_type.clone().unwrap_or("application/octet-stream".to_string()),
-                size_bytes: file.size_bytes,
-                asset_type: self.determine_asset_type(&file.content_type),
+                content_type: content_type.clone(),
+                size_bytes: file.file_size,
+                asset_type: self.determine_asset_type(&Some(content_type)),
                 signed_url,
             });
         }

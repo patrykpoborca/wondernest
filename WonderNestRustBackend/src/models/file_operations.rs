@@ -131,7 +131,7 @@ impl BatchOperationSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UploadedFileWithReferences {
     pub id: Uuid,
-    pub user_id: Option<Uuid>,
+    pub user_id: Uuid,
     pub child_id: Option<Uuid>,
     pub file_key: String,
     pub original_name: String,

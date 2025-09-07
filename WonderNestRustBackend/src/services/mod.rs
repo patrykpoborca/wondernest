@@ -1,7 +1,12 @@
+pub mod admin_auth_service;
+pub mod admin_jwt;
 pub mod auth;
 pub mod auth_service;
 pub mod content_pack;
 pub mod content_pack_service;
+pub mod content_publishing_service;
+pub mod content_moderation_service;
+pub mod content_validation;
 pub mod family;
 pub mod file_access_controller;
 pub mod file_reference_service;

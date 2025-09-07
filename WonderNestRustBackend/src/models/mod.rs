@@ -1,8 +1,10 @@
+pub mod admin;
 pub mod analytics;
 pub mod audio;
 pub mod auth;
 pub mod content;
 pub mod content_pack;
+pub mod content_publishing;
 pub mod coppa;
 pub mod family;
 pub mod file_operations;
@@ -11,11 +13,13 @@ pub mod game;
 pub mod marketplace;
 pub mod user;
 
+pub use admin::*;
 pub use analytics::*;
 pub use audio::*;
 pub use auth::*;
 pub use content::*;
 pub use content_pack::*;
+pub use content_publishing::*;
 pub use coppa::*;
 pub use family::*;
 pub use file_operations::*;

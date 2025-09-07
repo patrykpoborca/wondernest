@@ -3,9 +3,10 @@ use uuid::Uuid;
 use anyhow::Result;
 
 use crate::models::{
-    FileReference, FileReferenceCount, ReferenceTypeCount
+    FileReference, FileReferenceCount, ReferenceTypeCount, UploadedFileWithReferences
 };
 
+#[derive(Clone)]
 pub struct FileReferenceService {
     pool: PgPool,
 }
@@ -294,5 +295,115 @@ impl FileReferenceService {
         }
 
         Ok(cleaned_count)
+    }
+
+    /// Get file details by ID
+    pub async fn get_file_by_id(&self, file_id: Uuid) -> Result<Option<UploadedFileWithReferences>> {
+        let file = sqlx::query!(
+            r#"
+            SELECT id, user_id, child_id, file_key, original_name, mime_type, file_size, 
+                   storage_provider, url, is_public, category, metadata, uploaded_at, 
+                   accessed_at, deleted_at, detached_at, detached_by, detachment_reason,
+                   reference_count, tags, tag_count, is_system_image, is_deleted,
+                   ai_analyzed, ai_description, detected_content_type, ai_safety_approved
+            FROM core.uploaded_files 
+            WHERE id = $1 AND deleted_at IS NULL
+            "#,
+            file_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        match file {
+            Some(row) => {
+                Ok(Some(UploadedFileWithReferences {
+                    id: row.id,
+                    user_id: row.user_id,
+                    child_id: row.child_id,
+                    file_key: row.file_key,
+                    original_name: row.original_name,
+                    mime_type: row.mime_type,
+                    file_size: row.file_size,
+                    storage_provider: row.storage_provider,
+                    url: row.url,
+                    is_public: row.is_public,
+                    category: row.category,
+                    metadata: row.metadata.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
+                    uploaded_at: row.uploaded_at,
+                    accessed_at: row.accessed_at,
+                    deleted_at: row.deleted_at,
+                    detached_at: row.detached_at,
+                    detached_by: row.detached_by,
+                    detachment_reason: row.detachment_reason,
+                    reference_count: row.reference_count,
+                    tags: row.tags.unwrap_or_default(),
+                    tag_count: row.tag_count,
+                    is_system_image: row.is_system_image,
+                    is_deleted: row.is_deleted,
+                    ai_analyzed: row.ai_analyzed,
+                    ai_description: row.ai_description,
+                    detected_content_type: row.detected_content_type,
+                    ai_safety_approved: row.ai_safety_approved,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Get multiple files by IDs
+    pub async fn get_files_by_ids(&self, file_ids: &[Uuid]) -> Result<Vec<UploadedFileWithReferences>> {
+        if file_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let files = sqlx::query!(
+            r#"
+            SELECT id, user_id, child_id, file_key, original_name, mime_type, file_size, 
+                   storage_provider, url, is_public, category, metadata, uploaded_at, 
+                   accessed_at, deleted_at, detached_at, detached_by, detachment_reason,
+                   reference_count, tags, tag_count, is_system_image, is_deleted,
+                   ai_analyzed, ai_description, detected_content_type, ai_safety_approved
+            FROM core.uploaded_files 
+            WHERE id = ANY($1) AND deleted_at IS NULL
+            ORDER BY uploaded_at DESC
+            "#,
+            file_ids
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let results = files.into_iter().map(|row| {
+            UploadedFileWithReferences {
+                id: row.id,
+                user_id: row.user_id,
+                child_id: row.child_id,
+                file_key: row.file_key,
+                original_name: row.original_name,
+                mime_type: row.mime_type,
+                file_size: row.file_size,
+                storage_provider: row.storage_provider,
+                url: row.url,
+                is_public: row.is_public,
+                category: row.category,
+                metadata: row.metadata.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
+                uploaded_at: row.uploaded_at,
+                accessed_at: row.accessed_at,
+                deleted_at: row.deleted_at,
+                detached_at: row.detached_at,
+                detached_by: row.detached_by,
+                detachment_reason: row.detachment_reason,
+                reference_count: row.reference_count,
+                tags: row.tags.unwrap_or_default(),
+                tag_count: row.tag_count,
+                is_system_image: row.is_system_image,
+                is_deleted: row.is_deleted,
+                ai_analyzed: row.ai_analyzed,
+                ai_description: row.ai_description,
+                detected_content_type: row.detected_content_type,
+                ai_safety_approved: row.ai_safety_approved,
+            }
+        }).collect();
+
+        Ok(results)
     }
 }

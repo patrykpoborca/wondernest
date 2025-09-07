@@ -14,6 +14,7 @@ use crate::models::{
     LibraryStatsResponse
 };
 
+#[derive(Clone)]
 pub struct MarketplaceRepository {
     pool: PgPool,
 }

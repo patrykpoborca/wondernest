@@ -35,6 +35,7 @@ pub use models::{
 // Re-export database repositories for testing
 pub use db::{
     UserRepository, FamilyRepository, MarketplaceRepository,
+    AdminRepository,
 };
 
 // Create app function for testing and main
@@ -69,7 +70,7 @@ pub async fn create_app(
     let signed_url_service = services::signed_url_service::SignedUrlService::new(signed_url_secret, Some(24)); // 24 hour expiry
     
     // Create content pack service
-    let file_reference_service = services::file_reference_service::FileReferenceService::new(db_pool.clone(), storage_provider.clone());
+    let file_reference_service = services::file_reference_service::FileReferenceService::new(db_pool.clone());
     let marketplace_repository = db::MarketplaceRepository::new(db_pool.clone());
     let content_pack_service = services::content_pack_service::ContentPackService::new(
         file_reference_service,

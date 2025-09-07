@@ -12,6 +12,8 @@ mod audio;
 mod auth;
 mod content;
 mod content_packs;
+mod content_publishing;
+mod content_moderation;
 mod coppa;
 mod family;
 mod file_upload;
@@ -22,6 +24,8 @@ pub fn router() -> Router<AppState> {
         .nest("/ai/story", ai_story::router())
         .nest("/family", family::router())
         .nest("/content-packs", content_packs::router())
+        .nest("/content/publishing", content_publishing::router())
+        .nest("/content/moderation", content_moderation::router())
         .nest("/coppa", coppa::router())
         .nest("/audio", audio::router())
         .nest("/analytics", analytics::router())
