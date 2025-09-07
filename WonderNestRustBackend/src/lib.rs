@@ -78,6 +78,10 @@ pub async fn create_app(
         marketplace_repository,
     );
     
+    // Create admin services
+    let admin_repository = db::AdminRepository::new(db_pool.clone());
+    let admin_auth_service = services::admin_auth_service::AdminAuthService::new(admin_repository);
+    
     let state = services::AppState {
         db: db_pool,
         redis: redis_conn,
@@ -86,6 +90,7 @@ pub async fn create_app(
         file_access: file_access_controller,
         signed_url: signed_url_service,
         content_pack: content_pack_service,
+        admin_auth: admin_auth_service,
     };
 
     // Configure CORS for production
@@ -123,6 +128,8 @@ pub async fn create_app(
         .nest("/api/v1", routes::v1::router())
         // API v2 routes (for game data)
         .nest("/api/v2", routes::v2::router())
+        // Admin routes (separate authentication system)
+        .nest("/api/admin", routes::admin::router())
         // Add production middleware stack
         .layer(
             ServiceBuilder::new()

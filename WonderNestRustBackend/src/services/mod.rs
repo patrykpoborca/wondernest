@@ -31,4 +31,5 @@ pub struct AppState {
     pub file_access: file_access_controller::FileAccessController,
     pub signed_url: signed_url_service::SignedUrlService,
     pub content_pack: content_pack_service::ContentPackService,
+    pub admin_auth: admin_auth_service::AdminAuthService,
 }

@@ -25,6 +25,7 @@ use crate::{
 // family user authentication system.
 // =====================================================================================
 
+#[derive(Clone)]
 pub struct AdminAuthService {
     admin_repo: AdminRepository,
     jwt_service: AdminJwtService,

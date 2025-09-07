@@ -52,6 +52,7 @@ pub struct AdminRefreshClaims {
     pub login_count: i32,     // Must match the access token
 }
 
+#[derive(Clone)]
 pub struct AdminJwtService {
     secret: Vec<u8>,
     issuer: String,

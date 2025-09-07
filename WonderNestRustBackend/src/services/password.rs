@@ -1,5 +1,6 @@
 use bcrypt::{hash, verify};
 
+#[derive(Clone)]
 pub struct PasswordService;
 
 impl PasswordService {
