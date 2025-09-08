@@ -12,7 +12,7 @@ use crate::models::{AdminAccount, AdminRole, AdminPermission, TokenPair};
 // Completely separate from family user JWT tokens with admin-specific claims.
 // =====================================================================================
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdminClaims {
     pub sub: String,          // Subject (admin ID)
     pub iss: String,          // Issuer

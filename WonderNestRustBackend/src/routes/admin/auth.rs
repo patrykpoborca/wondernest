@@ -2,8 +2,9 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::IntoResponse,
-    routing::post,
+    routing::{get, post, put},
     Json, Router,
+    middleware,
 };
 use tracing::{info, warn, error};
 
@@ -11,21 +12,28 @@ use crate::{
     error::AppResult,
     models::{
         AdminLoginRequest, AdminLoginResponse, AdminChangePasswordRequest,
-        MessageResponse, AdminError,
+        MessageResponse, AdminError, AdminInfo,
     },
     services::AppState,
+    middleware::admin_auth::{admin_auth_middleware, extract_admin_claims},
 };
 
 /// Creates the admin authentication router
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/login", post(admin_login))
+    // Create two separate routers: one for public routes, one for protected routes
+    let public_routes = Router::new()
+        .route("/login", post(admin_login));
+    
+    let protected_routes = Router::new()
         .route("/logout", post(admin_logout))
         .route("/refresh", post(admin_refresh))
-        // TODO: Add protected routes with middleware
-        // .route("/profile", get(get_admin_profile))
-        // .route("/profile", put(update_admin_profile))
-        // .route("/change-password", post(change_admin_password))
+        .route("/profile", get(get_admin_profile))
+        .route("/profile", put(update_admin_profile))
+        .route("/change-password", post(change_admin_password))
+        .layer(middleware::from_fn(admin_auth_middleware));
+    
+    // Merge both routers
+    public_routes.merge(protected_routes)
 }
 
 /// Admin login endpoint
@@ -120,28 +128,69 @@ async fn admin_refresh(
     Ok((StatusCode::NOT_IMPLEMENTED, Json(error_message)).into_response())
 }
 
-// TODO: Protected routes to be implemented with authentication middleware
-/*
+/// Get admin profile endpoint
+/// GET /api/admin/auth/profile
 async fn get_admin_profile(
-    State(state): State<AppState>,
-    // admin: AdminClaims, // TODO: Add admin claims extractor
+    State(_state): State<AppState>,
+    request: axum::extract::Request,
 ) -> AppResult<axum::response::Response> {
-    // Implementation pending
+    // Extract admin claims from middleware
+    let claims = extract_admin_claims(&request)
+        .ok_or(crate::error::AppError::Unauthorized)?;
+    
+    info!("Admin profile requested: {} ({})", claims.email, claims.admin_id);
+    
+    // Create admin info response (simplified for now)
+    let admin_info = AdminInfo {
+        id: claims.admin_id.clone(),
+        email: claims.email.clone(),
+        first_name: None, // TODO: Get from database
+        last_name: None,  // TODO: Get from database
+        role: claims.role.clone(),
+        role_level: claims.role_level,
+        permissions: claims.permissions.clone(),
+        last_login: None, // TODO: Get from database
+        mfa_enabled: claims.mfa_verified,
+        account_status: "active".to_string(), // TODO: Get from database
+    };
+    
+    Ok((StatusCode::OK, Json(admin_info)).into_response())
 }
 
+/// Update admin profile endpoint
+/// PUT /api/admin/auth/profile
 async fn update_admin_profile(
-    State(state): State<AppState>,
-    // admin: AdminClaims,
-    Json(request): Json<UpdateAdminProfileRequest>,
+    State(_state): State<AppState>,
+    request: axum::extract::Request,
 ) -> AppResult<axum::response::Response> {
-    // Implementation pending
+    let claims = extract_admin_claims(&request)
+        .ok_or(crate::error::AppError::Unauthorized)?;
+    
+    info!("Admin profile update requested: {} ({})", claims.email, claims.admin_id);
+    
+    // TODO: Extract JSON request body and implement profile update
+    let response = MessageResponse {
+        message: "Profile update not yet implemented".to_string(),
+    };
+    
+    Ok((StatusCode::NOT_IMPLEMENTED, Json(response)).into_response())
 }
 
+/// Change admin password endpoint
+/// POST /api/admin/auth/change-password
 async fn change_admin_password(
-    State(state): State<AppState>,
-    // admin: AdminClaims,
-    Json(request): Json<AdminChangePasswordRequest>,
+    State(_state): State<AppState>,
+    request: axum::extract::Request,
 ) -> AppResult<axum::response::Response> {
-    // Implementation pending
+    let claims = extract_admin_claims(&request)
+        .ok_or(crate::error::AppError::Unauthorized)?;
+    
+    info!("Admin password change requested: {} ({})", claims.email, claims.admin_id);
+    
+    // TODO: Extract JSON request body and implement password change
+    let response = MessageResponse {
+        message: "Password change not yet implemented".to_string(),
+    };
+    
+    Ok((StatusCode::NOT_IMPLEMENTED, Json(response)).into_response())
 }
-*/

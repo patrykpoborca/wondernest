@@ -26,6 +26,10 @@ pub enum AppError {
     // Access forbidden
     Forbidden(String),
     
+    // Admin-specific errors
+    MfaRequired,
+    InsufficientPermissions,
+    
     // Internal errors
     InternalError(String),
     
@@ -50,6 +54,8 @@ impl fmt::Display for AppError {
             AppError::BadRequest(msg) => write!(f, "Bad request: {}", msg),
             AppError::NotFound(msg) => write!(f, "Not found: {}", msg),
             AppError::Forbidden(msg) => write!(f, "Forbidden: {}", msg),
+            AppError::MfaRequired => write!(f, "Multi-factor authentication required"),
+            AppError::InsufficientPermissions => write!(f, "Insufficient permissions"),
             AppError::InternalError(msg) => write!(f, "Internal error: {}", msg),
             AppError::RedisError(e) => write!(f, "Redis error: {}", e),
             AppError::JwtError(e) => write!(f, "JWT error: {}", e),
@@ -85,6 +91,12 @@ impl IntoResponse for AppError {
             }
             AppError::Forbidden(msg) => {
                 (StatusCode::FORBIDDEN, msg)
+            }
+            AppError::MfaRequired => {
+                (StatusCode::PRECONDITION_REQUIRED, "Multi-factor authentication required".to_string())
+            }
+            AppError::InsufficientPermissions => {
+                (StatusCode::FORBIDDEN, "Insufficient permissions for this operation".to_string())
             }
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);
