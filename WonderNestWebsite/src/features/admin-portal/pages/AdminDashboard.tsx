@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
   Box, 
   Typography, 
@@ -7,23 +7,73 @@ import {
   Grid,
   Avatar,
   Chip,
-  Button
+  Button,
+  CircularProgress,
+  Alert
 } from '@mui/material'
 import { 
   People,
   Games,
   Analytics,
   Security,
-  ExitToApp
+  ExitToApp,
+  Shield
 } from '@mui/icons-material'
 
-import { useAuth } from '@/hooks/useAuth'
+import { useAdminAuth } from '@/contexts/AdminAuthContext'
+import { adminApiService } from '@/services/adminApi'
+import { DashboardMetrics } from '@/types/admin'
 
 export const AdminDashboard: React.FC = () => {
-  const { user, logout } = useAuth()
+  const { admin, logout, isAuthenticated, isLoading } = useAdminAuth()
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [metricsError, setMetricsError] = useState<string | null>(null)
+
+  // Load dashboard metrics
+  useEffect(() => {
+    const loadMetrics = async () => {
+      if (!isAuthenticated) return
+      
+      try {
+        setMetricsLoading(true)
+        const data = await adminApiService.getDashboardMetrics()
+        setMetrics(data)
+      } catch (error: any) {
+        setMetricsError(error.error || 'Failed to load dashboard metrics')
+      } finally {
+        setMetricsLoading(false)
+      }
+    }
+    
+    loadMetrics()
+  }, [isAuthenticated])
 
   const handleLogout = async () => {
     await logout()
+  }
+
+  if (isLoading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '50vh' 
+      }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!isAuthenticated || !admin) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          Admin authentication required. Please log in to access the dashboard.
+        </Alert>
+      </Box>
+    )
   }
 
   return (
@@ -40,12 +90,14 @@ export const AdminDashboard: React.FC = () => {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Chip 
-            label={user?.userType.replace('_', ' ').toUpperCase()} 
+            icon={<Shield />}
+            label={admin.role.replace('_', ' ').toUpperCase()} 
             color="primary" 
             variant="outlined"
           />
           <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
+            {admin?.first_name?.[0] || admin?.email?.[0]?.toUpperCase()}
+            {admin?.last_name?.[0] || ''}
           </Avatar>
           <Button 
             variant="outlined" 
@@ -56,6 +108,13 @@ export const AdminDashboard: React.FC = () => {
           </Button>
         </Box>
       </Box>
+
+      {/* Error Alert */}
+      {metricsError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {metricsError}
+        </Alert>
+      )}
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -68,10 +127,10 @@ export const AdminDashboard: React.FC = () => {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight={600}>
-                    1,247
+                    {metricsLoading ? <CircularProgress size={20} /> : (metrics?.active_families || 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Active Users
+                    Active Families
                   </Typography>
                 </Box>
               </Box>
@@ -88,10 +147,10 @@ export const AdminDashboard: React.FC = () => {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight={600}>
-                    156
+                    {metricsLoading ? <CircularProgress size={20} /> : (metrics?.total_content_items || 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Published Games
+                    Content Items
                   </Typography>
                 </Box>
               </Box>
@@ -103,15 +162,15 @@ export const AdminDashboard: React.FC = () => {
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                <Avatar sx={{ bgcolor: metrics?.system_health === 'healthy' ? 'success.main' : 'warning.main' }}>
                   <Analytics />
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight={600}>
-                    89.2%
+                    {metricsLoading ? <CircularProgress size={20} /> : metrics?.system_health?.toUpperCase() || 'UNKNOWN'}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Platform Health
+                    System Health
                   </Typography>
                 </Box>
               </Box>
@@ -128,10 +187,10 @@ export const AdminDashboard: React.FC = () => {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight={600}>
-                    3
+                    {metricsLoading ? <CircularProgress size={20} /> : (metrics?.pending_moderation || 0)}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Security Alerts
+                    Pending Review
                   </Typography>
                 </Box>
               </Box>

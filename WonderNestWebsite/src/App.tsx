@@ -10,6 +10,8 @@ import { FileManagementPage } from './features/parent-portal/pages/FileManagemen
 import { StoryBuilderDashboard } from './features/story-builder/pages/StoryBuilderDashboard'
 import { StoryEditor } from './features/story-builder/pages/StoryEditor'
 import { AdminDashboard } from './features/admin-portal/pages/AdminDashboard'
+import { AdminLoginPage } from './features/admin-portal/pages/AdminLoginPage'
+import { useAdminAuth, withAdminAuth } from './contexts/AdminAuthContext'
 import { ContentManagerDashboard } from './features/content-manager/pages/ContentManagerDashboard'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { UserRole, Permission } from './types/auth'
@@ -127,18 +129,28 @@ function App() {
           }
         />
         
+        {/* Admin Portal Routes */}
+        <Route 
+          path="/admin/login" 
+          element={
+            <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <AdminLoginPage />
+            </Box>
+          } 
+        />
+        
         <Route
-          path="/app/admin/*"
+          path="/admin/dashboard"
           element={
             <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <ProtectedRoute 
-                userType={UserRole.ADMIN} 
-                fallback="/app/login"
-              >
-                <AdminDashboard />
-              </ProtectedRoute>
+              <AdminDashboard />
             </Box>
           }
+        />
+        
+        <Route
+          path="/admin/*"
+          element={<Navigate to="/admin/dashboard" replace />}
         />
         
         <Route

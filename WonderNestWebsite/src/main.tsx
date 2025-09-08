@@ -11,6 +11,7 @@ import { marketingTheme } from './theme/marketingTheme'
 import { loginSuccess } from './store/slices/authSlice'
 import { UserRole, Permission } from './types/auth'
 import AuthProvider from './components/auth/AuthProvider'
+import { AdminAuthProvider } from './contexts/AdminAuthContext'
 
 // Development-only mock authentication with query parameter
 // Use by adding ?mock=true to the URL (e.g., http://localhost:3004?mock=true)
@@ -61,12 +62,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <AuthProvider>
-        <BrowserRouter>
-          <ThemeProvider theme={marketingTheme}>
-            <CssBaseline />
-            <App />
-          </ThemeProvider>
-        </BrowserRouter>
+        <AdminAuthProvider>
+          <BrowserRouter>
+            <ThemeProvider theme={marketingTheme}>
+              <CssBaseline />
+              <App />
+            </ThemeProvider>
+          </BrowserRouter>
+        </AdminAuthProvider>
       </AuthProvider>
     </Provider>
   </React.StrictMode>,
