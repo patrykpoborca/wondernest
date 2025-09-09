@@ -5,7 +5,7 @@ use crate::models::{
     CreateContentRequest, CsvContentRow, PublishContentRequest, UpdateAdminCreatorRequest,
     UpdateContentRequest,
 };
-use crate::services::{admin_content_service_simple::AdminContentService, AppState};
+use crate::services::{admin_content_service::AdminContentService, AppState};
 use axum::{
     extract::{Path, Query, State},
     response::Json,
@@ -31,9 +31,9 @@ pub async fn quick_create_creator(
     claims: AdminClaims,
     Json(request): Json<CreateAdminCreatorRequest>,
 ) -> Result<Json<CreateCreatorResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let creator = service
-        .create_admin_creator(request, claims.admin_id.clone())
+        .create_admin_creator(request, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4()))
         .await?;
 
     Ok(Json(CreateCreatorResponse {
@@ -47,7 +47,7 @@ pub async fn list_admin_creators(
     _claims: AdminClaims,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<crate::models::AdminCreator>>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let active_only = params
         .get("active_only")
         .and_then(|v| v.parse::<bool>().ok())
@@ -63,7 +63,7 @@ pub async fn get_admin_creator(
     _claims: AdminClaims,
     Path(creator_id): Path<Uuid>,
 ) -> Result<Json<crate::models::AdminCreator>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let creator = service.get_admin_creator(creator_id).await?;
 
     Ok(Json(creator))
@@ -75,7 +75,7 @@ pub async fn update_admin_creator(
     Path(creator_id): Path<Uuid>,
     Json(request): Json<UpdateAdminCreatorRequest>,
 ) -> Result<Json<crate::models::AdminCreator>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let creator = service.update_admin_creator(creator_id, request).await?;
 
     Ok(Json(creator))
@@ -96,7 +96,7 @@ pub async fn upload_content(
     _claims: AdminClaims,
     Json(request): Json<CreateContentRequest>,
 ) -> Result<Json<CreateContentResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let content = service.create_content(request).await?;
 
     Ok(Json(CreateContentResponse {
@@ -110,7 +110,7 @@ pub async fn list_staged_content(
     _claims: AdminClaims,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<crate::models::ContentListResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
 
     // Parse query parameters
     let request = ContentListRequest {
@@ -140,7 +140,7 @@ pub async fn get_content(
     _claims: AdminClaims,
     Path(content_id): Path<Uuid>,
 ) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let content = service.get_content(content_id).await?;
 
     Ok(Json(content))
@@ -152,7 +152,7 @@ pub async fn update_content(
     Path(content_id): Path<Uuid>,
     Json(request): Json<UpdateContentRequest>,
 ) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let content = service.update_content(content_id, request).await?;
 
     Ok(Json(content))
@@ -168,8 +168,8 @@ pub async fn publish_content(
     Path(content_id): Path<Uuid>,
     Json(request): Json<PublishContentRequest>,
 ) -> Result<Json<crate::models::PublishContentResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
-    let response = service.publish_content(content_id, claims.admin_id.clone()).await?;
+    let service = &state.admin_content;
+    let response = service.publish_content(content_id, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4())).await?;
 
     Ok(Json(response))
 }
@@ -179,14 +179,14 @@ pub async fn bulk_publish(
     claims: AdminClaims,
     Json(request): Json<BulkPublishRequest>,
 ) -> Result<Json<crate::models::BulkPublishResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     
     let mut results = Vec::new();
     let mut successful = 0;
     let mut failed = 0;
 
     for content_id in request.content_ids {
-        match service.publish_content(content_id, claims.admin_id.clone()).await {
+        match service.publish_content(content_id, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4())).await {
             Ok(response) => {
                 successful += 1;
                 results.push(crate::models::PublishResult {
@@ -234,7 +234,7 @@ pub async fn bulk_upload_csv(
     claims: AdminClaims,
     Json(request): Json<BulkUploadCsvRequest>,
 ) -> Result<Json<crate::models::BulkImportResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
 
     // Parse CSV
     let mut csv_reader = csv::Reader::from_reader(request.csv_data.as_bytes());
@@ -268,7 +268,7 @@ pub async fn bulk_upload_csv(
     // Create bulk import record
     let bulk_import = service
         .create_bulk_import(
-            claims.admin_id.clone(),
+            Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4()),
             "csv".to_string(),
             request.filename,
             content_items.len() as i32,
@@ -384,7 +384,7 @@ pub async fn get_dashboard_stats(
     State(state): State<AppState>,
     _claims: AdminClaims,
 ) -> Result<Json<crate::models::DashboardStatsResponse>, AppError> {
-    let service = AdminContentService::new(state.db);
+    let service = &state.admin_content;
     let stats = service.get_dashboard_stats().await?;
 
     Ok(Json(stats))

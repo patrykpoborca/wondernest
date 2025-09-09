@@ -81,7 +81,7 @@ pub async fn create_app(
     // Create admin services
     let admin_repository = db::AdminRepository::new(db_pool.clone());
     let admin_auth_service = services::admin_auth_service::AdminAuthService::new(admin_repository);
-    // let admin_content_service = services::admin_content_service_simple::AdminContentService::new(db_pool.clone()); // Temporarily disabled
+    let admin_content_service = services::admin_content_service::AdminContentService::new(db_pool.clone());
     
     let state = services::AppState {
         db: db_pool,
@@ -92,7 +92,7 @@ pub async fn create_app(
         signed_url: signed_url_service,
         content_pack: content_pack_service,
         admin_auth: admin_auth_service,
-        // admin_content: admin_content_service, // Temporarily disabled
+        admin_content: admin_content_service,
     };
 
     // Configure CORS for production

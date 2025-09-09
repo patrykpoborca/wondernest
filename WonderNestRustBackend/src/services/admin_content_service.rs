@@ -171,7 +171,7 @@ impl AdminContentService {
         let content = sqlx::query_as!(
             AdminContentStaging,
             r#"
-            INSERT INTO games.admin_content_staging (
+            INSERT INTO content.admin_content_staging (
                 creator_id, content_type, title, description, content_data,
                 files, price, currency, age_range_min, age_range_max,
                 tags, search_keywords, bulk_import_batch_id, import_source
@@ -217,7 +217,7 @@ impl AdminContentService {
                 status as "status: crate::models::ContentStatus",
                 marketplace_listing_id, published_at, published_by,
                 bulk_import_batch_id, import_source, created_at, updated_at
-            FROM games.admin_content_staging 
+            FROM content.admin_content_staging 
             WHERE id = $1
             "#,
             content_id
@@ -244,13 +244,13 @@ impl AdminContentService {
                 status as "status: crate::models::ContentStatus",
                 marketplace_listing_id, published_at, published_by,
                 bulk_import_batch_id, import_source, created_at, updated_at
-            FROM games.admin_content_staging 
+            FROM content.admin_content_staging 
             WHERE 1=1
             "#,
         );
 
         let mut count_query = String::from(
-            "SELECT COUNT(*) FROM games.admin_content_staging WHERE 1=1"
+            "SELECT COUNT(*) FROM content.admin_content_staging WHERE 1=1"
         );
 
         // Build WHERE clauses
@@ -369,7 +369,7 @@ impl AdminContentService {
         let content = sqlx::query_as!(
             AdminContentStaging,
             r#"
-            UPDATE games.admin_content_staging SET
+            UPDATE content.admin_content_staging SET
                 title = COALESCE($2, title),
                 description = COALESCE($3, description),
                 content_data = COALESCE($4, content_data),
@@ -425,7 +425,7 @@ impl AdminContentService {
         
         let updated_content = sqlx::query!(
             r#"
-            UPDATE games.admin_content_staging SET
+            UPDATE content.admin_content_staging SET
                 status = 'published',
                 published_at = $2,
                 published_by = $3,
@@ -472,7 +472,7 @@ impl AdminContentService {
         let bulk_import = sqlx::query_as!(
             AdminBulkImport,
             r#"
-            INSERT INTO games.admin_bulk_imports (
+            INSERT INTO content.admin_bulk_imports (
                 batch_id, initiated_by, import_type, source_filename, total_items
             ) VALUES ($1, $2, $3, $4, $5)
             RETURNING id, batch_id, initiated_by, import_type, source_filename,
@@ -503,14 +503,15 @@ impl AdminContentService {
     ) -> Result<(), AppError> {
 
         if let Some(status) = status {
+            let status_str = status.to_string();
             sqlx::query!(
                 r#"
-                UPDATE games.admin_bulk_imports SET
+                UPDATE content.admin_bulk_imports SET
                     processed_items = $2,
                     successful_items = $3,
                     failed_items = $4,
                     status = $5,
-                    completed_at = CASE WHEN $5 IN ('completed', 'failed', 'cancelled') 
+                    completed_at = CASE WHEN $6 IN ('completed', 'failed', 'cancelled') 
                                        THEN CURRENT_TIMESTAMP 
                                        ELSE completed_at END,
                     updated_at = CURRENT_TIMESTAMP
@@ -520,7 +521,8 @@ impl AdminContentService {
                 processed,
                 successful,
                 failed,
-                status.to_string()
+                status_str,
+                status_str
             )
             .execute(&self.db)
             .await
@@ -528,7 +530,7 @@ impl AdminContentService {
         } else {
             sqlx::query!(
                 r#"
-                UPDATE games.admin_bulk_imports SET
+                UPDATE content.admin_bulk_imports SET
                     processed_items = $2,
                     successful_items = $3,
                     failed_items = $4,
@@ -561,7 +563,7 @@ impl AdminContentService {
                 COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_content,
                 COALESCE(AVG(price), 0) as avg_price,
                 COALESCE(SUM(price), 0) as total_value
-            FROM games.admin_content_staging
+            FROM content.admin_content_staging
             "#
         )
         .fetch_one(&self.db)
@@ -583,7 +585,7 @@ impl AdminContentService {
         let recent_uploads = sqlx::query!(
             r#"
             SELECT COUNT(*) as recent_count
-            FROM games.admin_content_staging 
+            FROM content.admin_content_staging 
             WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'
             "#
         )
