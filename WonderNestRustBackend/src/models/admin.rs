@@ -203,6 +203,11 @@ pub struct AdminLoginRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct AdminRefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AdminLoginResponse {
     pub access_token: String,
     pub refresh_token: String,

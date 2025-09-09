@@ -51,10 +51,10 @@ pub async fn admin_auth_middleware(
         .unwrap_or_else(|_| "admin-super-secret-jwt-key-change-this-in-production".to_string());
 
     let admin_jwt_issuer = std::env::var("ADMIN_JWT_ISSUER")
-        .unwrap_or_else(|_| "wondernest-admin".to_string());
+        .unwrap_or_else(|_| "wondernest-admin-api".to_string());
     
     let admin_jwt_audience = std::env::var("ADMIN_JWT_AUDIENCE")
-        .unwrap_or_else(|_| "wondernest-admin-panel".to_string());
+        .unwrap_or_else(|_| "wondernest-admin-portal".to_string());
 
     // Configure validation for admin tokens
     let mut validation = Validation::new(Algorithm::HS256);

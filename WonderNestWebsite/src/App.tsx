@@ -1,3 +1,4 @@
+import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Box } from '@mui/material'
 
@@ -143,7 +144,7 @@ function App() {
           path="/admin/dashboard"
           element={
             <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <AdminDashboard />
+              {React.createElement(withAdminAuth(AdminDashboard))}
             </Box>
           }
         />
