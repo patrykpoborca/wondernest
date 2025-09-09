@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod admin_content;
 pub mod analytics;
 pub mod audio;
 pub mod auth;
@@ -14,6 +15,7 @@ pub mod marketplace;
 pub mod user;
 
 pub use admin::*;
+pub use admin_content::*;
 pub use analytics::*;
 pub use audio::*;
 pub use auth::*;

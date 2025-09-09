@@ -1,4 +1,5 @@
 pub mod admin_auth_service;
+// pub mod admin_content_service_simple; // Temporarily disabled - needs model fixes
 pub mod admin_jwt;
 pub mod auth;
 pub mod auth_service;
@@ -32,4 +33,5 @@ pub struct AppState {
     pub signed_url: signed_url_service::SignedUrlService,
     pub content_pack: content_pack_service::ContentPackService,
     pub admin_auth: admin_auth_service::AdminAuthService,
+    // pub admin_content: admin_content_service_simple::AdminContentService, // Temporarily disabled
 }
