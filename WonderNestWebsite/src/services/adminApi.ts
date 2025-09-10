@@ -6,7 +6,14 @@ import {
   MessageResponse,
   ApiError,
   AdminSession,
-  DashboardMetrics
+  DashboardMetrics,
+  ContentSeedingStats,
+  ContentCreator,
+  ContentCreatorForm,
+  ContentItem,
+  ContentUploadForm,
+  BulkUploadResult,
+  BulkPublishResult
 } from '@/types/admin'
 
 /**
@@ -264,6 +271,82 @@ class AdminApiService {
         ]
       }
     }
+  }
+  
+  // Content Seeding API
+  async getContentSeedingStats(): Promise<ContentSeedingStats> {
+    const response = await this.client.get<ContentSeedingStats>('/content-seeding/dashboard/stats')
+    return response.data
+  }
+  
+  // Creator Management
+  async createCreatorQuick(creatorData: ContentCreatorForm): Promise<ContentCreator> {
+    const response = await this.client.post<ContentCreator>('/content-seeding/creators/quick-create', creatorData)
+    return response.data
+  }
+  
+  async getCreatorsList(): Promise<ContentCreator[]> {
+    const response = await this.client.get<ContentCreator[]>('/content-seeding/creators/list')
+    return response.data
+  }
+  
+  async getCreator(creatorId: string): Promise<ContentCreator> {
+    const response = await this.client.get<ContentCreator>(`/content-seeding/creators/${creatorId}`)
+    return response.data
+  }
+  
+  async updateCreator(creatorId: string, creatorData: Partial<ContentCreatorForm>): Promise<ContentCreator> {
+    const response = await this.client.put<ContentCreator>(`/content-seeding/creators/${creatorId}`, creatorData)
+    return response.data
+  }
+  
+  // Content Management
+  async uploadContent(formData: FormData): Promise<ContentItem> {
+    const response = await this.client.post<ContentItem>('/content-seeding/content/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  }
+  
+  async getContentList(): Promise<ContentItem[]> {
+    const response = await this.client.get<ContentItem[]>('/content-seeding/content/list')
+    return response.data
+  }
+  
+  async getContent(contentId: string): Promise<ContentItem> {
+    const response = await this.client.get<ContentItem>(`/content-seeding/content/${contentId}`)
+    return response.data
+  }
+  
+  async updateContent(contentId: string, contentData: Partial<ContentUploadForm>): Promise<ContentItem> {
+    const response = await this.client.put<ContentItem>(`/content-seeding/content/${contentId}`, contentData)
+    return response.data
+  }
+  
+  async publishContent(contentId: string): Promise<ContentItem> {
+    const response = await this.client.post<ContentItem>(`/content-seeding/content/${contentId}/publish`)
+    return response.data
+  }
+  
+  async bulkPublishContent(contentIds: string[]): Promise<BulkPublishResult> {
+    const response = await this.client.post<BulkPublishResult>('/content-seeding/content/bulk-publish', { content_ids: contentIds })
+    return response.data
+  }
+  
+  async bulkUploadCSV(formData: FormData): Promise<BulkUploadResult> {
+    const response = await this.client.post<BulkUploadResult>('/content-seeding/content/bulk-upload-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  }
+  
+  async getUploadUrl(): Promise<{ upload_url: string; file_key: string }> {
+    const response = await this.client.get('/content-seeding/upload-url')
+    return response.data
   }
   
   // Placeholder methods for future implementation

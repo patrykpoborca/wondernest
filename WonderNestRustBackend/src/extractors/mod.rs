@@ -8,6 +8,7 @@ use axum::{
 use serde_json::json;
 
 use crate::middleware::auth::Claims;
+use crate::services::admin_jwt::AdminClaims;
 
 // Custom extractor for Claims that were added by auth middleware
 pub struct AuthClaims(pub Claims);
@@ -57,5 +58,40 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let claims = parts.extensions.get::<Claims>().cloned();
         Ok(OptionalAuthClaims(claims))
+    }
+}
+
+// Custom extractor for AdminClaims that were added by admin auth middleware
+pub struct AdminClaimsExtractor(pub AdminClaims);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for AdminClaimsExtractor
+where
+    S: Send + Sync,
+{
+    type Rejection = AdminClaimsRejection;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let claims = parts
+            .extensions
+            .get::<AdminClaims>()
+            .cloned()
+            .ok_or(AdminClaimsRejection)?;
+
+        Ok(AdminClaimsExtractor(claims))
+    }
+}
+
+// Custom rejection type for when admin claims are not found
+pub struct AdminClaimsRejection;
+
+impl IntoResponse for AdminClaimsRejection {
+    fn into_response(self) -> Response {
+        let body = Json(json!({
+            "error": "Unauthorized",
+            "message": "No valid admin authentication token found"
+        }));
+
+        (StatusCode::UNAUTHORIZED, body).into_response()
     }
 }

@@ -17,7 +17,8 @@ import {
   Analytics,
   Security,
   ExitToApp,
-  Shield
+  Shield,
+  CloudUpload
 } from '@mui/icons-material'
 
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
@@ -229,17 +230,43 @@ export const AdminDashboard: React.FC = () => {
               <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
                 Admin Actions
               </Typography>
-              <Box sx={{ 
-                height: 300, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                bgcolor: 'grey.50',
-                borderRadius: 1
-              }}>
-                <Typography color="textSecondary">
-                  Admin tools for user management, content moderation, and system monitoring
-                </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<CloudUpload />}
+                  onClick={() => window.location.href = '/admin/content-seeding'}
+                  size="large"
+                >
+                  Content Seeding
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<People />}
+                  size="large"
+                  disabled
+                >
+                  User Management
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<Security />}
+                  size="large"
+                  disabled
+                >
+                  Content Moderation
+                </Button>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<Analytics />}
+                  size="large"
+                  disabled
+                >
+                  System Monitoring
+                </Button>
               </Box>
             </CardContent>
           </Card>

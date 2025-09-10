@@ -16,7 +16,7 @@ hyper = { version = "1.0", features = ["full"] }
 tokio = { version = "1.35", features = ["full"] }
 
 # Database - Using SQLx for compile-time checked queries
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "json", "uuid", "chrono", "migrate", "bigdecimal", "ipnetwork"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "json", "uuid", "chrono", "migrate", "bigdecimal", "ipnetwork", "rust_decimal"] }
 
 # Network types for IP addresses in database
 ipnetwork = { version = "0.20", features = ["serde"] }

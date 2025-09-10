@@ -10,5 +10,5 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .nest("/auth", auth::router())
         .nest("/dashboard", dashboard::router())
-        .nest("/seed", content_seeding::routes())
+        .nest("/content-seeding", content_seeding::routes())
 }

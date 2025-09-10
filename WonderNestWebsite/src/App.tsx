@@ -12,6 +12,7 @@ import { StoryBuilderDashboard } from './features/story-builder/pages/StoryBuild
 import { StoryEditor } from './features/story-builder/pages/StoryEditor'
 import { AdminDashboard } from './features/admin-portal/pages/AdminDashboard'
 import { AdminLoginPage } from './features/admin-portal/pages/AdminLoginPage'
+import { ContentSeedingDashboard } from './features/admin-portal/pages/ContentSeedingDashboard'
 import { useAdminAuth, withAdminAuth } from './contexts/AdminAuthContext'
 import { ContentManagerDashboard } from './features/content-manager/pages/ContentManagerDashboard'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
@@ -145,6 +146,15 @@ function App() {
           element={
             <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
               {React.createElement(withAdminAuth(AdminDashboard))}
+            </Box>
+          }
+        />
+        
+        <Route
+          path="/admin/content-seeding"
+          element={
+            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+              {React.createElement(withAdminAuth(ContentSeedingDashboard))}
             </Box>
           }
         />

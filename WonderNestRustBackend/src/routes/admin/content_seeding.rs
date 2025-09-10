@@ -1,11 +1,11 @@
 use crate::error::AppError;
-use crate::services::admin_jwt::AdminClaims;
 use crate::models::{
     BulkPublishRequest, ContentListRequest, CreateAdminCreatorRequest,
     CreateContentRequest, CsvContentRow, PublishContentRequest, UpdateAdminCreatorRequest,
     UpdateContentRequest,
 };
-use crate::services::{admin_content_service::AdminContentService, AppState};
+use crate::services::AppState;
+use crate::extractors::AdminClaimsExtractor;
 use axum::{
     extract::{Path, Query, State},
     response::Json,
@@ -28,12 +28,15 @@ pub struct CreateCreatorResponse {
 
 pub async fn quick_create_creator(
     State(state): State<AppState>,
-    claims: AdminClaims,
+    AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Json(request): Json<CreateAdminCreatorRequest>,
 ) -> Result<Json<CreateCreatorResponse>, AppError> {
+    
     let service = &state.admin_content;
+    let admin_id = Uuid::parse_str(&claims.admin_id)
+        .map_err(|_| AppError::BadRequest("Invalid admin ID".to_string()))?;
     let creator = service
-        .create_admin_creator(request, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4()))
+        .create_admin_creator(request, admin_id)
         .await?;
 
     Ok(Json(CreateCreatorResponse {
@@ -44,7 +47,6 @@ pub async fn quick_create_creator(
 
 pub async fn list_admin_creators(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<crate::models::AdminCreator>>, AppError> {
     let service = &state.admin_content;
@@ -60,7 +62,6 @@ pub async fn list_admin_creators(
 
 pub async fn get_admin_creator(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Path(creator_id): Path<Uuid>,
 ) -> Result<Json<crate::models::AdminCreator>, AppError> {
     let service = &state.admin_content;
@@ -71,7 +72,6 @@ pub async fn get_admin_creator(
 
 pub async fn update_admin_creator(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Path(creator_id): Path<Uuid>,
     Json(request): Json<UpdateAdminCreatorRequest>,
 ) -> Result<Json<crate::models::AdminCreator>, AppError> {
@@ -93,7 +93,6 @@ pub struct CreateContentResponse {
 
 pub async fn upload_content(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Json(request): Json<CreateContentRequest>,
 ) -> Result<Json<CreateContentResponse>, AppError> {
     let service = &state.admin_content;
@@ -107,7 +106,6 @@ pub async fn upload_content(
 
 pub async fn list_staged_content(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<crate::models::ContentListResponse>, AppError> {
     let service = &state.admin_content;
@@ -137,7 +135,6 @@ pub async fn list_staged_content(
 
 pub async fn get_content(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Path(content_id): Path<Uuid>,
 ) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
     let service = &state.admin_content;
@@ -148,7 +145,6 @@ pub async fn get_content(
 
 pub async fn update_content(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Path(content_id): Path<Uuid>,
     Json(request): Json<UpdateContentRequest>,
 ) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
@@ -164,29 +160,36 @@ pub async fn update_content(
 
 pub async fn publish_content(
     State(state): State<AppState>,
-    claims: AdminClaims,
+    AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Path(content_id): Path<Uuid>,
-    Json(request): Json<PublishContentRequest>,
+    Json(_request): Json<PublishContentRequest>,
 ) -> Result<Json<crate::models::PublishContentResponse>, AppError> {
+    
     let service = &state.admin_content;
-    let response = service.publish_content(content_id, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4())).await?;
+    let admin_id = Uuid::parse_str(&claims.admin_id)
+        .map_err(|_| AppError::BadRequest("Invalid admin ID".to_string()))?;
+    let response = service.publish_content(content_id, admin_id).await?;
 
     Ok(Json(response))
 }
 
 pub async fn bulk_publish(
     State(state): State<AppState>,
-    claims: AdminClaims,
+    AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Json(request): Json<BulkPublishRequest>,
 ) -> Result<Json<crate::models::BulkPublishResponse>, AppError> {
+    
     let service = &state.admin_content;
     
     let mut results = Vec::new();
     let mut successful = 0;
     let mut failed = 0;
 
+    let admin_id = Uuid::parse_str(&claims.admin_id)
+        .map_err(|_| AppError::BadRequest("Invalid admin ID".to_string()))?;
+    
     for content_id in request.content_ids {
-        match service.publish_content(content_id, Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4())).await {
+        match service.publish_content(content_id, admin_id).await {
             Ok(response) => {
                 successful += 1;
                 results.push(crate::models::PublishResult {
@@ -229,11 +232,13 @@ pub struct BulkUploadCsvRequest {
     pub filename: Option<String>,
 }
 
+#[axum::debug_handler]
 pub async fn bulk_upload_csv(
     State(state): State<AppState>,
-    claims: AdminClaims,
+    AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Json(request): Json<BulkUploadCsvRequest>,
 ) -> Result<Json<crate::models::BulkImportResponse>, AppError> {
+    
     let service = &state.admin_content;
 
     // Parse CSV
@@ -266,9 +271,12 @@ pub async fn bulk_upload_csv(
     }
 
     // Create bulk import record
+    let admin_id = Uuid::parse_str(&claims.admin_id)
+        .map_err(|_| AppError::BadRequest("Invalid admin ID".to_string()))?;
+    
     let bulk_import = service
         .create_bulk_import(
-            Uuid::parse_str(&claims.admin_id).unwrap_or(Uuid::new_v4()),
+            admin_id,
             "csv".to_string(),
             request.filename,
             content_items.len() as i32,
@@ -313,7 +321,7 @@ pub async fn bulk_upload_csv(
     Ok(Json(crate::models::BulkImportResponse {
         batch_id: bulk_import.batch_id,
         status: final_status,
-        total_items: bulk_import.total_items,
+        total_items: bulk_import.total_items.unwrap_or(0),
         processed_items: successful + failed,
         successful_items: successful,
         failed_items: failed,
@@ -335,7 +343,6 @@ pub struct PreSignedUrlResponse {
 
 pub async fn get_upload_url(
     State(state): State<AppState>,
-    _claims: AdminClaims,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PreSignedUrlResponse>, AppError> {
     let content_type = params
@@ -382,7 +389,6 @@ pub async fn get_upload_url(
 
 pub async fn get_dashboard_stats(
     State(state): State<AppState>,
-    _claims: AdminClaims,
 ) -> Result<Json<crate::models::DashboardStatsResponse>, AppError> {
     let service = &state.admin_content;
     let stats = service.get_dashboard_stats().await?;
@@ -420,4 +426,5 @@ pub fn routes() -> Router<AppState> {
         
         // Dashboard
         .route("/dashboard/stats", get(get_dashboard_stats))
+        .layer(axum::middleware::from_fn(crate::middleware::admin_auth::admin_auth_middleware))
 }

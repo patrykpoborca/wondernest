@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-// Use BigDecimal directly from the bigdecimal crate for serde support
-pub use bigdecimal::BigDecimal;
+// Use Decimal from rust_decimal for PostgreSQL numeric types
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 // =============================================================================
 // ADMIN CREATOR MODELS
@@ -79,13 +80,13 @@ pub struct AdminContentStaging {
     pub title: String,
     pub description: Option<String>,
     pub content_data: serde_json::Value,
-    pub files: serde_json::Value, // File URLs as JSON object
-    pub price: BigDecimal,
-    pub currency: String,
+    pub files: Option<serde_json::Value>, // File URLs as JSON object
+    pub price: Option<Decimal>,
+    pub currency: Option<String>,
     pub age_range_min: Option<i32>,
     pub age_range_max: Option<i32>,
-    pub tags: Vec<String>,
-    pub search_keywords: Vec<String>,
+    pub tags: Option<Vec<String>>,
+    pub search_keywords: Option<Vec<String>>,
     pub status: ContentStatus,
     pub marketplace_listing_id: Option<Uuid>,
     pub published_at: Option<DateTime<Utc>>,
@@ -164,7 +165,7 @@ pub struct CreateContentRequest {
     pub title: String,
     pub description: Option<String>,
     pub content_data: serde_json::Value,
-    pub price: BigDecimal,
+    pub price: Decimal,
     pub currency: Option<String>,
     pub age_range_min: Option<i32>,
     pub age_range_max: Option<i32>,
@@ -180,7 +181,7 @@ pub struct UpdateContentRequest {
     pub title: Option<String>,
     pub description: Option<String>,
     pub content_data: Option<serde_json::Value>,
-    pub price: Option<BigDecimal>,
+    pub price: Option<Decimal>,
     pub currency: Option<String>,
     pub age_range_min: Option<i32>,
     pub age_range_max: Option<i32>,
@@ -201,14 +202,14 @@ pub struct AdminBulkImport {
     pub initiated_by: Uuid,
     pub import_type: String,
     pub source_filename: Option<String>,
-    pub total_items: i32,
-    pub processed_items: i32,
-    pub successful_items: i32,
-    pub failed_items: i32,
-    pub status: BulkImportStatus,
-    pub error_log: serde_json::Value,
-    pub success_log: serde_json::Value,
-    pub started_at: DateTime<Utc>,
+    pub total_items: Option<i32>,
+    pub processed_items: Option<i32>,
+    pub successful_items: Option<i32>,
+    pub failed_items: Option<i32>,
+    pub status: Option<BulkImportStatus>,
+    pub error_log: Option<serde_json::Value>,
+    pub success_log: Option<serde_json::Value>,
+    pub started_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -304,9 +305,9 @@ pub struct AdminSeedingMetrics {
     pub import_source: Option<String>,
     pub items_count: i64,
     pub published_count: i64,
-    pub avg_price: Option<BigDecimal>,
-    pub min_price: Option<BigDecimal>,
-    pub max_price: Option<BigDecimal>,
+    pub avg_price: Option<Decimal>,
+    pub min_price: Option<Decimal>,
+    pub max_price: Option<Decimal>,
     pub creators_used: Vec<Uuid>,
     pub first_created: DateTime<Utc>,
     pub last_created: DateTime<Utc>,
@@ -342,8 +343,8 @@ pub struct DashboardStatsResponse {
     pub total_creators: i64,
     pub active_creators: i64,
     pub recent_uploads: i64,
-    pub avg_price: BigDecimal,
-    pub total_value: BigDecimal,
+    pub avg_price: Decimal,
+    pub total_value: Decimal,
 }
 
 // =============================================================================
@@ -379,9 +380,8 @@ impl CsvContentRow {
             _ => return Err(format!("Invalid content type: {}", self.content_type)),
         };
 
-        let price = self.price.parse::<f64>()
+        let price = Decimal::from_str(&self.price)
             .map_err(|_| format!("Invalid price: {}", self.price))?;
-        let price = BigDecimal::from((price * 100.0) as i64); // Convert to cents
 
         let age_range_min = if let Some(age_str) = &self.age_min {
             Some(age_str.parse::<i32>()

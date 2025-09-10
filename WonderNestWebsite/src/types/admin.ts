@@ -100,3 +100,90 @@ export const ADMIN_PERMISSIONS = {
 } as const
 
 export type AdminPermission = typeof ADMIN_PERMISSIONS[keyof typeof ADMIN_PERMISSIONS]
+
+// Content Seeding Types
+export interface ContentSeedingStats {
+  total_creators: number
+  active_creators: number
+  total_content_items: number
+  published_content: number
+  pending_review: number
+  content_types_breakdown: { [key: string]: number }
+  recent_uploads: number
+}
+
+export interface ContentCreator {
+  id: string
+  name: string
+  email: string
+  specialization: string
+  description?: string
+  profile_image_url?: string
+  is_verified: boolean
+  is_active: boolean
+  total_content_uploaded: number
+  total_content_published: number
+  join_date: string
+  last_activity?: string
+}
+
+export interface ContentCreatorForm {
+  name: string
+  email: string
+  specialization: string
+  description?: string
+}
+
+export interface ContentItem {
+  id: string
+  title: string
+  description?: string
+  content_type: string
+  file_url?: string
+  file_name?: string
+  file_size?: number
+  thumbnail_url?: string
+  creator_id: string
+  creator_name: string
+  tags: string[]
+  age_groups: string[]
+  difficulty_level: string
+  educational_objectives: string[]
+  status: 'draft' | 'pending_review' | 'published' | 'rejected'
+  upload_date: string
+  publish_date?: string
+  last_modified: string
+  metadata?: { [key: string]: any }
+}
+
+export interface ContentUploadForm {
+  title: string
+  description?: string
+  content_type: string
+  creator_id: string
+  tags: string[]
+  age_groups: string[]
+  difficulty_level: string
+  educational_objectives: string[]
+  file?: File
+}
+
+export interface BulkUploadResult {
+  success_count: number
+  error_count: number
+  errors: Array<{
+    row: number
+    error: string
+  }>
+  created_items: ContentItem[]
+}
+
+export interface BulkPublishResult {
+  success_count: number
+  error_count: number
+  errors: Array<{
+    content_id: string
+    error: string
+  }>
+  published_items: string[]
+}
