@@ -69,9 +69,11 @@ export const ContentList: React.FC<ContentListProps> = ({
       setLoading(true)
       setError(null)
       const data = await adminApiService.getContentList()
-      setContent(data)
+      // Ensure data is an array
+      setContent(Array.isArray(data) ? data : [])
     } catch (err: any) {
       setError(err.error || 'Failed to load content')
+      setContent([]) // Set to empty array on error
     } finally {
       setLoading(false)
     }
@@ -107,10 +109,11 @@ export const ContentList: React.FC<ContentListProps> = ({
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.length === content.length) {
+    const contentArray = Array.isArray(content) ? content : []
+    if (selectedIds.length === contentArray.length) {
       setSelectedIds([])
     } else {
-      setSelectedIds(content.map(item => item.id))
+      setSelectedIds(contentArray.map(item => item.id))
     }
   }
 
@@ -199,7 +202,7 @@ export const ContentList: React.FC<ContentListProps> = ({
                   <CloudUpload />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{content.length}</Typography>
+                  <Typography variant="h6">{Array.isArray(content) ? content.length : 0}</Typography>
                   <Typography variant="body2" color="textSecondary">Total Items</Typography>
                 </Box>
               </Box>
@@ -215,7 +218,7 @@ export const ContentList: React.FC<ContentListProps> = ({
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {content.filter(c => c.status === 'published').length}
+                    {Array.isArray(content) ? content.filter(c => c.status === 'published').length : 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">Published</Typography>
                 </Box>
@@ -232,7 +235,7 @@ export const ContentList: React.FC<ContentListProps> = ({
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {content.filter(c => c.status === 'pending_review').length}
+                    {Array.isArray(content) ? content.filter(c => c.status === 'pending_review').length : 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">Pending</Typography>
                 </Box>
@@ -249,7 +252,7 @@ export const ContentList: React.FC<ContentListProps> = ({
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {content.filter(c => c.status === 'draft').length}
+                    {Array.isArray(content) ? content.filter(c => c.status === 'draft').length : 0}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">Drafts</Typography>
                 </Box>
@@ -286,8 +289,8 @@ export const ContentList: React.FC<ContentListProps> = ({
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedIds.length > 0 && selectedIds.length < content.length}
-                    checked={content.length > 0 && selectedIds.length === content.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < (Array.isArray(content) ? content.length : 0)}
+                    checked={Array.isArray(content) && content.length > 0 && selectedIds.length === content.length}
                     onChange={handleSelectAll}
                   />
                 </TableCell>
@@ -301,7 +304,7 @@ export const ContentList: React.FC<ContentListProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {content.map((item) => (
+              {Array.isArray(content) && content.map((item) => (
                 <TableRow key={item.id} hover selected={selectedIds.includes(item.id)}>
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -370,7 +373,7 @@ export const ContentList: React.FC<ContentListProps> = ({
                   </TableCell>
                 </TableRow>
               ))}
-              {content.length === 0 && !loading && (
+              {(!Array.isArray(content) || content.length === 0) && !loading && (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                     <Typography color="textSecondary">

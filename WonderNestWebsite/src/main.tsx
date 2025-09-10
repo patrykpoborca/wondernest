@@ -62,14 +62,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <AuthProvider>
-        <AdminAuthProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <AdminAuthProvider>
             <ThemeProvider theme={marketingTheme}>
               <CssBaseline />
               <App />
             </ThemeProvider>
-          </BrowserRouter>
-        </AdminAuthProvider>
+          </AdminAuthProvider>
+        </BrowserRouter>
       </AuthProvider>
     </Provider>
   </React.StrictMode>,

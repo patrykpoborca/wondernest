@@ -74,11 +74,14 @@ class AdminApiService {
               return this.client(originalRequest)
             } catch (refreshError) {
               this.clearSession()
-              // Redirect handled by component logic
+              // Trigger logout and redirect
+              this.triggerLogout()
               return Promise.reject(refreshError)
             }
           } else {
             this.clearSession()
+            // Trigger logout and redirect
+            this.triggerLogout()
           }
         }
         
@@ -113,6 +116,13 @@ class AdminApiService {
   clearSession(): void {
     if (typeof window === 'undefined') return
     localStorage.removeItem(this.sessionKey)
+  }
+  
+  private triggerLogout(): void {
+    // Dispatch a custom event that the AdminAuthContext can listen to
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('admin-auth-expired'))
+    }
   }
   
   isAuthenticated(): boolean {

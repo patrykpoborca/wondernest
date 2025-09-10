@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AdminInfo, AdminSession } from '@/types/admin'
 import { adminApiService } from '@/services/adminApi'
 
@@ -33,6 +34,7 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
   const [admin, setAdmin] = useState<AdminInfo | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   // Initialize authentication state
   useEffect(() => {
@@ -82,6 +84,23 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     const interval = setInterval(checkTokenExpiry, 60000)
     return () => clearInterval(interval)
   }, [isAuthenticated])
+
+  // Listen for auth expiration events from API service
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      // Clear local state
+      setAdmin(null)
+      setIsAuthenticated(false)
+      setError('Your session has expired. Please log in again.')
+      // Redirect to login page
+      navigate('/admin/login')
+    }
+
+    window.addEventListener('admin-auth-expired', handleAuthExpired)
+    return () => {
+      window.removeEventListener('admin-auth-expired', handleAuthExpired)
+    }
+  }, [navigate])
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true)
@@ -176,6 +195,13 @@ export function useAdminAuth(): AdminAuthContextType {
 export function withAdminAuth<P extends object>(Component: React.ComponentType<P>) {
   return function ProtectedAdminComponent(props: P) {
     const { isAuthenticated, isLoading } = useAdminAuth()
+    const navigate = useNavigate()
+
+    useEffect(() => {
+      if (!isLoading && !isAuthenticated) {
+        navigate('/admin/login')
+      }
+    }, [isAuthenticated, isLoading, navigate])
 
     if (isLoading) {
       return (
@@ -191,17 +217,8 @@ export function withAdminAuth<P extends object>(Component: React.ComponentType<P
     }
 
     if (!isAuthenticated) {
-      // Redirect to admin login will be handled by router
-      return (
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          minHeight: '50vh' 
-        }}>
-          <div>Please log in as an administrator to access this page.</div>
-        </div>
-      )
+      // User will be redirected by the useEffect above
+      return null
     }
 
     return <Component {...props} />

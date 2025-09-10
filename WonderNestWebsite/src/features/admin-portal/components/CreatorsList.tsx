@@ -160,7 +160,7 @@ export const CreatorsList: React.FC<CreatorsListProps> = ({
               </Avatar>
               <Box>
                 <Typography variant="h6">
-                  {creators.reduce((sum, c) => sum + c.total_content_uploaded, 0)}
+                  {creators.reduce((sum, c) => sum + (c.total_content_uploaded || 0), 0)}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">Total Content</Typography>
               </Box>
