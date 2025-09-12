@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material'
 import adminApi from '@/services/adminApi'
 
-export type ContentType = 'story' | 'sticker_pack' | 'game' | 'activity' | 'educational_pack' | 'template'
+export type ContentType = 'story' | 'sticker_pack' | 'character_pack' | 'story_template' | 'applet' | 'game' | 'activity' | 'educational_pack'
 
 interface ContentUploadFormProps {
   onSuccess?: () => void
@@ -49,6 +49,11 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
     ageRangeMax: 8,
     tags: [] as string[],
     searchKeywords: [] as string[],
+    educationalGoals: [] as string[],
+    themes: [] as string[],
+    category: '',
+    difficultyLevel: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
+    estimatedDuration: '',
     mainFile: null as File | null,
     thumbnailFile: null as File | null,
     additionalFiles: [] as File[]
@@ -56,6 +61,8 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
 
   const [tagInput, setTagInput] = useState('')
   const [keywordInput, setKeywordInput] = useState('')
+  const [goalInput, setGoalInput] = useState('')
+  const [themeInput, setThemeInput] = useState('')
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -122,6 +129,40 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
     })
   }
 
+  const handleAddGoal = () => {
+    if (goalInput.trim() && !formData.educationalGoals.includes(goalInput.trim())) {
+      setFormData({
+        ...formData,
+        educationalGoals: [...formData.educationalGoals, goalInput.trim()]
+      })
+      setGoalInput('')
+    }
+  }
+
+  const handleRemoveGoal = (goal: string) => {
+    setFormData({
+      ...formData,
+      educationalGoals: formData.educationalGoals.filter(g => g !== goal)
+    })
+  }
+
+  const handleAddTheme = () => {
+    if (themeInput.trim() && !formData.themes.includes(themeInput.trim())) {
+      setFormData({
+        ...formData,
+        themes: [...formData.themes, themeInput.trim()]
+      })
+      setThemeInput('')
+    }
+  }
+
+  const handleRemoveTheme = (theme: string) => {
+    setFormData({
+      ...formData,
+      themes: formData.themes.filter(t => t !== theme)
+    })
+  }
+
   const handleSubmit = async (publish: boolean = false) => {
     setLoading(true)
     setError(null)
@@ -139,6 +180,11 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
       uploadData.append('ageRangeMax', formData.ageRangeMax.toString())
       uploadData.append('tags', JSON.stringify(formData.tags))
       uploadData.append('searchKeywords', JSON.stringify(formData.searchKeywords))
+      uploadData.append('educationalGoals', JSON.stringify(formData.educationalGoals))
+      uploadData.append('themes', JSON.stringify(formData.themes))
+      uploadData.append('category', formData.category)
+      uploadData.append('difficultyLevel', formData.difficultyLevel)
+      uploadData.append('estimatedDuration', formData.estimatedDuration)
       
       if (formData.mainFile) {
         uploadData.append('mainFile', formData.mainFile)
@@ -226,10 +272,12 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
               >
                 <MenuItem value="story">Story</MenuItem>
                 <MenuItem value="sticker_pack">Sticker Pack</MenuItem>
+                <MenuItem value="character_pack">Character Pack</MenuItem>
+                <MenuItem value="story_template">Story Template</MenuItem>
+                <MenuItem value="applet">Applet</MenuItem>
                 <MenuItem value="game">Game</MenuItem>
                 <MenuItem value="activity">Activity</MenuItem>
                 <MenuItem value="educational_pack">Educational Pack</MenuItem>
-                <MenuItem value="template">Template</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -281,6 +329,109 @@ export const ContentUploadForm: React.FC<ContentUploadFormProps> = ({ onSuccess,
                 <MenuItem value="GBP">GBP</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+
+          {/* Educational and Content Metadata */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Category"
+              value={formData.category}
+              onChange={handleInputChange('category')}
+              placeholder="e.g., Math, Science, Art, Music"
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Difficulty Level</InputLabel>
+              <Select
+                value={formData.difficultyLevel}
+                onChange={handleSelectChange('difficultyLevel')}
+                label="Difficulty Level"
+                disabled={loading}
+              >
+                <MenuItem value="beginner">Beginner</MenuItem>
+                <MenuItem value="intermediate">Intermediate</MenuItem>
+                <MenuItem value="advanced">Advanced</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Estimated Duration"
+              value={formData.estimatedDuration}
+              onChange={handleInputChange('estimatedDuration')}
+              placeholder="e.g., 10 minutes, 1 hour, 30 minutes"
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            {/* Educational Goals */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                Educational Goals
+              </Typography>
+              <TextField
+                label="Add Educational Goal"
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddGoal())}
+                disabled={loading}
+                size="small"
+                sx={{ mr: 1 }}
+                placeholder="e.g., creativity, problem-solving, literacy"
+              />
+              <Button onClick={handleAddGoal} disabled={loading}>
+                Add Goal
+              </Button>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
+                {formData.educationalGoals.map(goal => (
+                  <Chip
+                    key={goal}
+                    label={goal}
+                    onDelete={() => handleRemoveGoal(goal)}
+                    size="small"
+                    color="primary"
+                    disabled={loading}
+                  />
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Themes */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                Themes
+              </Typography>
+              <TextField
+                label="Add Theme"
+                value={themeInput}
+                onChange={(e) => setThemeInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTheme())}
+                disabled={loading}
+                size="small"
+                sx={{ mr: 1 }}
+                placeholder="e.g., animals, adventure, friendship"
+              />
+              <Button onClick={handleAddTheme} disabled={loading}>
+                Add Theme
+              </Button>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
+                {formData.themes.map(theme => (
+                  <Chip
+                    key={theme}
+                    label={theme}
+                    onDelete={() => handleRemoveTheme(theme)}
+                    size="small"
+                    color="info"
+                    disabled={loading}
+                  />
+                ))}
+              </Stack>
+            </Box>
           </Grid>
 
           {/* Tags and Keywords */}

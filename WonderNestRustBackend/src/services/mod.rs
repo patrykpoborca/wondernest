@@ -8,6 +8,8 @@ pub mod content_pack_service;
 pub mod content_publishing_service;
 pub mod content_moderation_service;
 pub mod content_validation;
+pub mod content_ecosystem_service;
+pub mod creator_service;
 pub mod family;
 pub mod file_access_controller;
 pub mod file_reference_service;
@@ -29,6 +31,7 @@ pub struct AppState {
     pub redis: redis::aio::ConnectionManager,
     pub config: Config,
     pub storage: Arc<dyn StorageProvider>,
+    pub storage_provider: Arc<dyn StorageProvider>,
     pub file_access: file_access_controller::FileAccessController,
     pub signed_url: signed_url_service::SignedUrlService,
     pub content_pack: content_pack_service::ContentPackService,

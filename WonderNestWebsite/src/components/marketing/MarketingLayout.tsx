@@ -73,7 +73,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
   }
 
   const getDashboardRoute = () => {
-    if (!user) return '/app/login'
+    if (!user) return '/login'
     
     switch (user.userType) {
       case 'parent':
@@ -84,7 +84,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
       case 'content_manager':
         return '/app/content'
       default:
-        return '/app/login'
+        return '/login'
     }
   }
 
@@ -161,7 +161,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
                     <>
                       <Button
                         component={Link}
-                        to="/app/login"
+                        to="/login"
                         color="primary"
                         variant="outlined"
                         size="small"
@@ -250,7 +250,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
               <>
                 <Button
                   component={Link}
-                  to="/app/login"
+                  to="/login"
                   color="primary"
                   variant="outlined"
                   fullWidth

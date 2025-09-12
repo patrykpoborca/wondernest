@@ -15,6 +15,7 @@ mod content_packs;
 mod content_publishing;
 mod content_moderation;
 mod coppa;
+mod creator_auth;
 mod family;
 mod file_upload;
 mod marketplace;
@@ -36,6 +37,8 @@ pub fn router() -> Router<AppState> {
     Router::new()
         // Auth routes (no middleware)
         .nest("/auth", auth::router())
+        // Creator auth routes (separate auth system)
+        .nest("/creators/auth", creator_auth::router())
         // File routes (mixed public/protected, handles its own auth)
         .nest("/files", file_upload::router())
         // Protected routes with middleware

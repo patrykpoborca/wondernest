@@ -30,8 +30,20 @@ pub enum AppError {
     MfaRequired,
     InsufficientPermissions,
     
+    // Creator-specific errors
+    CreatorNotVerified,
+    CreatorAccountSuspended,
+    InsufficientCreatorTier,
+    InsufficientCreatorPermissions,
+    CreatorApplicationNotFound,
+    CreatorContentNotFound,
+    InvalidCreatorApplication,
+    CreatorEmailAlreadyExists,
+    CreatorContentAlreadySubmitted,
+    
     // Internal errors
     InternalError(String),
+    InternalServerError(String),
     
     // Redis errors
     RedisError(redis::RedisError),
@@ -56,7 +68,17 @@ impl fmt::Display for AppError {
             AppError::Forbidden(msg) => write!(f, "Forbidden: {}", msg),
             AppError::MfaRequired => write!(f, "Multi-factor authentication required"),
             AppError::InsufficientPermissions => write!(f, "Insufficient permissions"),
+            AppError::CreatorNotVerified => write!(f, "Creator account not verified"),
+            AppError::CreatorAccountSuspended => write!(f, "Creator account suspended"),
+            AppError::InsufficientCreatorTier => write!(f, "Insufficient creator tier"),
+            AppError::InsufficientCreatorPermissions => write!(f, "Insufficient creator permissions"),
+            AppError::CreatorApplicationNotFound => write!(f, "Creator application not found"),
+            AppError::CreatorContentNotFound => write!(f, "Creator content not found"),
+            AppError::InvalidCreatorApplication => write!(f, "Invalid creator application"),
+            AppError::CreatorEmailAlreadyExists => write!(f, "Creator email already exists"),
+            AppError::CreatorContentAlreadySubmitted => write!(f, "Creator content already submitted"),
             AppError::InternalError(msg) => write!(f, "Internal error: {}", msg),
+            AppError::InternalServerError(msg) => write!(f, "Internal server error: {}", msg),
             AppError::RedisError(e) => write!(f, "Redis error: {}", e),
             AppError::JwtError(e) => write!(f, "JWT error: {}", e),
             AppError::JsonError(e) => write!(f, "JSON serialization error: {}", e),
@@ -98,8 +120,39 @@ impl IntoResponse for AppError {
             AppError::InsufficientPermissions => {
                 (StatusCode::FORBIDDEN, "Insufficient permissions for this operation".to_string())
             }
+            AppError::CreatorNotVerified => {
+                (StatusCode::FORBIDDEN, "Creator account not verified".to_string())
+            }
+            AppError::CreatorAccountSuspended => {
+                (StatusCode::FORBIDDEN, "Creator account suspended".to_string())
+            }
+            AppError::InsufficientCreatorTier => {
+                (StatusCode::FORBIDDEN, "Insufficient creator tier for this operation".to_string())
+            }
+            AppError::InsufficientCreatorPermissions => {
+                (StatusCode::FORBIDDEN, "Insufficient creator permissions".to_string())
+            }
+            AppError::CreatorApplicationNotFound => {
+                (StatusCode::NOT_FOUND, "Creator application not found".to_string())
+            }
+            AppError::CreatorContentNotFound => {
+                (StatusCode::NOT_FOUND, "Creator content not found".to_string())
+            }
+            AppError::InvalidCreatorApplication => {
+                (StatusCode::BAD_REQUEST, "Invalid creator application data".to_string())
+            }
+            AppError::CreatorEmailAlreadyExists => {
+                (StatusCode::CONFLICT, "Creator email already exists".to_string())
+            }
+            AppError::CreatorContentAlreadySubmitted => {
+                (StatusCode::CONFLICT, "Content already submitted for review".to_string())
+            }
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+            }
+            AppError::InternalServerError(msg) => {
+                tracing::error!("Internal server error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
             }
             AppError::RedisError(e) => {

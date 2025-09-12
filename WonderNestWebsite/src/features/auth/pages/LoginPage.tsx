@@ -248,8 +248,8 @@ export const LoginPage: React.FC = () => {
           </Box>
         </form>
         
-        {/* Admin Access Toggle */}
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
+        {/* Navigation Links */}
+        <Box sx={{ textAlign: 'center', mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Link
             component="button"
             type="button"
@@ -269,6 +269,24 @@ export const LoginPage: React.FC = () => {
               ? 'Are you a parent? Switch to Parent Login' 
               : 'Are you a staff member? Access Admin Portal'
             }
+          </Link>
+          
+          <Link
+            component="button"
+            type="button"
+            onClick={() => navigate('/login')}
+            sx={{
+              fontSize: '0.8rem',
+              color: 'text.disabled',
+              textDecoration: 'none',
+              '&:hover': {
+                color: 'primary.main',
+                textDecoration: 'underline',
+              },
+              cursor: 'pointer',
+            }}
+          >
+            ← Back to Portal Selection
           </Link>
         </Box>
       </Paper>

@@ -331,8 +331,12 @@ pub struct MarketplaceBrowseRequest {
     pub content_type: Option<Vec<String>>,
     pub age_range_min: Option<i32>,
     pub age_range_max: Option<i32>,
+    pub age_range: Option<String>,
+    pub search_query: Option<String>,
     pub price_min: Option<BigDecimal>,
     pub price_max: Option<BigDecimal>,
+    pub price_range: Option<String>,
+    pub featured_only: Option<bool>,
     pub creator_tiers: Option<Vec<String>>,
     pub sort_by: Option<String>, // "popularity", "rating", "price", "newest"
     pub page: Option<i32>,

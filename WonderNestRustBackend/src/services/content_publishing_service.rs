@@ -8,8 +8,8 @@ use crate::{
     models::{
         ContentSubmission, ContentTemplate, ContentGuideline, ContentValidationResult,
         CreateContentSubmissionRequest, UpdateContentSubmissionRequest, 
-        ContentPreviewRequest, ContentPreviewResponse, AIAssistedCreationRequest,
-        AIAssistedCreationResponse, ContentSubmissionListResponse, ContentSubmissionSummary,
+        ContentPreviewRequest, PublishingContentPreviewResponse, AIAssistedCreationRequest,
+        AIAssistedCreationResponse, ContentSubmissionListResponse, PublishingContentSubmissionSummary,
         CreatorAnalyticsResponse, CreatorActivity, BigDecimal
     },
     error::{AppError, AppResult},
@@ -276,9 +276,9 @@ impl ContentPublishingService {
             .get_submissions_by_creator(creator_user_id, offset, limit, status_filter)
             .await?;
 
-        let submission_summaries: Vec<ContentSubmissionSummary> = submissions
+        let submission_summaries: Vec<PublishingContentSubmissionSummary> = submissions
             .into_iter()
-            .map(|s| ContentSubmissionSummary {
+            .map(|s| PublishingContentSubmissionSummary {
                 id: s.id,
                 title: s.title,
                 content_type: s.content_type.unwrap_or_else(|| "story".to_string()),

@@ -10,7 +10,8 @@ import {
   Alert,
   CircularProgress,
   Container,
-  Paper
+  Paper,
+  Link
 } from '@mui/material'
 import { Shield, Login } from '@mui/icons-material'
 import { useAdminAuth } from '@/contexts/AdminAuthContext'
@@ -200,6 +201,27 @@ export const AdminLoginPage: React.FC = () => {
             <Typography variant="caption" color="textSecondary">
               WonderNest Admin Portal v1.0
             </Typography>
+          </Box>
+
+          {/* Navigation Links */}
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Link
+              component="button"
+              type="button"
+              onClick={() => navigate('/login')}
+              sx={{
+                fontSize: '0.8rem',
+                color: 'text.disabled',
+                textDecoration: 'none',
+                '&:hover': {
+                  color: 'primary.main',
+                  textDecoration: 'underline',
+                },
+                cursor: 'pointer',
+              }}
+            >
+              ← Back to Portal Selection
+            </Link>
           </Box>
         </Paper>
       </Container>

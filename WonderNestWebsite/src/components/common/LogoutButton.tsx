@@ -65,7 +65,7 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
       sessionStorage.clear()
       
       // Navigate to login page
-      navigate('/app/login')
+      navigate('/login')
       
       setIsLoggingOut(false)
       setOpen(false)

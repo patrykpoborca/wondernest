@@ -291,7 +291,26 @@ class AdminApiService {
   
   // Creator Management
   async createCreatorQuick(creatorData: ContentCreatorForm): Promise<ContentCreator> {
-    const response = await this.client.post<ContentCreator>('/content-seeding/creators/quick-create', creatorData)
+    // Map frontend specializations to backend creator types
+    // For MVP, we'll default all to "Invited" since these are external creators being added by admins
+    const mapSpecializationToCreatorType = (specialization: string): string => {
+      // For now, map all content creators to "Invited" type (PascalCase)
+      // TODO: Create proper mapping once business requirements are clearer
+      return 'Invited'
+    }
+    
+    // Transform frontend form data to backend API format
+    const backendData = {
+      email: creatorData.email,
+      display_name: creatorData.name,
+      creator_type: creatorData.specialization ? mapSpecializationToCreatorType(creatorData.specialization) : 'Invited',
+      bio: creatorData.description || null,
+      avatar_url: null,
+      website_url: null,
+      can_publish_directly: false
+    }
+    
+    const response = await this.client.post<ContentCreator>('/content-seeding/creators/quick-create', backendData)
     return response.data
   }
   

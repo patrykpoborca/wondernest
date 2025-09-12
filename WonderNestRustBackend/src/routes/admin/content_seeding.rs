@@ -4,6 +4,10 @@ use crate::models::{
     CreateContentRequest, CsvContentRow, PublishContentRequest, UpdateAdminCreatorRequest,
     UpdateContentRequest,
 };
+use crate::models::admin_content::{
+    AdminContentStaging, PublishContentResponse, BulkPublishResponse, PublishResult,
+    BulkImportResponse, BulkImportStatus, DashboardStatsResponse,
+};
 use crate::services::AppState;
 use crate::extractors::AdminClaimsExtractor;
 use axum::{
@@ -88,7 +92,7 @@ pub async fn update_admin_creator(
 #[derive(Serialize)]
 pub struct CreateContentResponse {
     pub success: bool,
-    pub content: crate::models::AdminContentStaging,
+    pub content: AdminContentStaging,
 }
 
 pub async fn upload_content(
@@ -107,7 +111,7 @@ pub async fn upload_content(
 pub async fn list_staged_content(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<crate::models::ContentListResponse>, AppError> {
+) -> Result<Json<crate::models::AdminContentListResponse>, AppError> {
     let service = &state.admin_content;
 
     // Parse query parameters
@@ -136,7 +140,7 @@ pub async fn list_staged_content(
 pub async fn get_content(
     State(state): State<AppState>,
     Path(content_id): Path<Uuid>,
-) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
+) -> Result<Json<AdminContentStaging>, AppError> {
     let service = &state.admin_content;
     let content = service.get_content(content_id).await?;
 
@@ -147,7 +151,7 @@ pub async fn update_content(
     State(state): State<AppState>,
     Path(content_id): Path<Uuid>,
     Json(request): Json<UpdateContentRequest>,
-) -> Result<Json<crate::models::AdminContentStaging>, AppError> {
+) -> Result<Json<AdminContentStaging>, AppError> {
     let service = &state.admin_content;
     let content = service.update_content(content_id, request).await?;
 
@@ -163,7 +167,7 @@ pub async fn publish_content(
     AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Path(content_id): Path<Uuid>,
     Json(_request): Json<PublishContentRequest>,
-) -> Result<Json<crate::models::PublishContentResponse>, AppError> {
+) -> Result<Json<PublishContentResponse>, AppError> {
     
     let service = &state.admin_content;
     let admin_id = Uuid::parse_str(&claims.admin_id)
@@ -177,7 +181,7 @@ pub async fn bulk_publish(
     State(state): State<AppState>,
     AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Json(request): Json<BulkPublishRequest>,
-) -> Result<Json<crate::models::BulkPublishResponse>, AppError> {
+) -> Result<Json<BulkPublishResponse>, AppError> {
     
     let service = &state.admin_content;
     
@@ -192,7 +196,7 @@ pub async fn bulk_publish(
         match service.publish_content(content_id, admin_id).await {
             Ok(response) => {
                 successful += 1;
-                results.push(crate::models::PublishResult {
+                results.push(PublishResult {
                     content_id,
                     success: true,
                     marketplace_listing_id: Some(response.marketplace_listing_id),
@@ -201,7 +205,7 @@ pub async fn bulk_publish(
             }
             Err(err) => {
                 failed += 1;
-                results.push(crate::models::PublishResult {
+                results.push(PublishResult {
                     content_id,
                     success: false,
                     marketplace_listing_id: None,
@@ -211,7 +215,7 @@ pub async fn bulk_publish(
         }
     }
 
-    let response = crate::models::BulkPublishResponse {
+    let response = BulkPublishResponse {
         total_requested: results.len() as i32,
         successful,
         failed,
@@ -237,7 +241,7 @@ pub async fn bulk_upload_csv(
     State(state): State<AppState>,
     AdminClaimsExtractor(claims): AdminClaimsExtractor,
     Json(request): Json<BulkUploadCsvRequest>,
-) -> Result<Json<crate::models::BulkImportResponse>, AppError> {
+) -> Result<Json<BulkImportResponse>, AppError> {
     
     let service = &state.admin_content;
 
@@ -259,9 +263,9 @@ pub async fn bulk_upload_csv(
     }
 
     if !errors.is_empty() && content_items.is_empty() {
-        return Ok(Json(crate::models::BulkImportResponse {
+        return Ok(Json(BulkImportResponse {
             batch_id: Uuid::new_v4(),
-            status: crate::models::BulkImportStatus::Failed,
+            status: BulkImportStatus::Failed,
             total_items: 0,
             processed_items: 0,
             successful_items: 0,
@@ -301,11 +305,11 @@ pub async fn bulk_upload_csv(
 
     // Update bulk import status
     let final_status = if failed == 0 {
-        crate::models::BulkImportStatus::Completed
+        BulkImportStatus::Completed
     } else if successful == 0 {
-        crate::models::BulkImportStatus::Failed
+        BulkImportStatus::Failed
     } else {
-        crate::models::BulkImportStatus::Completed // Partial success
+        BulkImportStatus::Completed // Partial success
     };
 
     service
@@ -318,7 +322,7 @@ pub async fn bulk_upload_csv(
         )
         .await?;
 
-    Ok(Json(crate::models::BulkImportResponse {
+    Ok(Json(BulkImportResponse {
         batch_id: bulk_import.batch_id,
         status: final_status,
         total_items: bulk_import.total_items.unwrap_or(0),
@@ -389,7 +393,7 @@ pub async fn get_upload_url(
 
 pub async fn get_dashboard_stats(
     State(state): State<AppState>,
-) -> Result<Json<crate::models::DashboardStatsResponse>, AppError> {
+) -> Result<Json<DashboardStatsResponse>, AppError> {
     let service = &state.admin_content;
     let stats = service.get_dashboard_stats().await?;
 

@@ -5,6 +5,7 @@ use crate::models::admin_content::{
     BulkImportStatus, ContentStatus, CreatorType, ContentType,
     PublishContentResponse, ContentListRequest, ContentListResponse, DashboardStatsResponse,
 };
+use crate::services::file_reference_service::FileReferenceService;
 use sqlx::PgPool;
 use uuid::Uuid;
 use chrono::Utc;
@@ -13,11 +14,16 @@ use rust_decimal::Decimal;
 #[derive(Clone)]
 pub struct AdminContentService {
     db: PgPool,
+    file_reference_service: FileReferenceService,
 }
 
 impl AdminContentService {
     pub fn new(db: PgPool) -> Self {
-        Self { db }
+        let file_reference_service = FileReferenceService::new(db.clone());
+        Self { 
+            db,
+            file_reference_service,
+        }
     }
 
     pub async fn create_admin_creator(
@@ -117,6 +123,42 @@ impl AdminContentService {
         .fetch_one(&self.db)
         .await
         .map_err(|e| AppError::DatabaseError(e))?;
+
+        // Add file references for content-aware deletion
+        let files = &request.files;
+        
+        // Collect all file URLs
+        let mut file_urls = Vec::new();
+        if let Some(ref main_file) = files.main {
+            file_urls.push(main_file.as_str());
+        }
+        if let Some(ref thumbnail) = files.thumbnail {
+            file_urls.push(thumbnail.as_str());
+        }
+        for additional_file in &files.additional {
+            file_urls.push(additional_file.as_str());
+        }
+        
+        for file_url in file_urls {
+            // Extract file ID from URL if it's a WonderNest file
+            // Expected formats:
+            // - /api/v1/files/{file_id}/download
+            // - /api/v1/files/{file_id}/public
+            // - /api/v1/files/{file_id}/family
+            if let Some(file_id) = Self::extract_file_id_from_url(file_url) {
+                // Add reference to track this content's use of the file
+                if let Err(e) = self.file_reference_service
+                    .add_reference(file_id, "admin_content", content.id)
+                    .await 
+                {
+                    tracing::warn!(
+                        "Failed to add file reference for content {}: {}",
+                        content.id, e
+                    );
+                    // Don't fail the entire operation if reference tracking fails
+                }
+            }
+        }
 
         Ok(content)
     }
@@ -497,5 +539,78 @@ impl AdminContentService {
             avg_price: avg_price.unwrap_or_else(|| Decimal::from(0)),
             total_value: total_value.unwrap_or_else(|| Decimal::from(0)),
         })
+    }
+
+    /// Helper method to extract file ID from a URL
+    fn extract_file_id_from_url(url: &str) -> Option<Uuid> {
+        // Try to extract UUID from common URL patterns
+        // Examples:
+        // - /api/v1/files/123e4567-e89b-12d3-a456-426614174000/download
+        // - /api/v1/files/123e4567-e89b-12d3-a456-426614174000/public
+        // - https://cdn.wondernest.app/files/123e4567-e89b-12d3-a456-426614174000
+        
+        if url.contains("/api/v1/files/") {
+            // Extract the UUID part between /files/ and the next /
+            let parts: Vec<&str> = url.split('/').collect();
+            for i in 0..parts.len() {
+                if parts[i] == "files" && i + 1 < parts.len() {
+                    if let Ok(uuid) = Uuid::parse_str(parts[i + 1]) {
+                        return Some(uuid);
+                    }
+                }
+            }
+        }
+        
+        // Also try to find any UUID in the URL
+        // This is more permissive and catches UUIDs in any position
+        let parts: Vec<&str> = url.split('/').collect();
+        for part in parts {
+            if let Ok(uuid) = Uuid::parse_str(part) {
+                return Some(uuid);
+            }
+        }
+        
+        None
+    }
+
+    /// Delete content and clean up file references
+    pub async fn delete_content(&self, content_id: Uuid) -> Result<(), AppError> {
+        // First, get the content to find its file references
+        let content = self.get_content(content_id).await?;
+        
+        // Clean up file references
+        if let Some(files_json) = content.files {
+            if let Ok(files_value) = serde_json::from_value::<Vec<String>>(files_json) {
+                for file_url in files_value {
+                    if let Some(file_id) = Self::extract_file_id_from_url(&file_url) {
+                        // Remove the reference
+                        if let Err(e) = self.file_reference_service
+                            .remove_reference(file_id, "admin_content", content_id)
+                            .await 
+                        {
+                            tracing::warn!(
+                                "Failed to remove file reference for content {}: {}",
+                                content_id, e
+                            );
+                            // Don't fail the deletion if reference cleanup fails
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Delete the content from database
+        sqlx::query!(
+            "DELETE FROM content.admin_content_staging WHERE id = $1",
+            content_id
+        )
+        .execute(&self.db)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AppError::NotFound("Content not found".to_string()),
+            _ => AppError::DatabaseError(e),
+        })?;
+        
+        Ok(())
     }
 }

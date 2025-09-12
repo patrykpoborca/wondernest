@@ -106,6 +106,8 @@ pub enum ContentType {
     Activity,
     EducationalPack,
     Template,
+    CharacterPack,  // New: Character packs for story creation
+    Applet,         // New: Interactive mini-applications
 }
 
 impl std::fmt::Display for ContentType {
@@ -117,6 +119,8 @@ impl std::fmt::Display for ContentType {
             ContentType::Activity => write!(f, "activity"),
             ContentType::EducationalPack => write!(f, "educational_pack"),
             ContentType::Template => write!(f, "template"),
+            ContentType::CharacterPack => write!(f, "character_pack"),
+            ContentType::Applet => write!(f, "applet"),
         }
     }
 }
@@ -377,6 +381,8 @@ impl CsvContentRow {
             "activity" => ContentType::Activity,
             "educational_pack" => ContentType::EducationalPack,
             "template" => ContentType::Template,
+            "character_pack" => ContentType::CharacterPack,
+            "applet" => ContentType::Applet,
             _ => return Err(format!("Invalid content type: {}", self.content_type)),
         };
 
@@ -428,4 +434,129 @@ impl CsvContentRow {
             import_source: Some("csv".to_string()),
         })
     }
+}
+
+// =============================================================================
+// CONTENT VERSIONING MODELS
+// =============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ContentVersion {
+    pub id: Uuid,
+    pub content_id: Uuid,
+    pub version_number: String,
+    pub version_type: VersionType,
+    pub changelog: Option<String>,
+    pub release_notes: Option<serde_json::Value>,
+    pub breaking_changes: Option<Vec<String>>,
+    pub is_current: bool,
+    pub is_published: bool,
+    pub is_deprecated: bool,
+    pub content_snapshot: serde_json::Value,
+    pub files_snapshot: Option<serde_json::Value>,
+    pub metadata_snapshot: Option<serde_json::Value>,
+    pub min_app_version: Option<String>,
+    pub max_app_version: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub published_by: Option<Uuid>,
+    pub deprecated_at: Option<DateTime<Utc>>,
+    pub deprecated_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "varchar", rename_all = "lowercase")]
+pub enum VersionType {
+    Major,
+    Minor,
+    Patch,
+    Hotfix,
+}
+
+impl std::fmt::Display for VersionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VersionType::Major => write!(f, "major"),
+            VersionType::Minor => write!(f, "minor"),
+            VersionType::Patch => write!(f, "patch"),
+            VersionType::Hotfix => write!(f, "hotfix"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateVersionRequest {
+    pub content_id: Uuid,
+    pub version_number: String,
+    pub version_type: VersionType,
+    pub changelog: Option<String>,
+    pub release_notes: Option<serde_json::Value>,
+    pub breaking_changes: Vec<String>,
+    pub min_app_version: Option<String>,
+    pub max_app_version: Option<String>,
+}
+
+// =============================================================================
+// CONTENT DEPENDENCY MODELS
+// =============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ContentDependency {
+    pub id: Uuid,
+    pub parent_content_id: Uuid,
+    pub child_content_id: Uuid,
+    pub dependency_type: DependencyType,
+    pub min_version: Option<String>,
+    pub max_version: Option<String>,
+    pub loading_order: i32,
+    pub is_optional: bool,
+    pub fallback_content_id: Option<Uuid>,
+    pub validation_rules: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "varchar", rename_all = "lowercase")]
+pub enum DependencyType {
+    Requires,   // Hard dependency - child must be present
+    Enhances,   // Soft dependency - child improves experience
+    Replaces,   // This content replaces the child
+    Extends,    // This content extends the child
+    Bundles,    // This content includes the child
+}
+
+impl std::fmt::Display for DependencyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DependencyType::Requires => write!(f, "requires"),
+            DependencyType::Enhances => write!(f, "enhances"),
+            DependencyType::Replaces => write!(f, "replaces"),
+            DependencyType::Extends => write!(f, "extends"),
+            DependencyType::Bundles => write!(f, "bundles"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateDependencyRequest {
+    pub parent_content_id: Uuid,
+    pub child_content_id: Uuid,
+    pub dependency_type: DependencyType,
+    pub min_version: Option<String>,
+    pub max_version: Option<String>,
+    pub loading_order: Option<i32>,
+    pub is_optional: bool,
+    pub fallback_content_id: Option<Uuid>,
+    pub validation_rules: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DependencyCheckResult {
+    pub dependency_id: Uuid,
+    pub child_content_id: Uuid,
+    pub dependency_type: DependencyType,
+    pub is_satisfied: bool,
+    pub missing_reason: Option<String>,
 }

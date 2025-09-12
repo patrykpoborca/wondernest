@@ -1,6 +1,7 @@
 // User roles and permissions types
 export enum UserRole {
   PARENT = 'parent',
+  CREATOR = 'creator',
   ADMIN = 'admin',
   SUPER_ADMIN = 'super_admin',
   CONTENT_MANAGER = 'content_manager',
@@ -19,6 +20,16 @@ export enum Permission {
   MANAGE_CONTENT_FILTERS = 'manage_content_filters',
   VIEW_ANALYTICS = 'view_analytics',
   MANAGE_FAMILY_SETTINGS = 'manage_family_settings',
+
+  // Creator permissions
+  CREATE_STORIES = 'create_stories',
+  MANAGE_OWN_CONTENT = 'manage_own_content',
+  VIEW_CREATOR_ANALYTICS = 'view_creator_analytics',
+  MONETIZE_CONTENT = 'monetize_content',
+  SUBMIT_FOR_REVIEW = 'submit_for_review',
+  MANAGE_CREATOR_PROFILE = 'manage_creator_profile',
+  VIEW_EARNINGS = 'view_earnings',
+  WITHDRAW_EARNINGS = 'withdraw_earnings',
 
   // Admin permissions
   MANAGE_USERS = 'manage_users',

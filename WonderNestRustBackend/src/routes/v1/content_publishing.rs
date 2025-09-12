@@ -193,7 +193,7 @@ async fn generate_content_preview(
     let submission = publishing_service.get_submission_by_id(submission_id, user_id).await?;
     
     // TODO: Implement actual preview generation
-    let preview_response = crate::models::ContentPreviewResponse {
+    let preview_response = crate::models::PublishingContentPreviewResponse {
         submission_id,
         preview_html: "<div>Preview of the story...</div>".to_string(),
         preview_data: submission.content_data.clone(),

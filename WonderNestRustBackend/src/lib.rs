@@ -87,7 +87,8 @@ pub async fn create_app(
         db: db_pool,
         redis: redis_conn,
         config,
-        storage: storage_provider,
+        storage: storage_provider.clone(),
+        storage_provider,
         file_access: file_access_controller,
         signed_url: signed_url_service,
         content_pack: content_pack_service,
@@ -95,13 +96,14 @@ pub async fn create_app(
         admin_content: admin_content_service,
     };
 
-    // Configure CORS for production
+    // Configure CORS for development and production
     let cors = CorsLayer::new()
         .allow_origin([
-            "http://localhost:3000".parse::<HeaderValue>().unwrap(), // Flutter web dev
-            "http://localhost:3001".parse::<HeaderValue>().unwrap(), // Website dev port
-            "http://localhost:8080".parse::<HeaderValue>().unwrap(), // Alternative dev port
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(), // React dev server
+            "http://localhost:3001".parse::<HeaderValue>().unwrap(), // Alternative dev port
+            "http://localhost:8080".parse::<HeaderValue>().unwrap(), // Backend dev port
             "https://wondernest.app".parse::<HeaderValue>().unwrap(), // Production domain
+            "tauri://localhost".parse::<HeaderValue>().unwrap(), // Tauri app
         ])
         .allow_methods([
             Method::GET,

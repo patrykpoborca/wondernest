@@ -232,3 +232,57 @@ let claims = token_data.claims;
 - Profile picture and child avatar reference checking commented out (requires schema updates)
 - Text search for story content uses simple LIKE (could be enhanced with full-text search)
 - Cleanup job for orphaned files not yet implemented (planned for future release)
+
+---
+
+## [2025-01-10] - Type: INTEGRATION
+
+### Summary
+Integrated content-aware file deletion with content ecosystem feature to automatically track file references when admin content is created
+
+### Context
+Following the implementation of the content ecosystem feature, integrated file reference tracking to ensure files used in admin content cannot be accidentally deleted while in use.
+
+### Changes Made
+- ✅ Enhanced AdminContentService to include FileReferenceService
+- ✅ Added automatic file reference creation when content is created
+- ✅ Added automatic file reference cleanup when content is deleted
+- ✅ Created helper method to extract file IDs from URLs
+- ✅ Added delete_content method with reference cleanup
+
+### Files Modified
+| File | Change Type | Description |
+|------|------------|-------------|
+| `/src/services/admin_content_service.rs` | MODIFY | Added file reference tracking integration |
+
+### Integration Details
+
+#### File Reference Creation
+When admin content is created with file URLs, the system:
+1. Extracts file IDs from URLs using pattern matching
+2. Creates references linking files to content
+3. Logs warnings if reference creation fails (non-blocking)
+
+#### File Reference Cleanup
+When admin content is deleted, the system:
+1. Retrieves all file URLs from content
+2. Removes references for each file
+3. Proceeds with content deletion even if cleanup fails
+
+#### URL Pattern Recognition
+Supports multiple URL formats:
+- `/api/v1/files/{uuid}/download`
+- `/api/v1/files/{uuid}/public`  
+- `/api/v1/files/{uuid}/family`
+- `https://cdn.wondernest.app/files/{uuid}`
+
+### Testing Status
+- ⚠️ Code has compilation errors from unrelated content ecosystem service
+- ✅ File reference integration logic is complete
+- 📝 Needs testing once compilation issues are resolved
+
+### Next Steps
+- Fix compilation errors in content_ecosystem_service.rs
+- Test file upload with admin content creation
+- Verify file deletion is blocked when content references exist
+- Test content deletion properly cleans up references

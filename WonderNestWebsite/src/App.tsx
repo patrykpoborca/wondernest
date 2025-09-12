@@ -5,6 +5,7 @@ import { Box } from '@mui/material'
 import { useAuth } from './hooks/useAuth'
 import { LoadingScreen } from './components/common/LoadingScreen'
 import { LoginPage } from './features/auth/pages/LoginPage'
+import UnifiedLoginPage from './features/auth/pages/UnifiedLoginPage'
 import { SignupPage } from './features/auth/pages/SignupPage'
 import { ParentDashboard } from './features/parent-portal/pages/ParentDashboard'
 import { FileManagementPage } from './features/parent-portal/pages/FileManagementPage'
@@ -14,9 +15,19 @@ import { AdminDashboard } from './features/admin-portal/pages/AdminDashboard'
 import { AdminLoginPage } from './features/admin-portal/pages/AdminLoginPage'
 import { ContentSeedingDashboard } from './features/admin-portal/pages/ContentSeedingDashboard'
 import { useAdminAuth, withAdminAuth } from './contexts/AdminAuthContext'
+import { CreatorAuthProvider, withCreatorAuth } from './contexts/CreatorAuthContext'
 import { ContentManagerDashboard } from './features/content-manager/pages/ContentManagerDashboard'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { UserRole, Permission } from './types/auth'
+
+// Creator Portal pages
+import CreatorLogin from './features/creator-portal/components/CreatorLogin'
+import CreatorRegistration from './features/creator-portal/components/CreatorRegistration'
+import CreatorDashboard from './features/creator-portal/components/CreatorDashboard'
+import CreatorLayout from './features/creator-portal/components/CreatorLayout'
+import StoryCreation from './features/creator-portal/components/StoryCreation'
+import MonetizationDashboard from './features/creator-portal/components/MonetizationDashboard'
+import AnalyticsDashboard from './features/creator-portal/components/AnalyticsDashboard'
 
 // Marketing pages
 import { MarketingLayout } from './components/marketing/MarketingLayout'
@@ -46,6 +57,16 @@ function App() {
         <Route path="/safety" element={<MarketingLayout><SafetyPage /></MarketingLayout>} />
         <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
         <Route path="/resources" element={<MarketingLayout><ResourcesPage /></MarketingLayout>} />
+        
+        {/* Main Login Portal Selection */}
+        <Route 
+          path="/login" 
+          element={
+            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+              <UnifiedLoginPage />
+            </Box>
+          } 
+        />
         
         {/* Authenticated App Routes */}
         <Route 
@@ -164,6 +185,99 @@ function App() {
           element={<Navigate to="/admin/dashboard" replace />}
         />
         
+        {/* Creator Portal Routes */}
+        <Route 
+          path="/creator/login" 
+          element={
+            <CreatorAuthProvider>
+              <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <CreatorLogin />
+              </Box>
+            </CreatorAuthProvider>
+          } 
+        />
+        
+        <Route 
+          path="/creator/register" 
+          element={
+            <CreatorAuthProvider>
+              <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <CreatorRegistration />
+              </Box>
+            </CreatorAuthProvider>
+          } 
+        />
+        
+        <Route
+          path="/creator/dashboard"
+          element={
+            <CreatorAuthProvider>
+              {React.createElement(withCreatorAuth(() => (
+                <CreatorLayout>
+                  <CreatorDashboard />
+                </CreatorLayout>
+              )))}
+            </CreatorAuthProvider>
+          }
+        />
+        
+        <Route
+          path="/creator/stories/create"
+          element={
+            <CreatorAuthProvider>
+              {React.createElement(withCreatorAuth(() => (
+                <CreatorLayout>
+                  <StoryCreation />
+                </CreatorLayout>
+              )))}
+            </CreatorAuthProvider>
+          }
+        />
+        
+        <Route
+          path="/creator/stories"
+          element={
+            <CreatorAuthProvider>
+              {React.createElement(withCreatorAuth(() => (
+                <CreatorLayout>
+                  <StoryCreation />
+                </CreatorLayout>
+              )))}
+            </CreatorAuthProvider>
+          }
+        />
+        
+        <Route
+          path="/creator/monetization"
+          element={
+            <CreatorAuthProvider>
+              {React.createElement(withCreatorAuth(() => (
+                <CreatorLayout>
+                  <MonetizationDashboard />
+                </CreatorLayout>
+              )))}
+            </CreatorAuthProvider>
+          }
+        />
+        
+        <Route
+          path="/creator/analytics"
+          element={
+            <CreatorAuthProvider>
+              {React.createElement(withCreatorAuth(() => (
+                <CreatorLayout>
+                  <AnalyticsDashboard />
+                </CreatorLayout>
+              )))}
+            </CreatorAuthProvider>
+          }
+        />
+        
+        <Route
+          path="/creator/*"
+          element={<Navigate to="/creator/dashboard" replace />}
+        />
+        
         <Route
           path="/app/content/*"
           element={
@@ -206,9 +320,11 @@ function getDefaultRoute(userType?: string): string {
   switch (userType) {
     case UserRole.PARENT:
       return '/app/parent'
+    case UserRole.CREATOR:
+      return '/creator/dashboard'
     case UserRole.ADMIN:
     case UserRole.SUPER_ADMIN:
-      return '/app/admin'
+      return '/admin/dashboard'
     case UserRole.CONTENT_MANAGER:
       return '/app/content'
     default:
